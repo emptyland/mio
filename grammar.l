@@ -1,24 +1,38 @@
 %{
 #include "grammar.hh"
 
-int yywrap();
+//int yywrap();
 %}
 %option yylineno
 %option noyywrap
-%option c++
+%option reentrant
+%option bison-bridge bison-locations
 
 digit [0-9]
 %%
 
 [+-]?[0-9]+ {
-    return INTEGRAL;
+    yylval->i64 = 0;
+    return INTEGRAL_LITERAL;
+}
+
+[+-]?[0-9]+\.[0-9]+ {
+    yylval->f64 = 0;
+    return FLOATING_LITERAL;
 }
 
 [A-Za-z_$][A-Za-z_0-9]* {
     return ID;
 }
+
+"+" { return PLUS; }
+"-" { return MINUS; }
+"*" { return STAR; }
+"/" { return DIV; }
+"=" { return ASSIGN; }
+
 %%
 
-int yywrap() {
+/*int yywrap() {
     return 1;
-}
+}*/

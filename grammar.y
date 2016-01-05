@@ -1,37 +1,62 @@
 %pure-parser
-%lex-param {FlexLexer *scanner}
+%locations
+%lex-param {void *scanner}
 %parse-param {Parser *parser}
 
 %{
+#include <stdint.h>
 #include "parser.h"
 #include "grammar.hh"
-#include <FlexLexer.h>
 
 #define scanner (parser->lexer())
 #define YYERROR_VERBOSE 1
 
-void yyerror(Parser *p, const char *message);
+void yyerror(YYLTYPE *local, Parser *p, const char *message);
 
-int yylex(YYSTYPE *, void *);
+extern "C" int yylex(YYSTYPE * yylval_param, YYLTYPE * yylloc_param,
+                     void *yyscanner);
 %}
 
-%token ID INTEGRAL
-
-
-%%
-File: ID Statement {
+%union {
+    int64_t i64;
+    double  f64;
 }
 
-Statement: INTEGRAL {
+%token ID
+%token <i64> INTEGRAL_LITERAL
+%token <f64> FLOATING_LITERAL
+
+%left ASSIGN
+
+%left PLUS MINUS
+%left STAR DIV
+
+%%
+
+Expression: Operand {
+}
+| Expression PLUS Expression {
+}
+| Expression MINUS Expression {
+}
+| Expression STAR Expression {
+}
+| Expression DIV Expression {
+}
+
+Operand: ID {
+
+}
+| INTEGRAL_LITERAL {
+
+}
+| FLOATING_LITERAL {
+
 }
 
 %%
 
-void yyerror(Parser *p, const char *message) {
+void yyerror(YYLTYPE *local, Parser *p, const char *message) {
     return;
 }
 
-int yylex(YYSTYPE *, void *param) {
-    FlexLexer *lexer = static_cast<FlexLexer*>(param);
-    return lexer->yylex();
-}

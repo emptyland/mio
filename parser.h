@@ -1,14 +1,14 @@
 #ifndef PARSER_H_
 #define PARSER_H_
 
-class FlexLexer;
+typedef void *yyscan_t;
 
 class Parser {
 public:
-    FlexLexer *lexer() { return lexer_; }
+    yyscan_t lexer() { return lexer_; }
 
 private:
-    FlexLexer *lexer_;
+    yyscan_t lexer_;
 };
 
 #endif // PARSER_H_
