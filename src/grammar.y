@@ -4,6 +4,7 @@
 %parse-param {Parser *parser}
 
 %{
+#include <string>
 #include <stdint.h>
 #include "parser.h"
 #include "grammar.hh"
@@ -22,6 +23,7 @@ extern "C" int yylex(YYSTYPE * yylval_param, YYLTYPE * yylloc_param,
     double  f64;
 }
 
+%token BAD_TOKEN
 %token ID
 %token <i64> INTEGRAL_LITERAL
 %token <f64> FLOATING_LITERAL
@@ -45,7 +47,8 @@ Expression: Operand {
 }
 
 Operand: ID {
-
+    std::string name("ok");
+    printf("%s\n", name.c_str());
 }
 | INTEGRAL_LITERAL {
 

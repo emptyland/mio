@@ -1,5 +1,6 @@
 %{
 #include "grammar.hh"
+#include "parser_utils.h"
 
 //int yywrap();
 %}
@@ -12,8 +13,11 @@ digit [0-9]
 %%
 
 [+-]?[0-9]+ {
-    yylval->i64 = 0;
-    return INTEGRAL_LITERAL;
+    if (ParseIntegral64(yytext, 10, &yylval->i64) < 0) {
+        return BAD_TOKEN;
+    } else {
+        return INTEGRAL_LITERAL;
+    }
 }
 
 [+-]?[0-9]+\.[0-9]+ {

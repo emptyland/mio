@@ -1,0 +1,10 @@
+name: mio
+os: posix
+repository:
+deps:
+    - gtest:
+        version: 1.7.0
+    - glog:
+        version: '0.3.4'
+    - gflags:
+        version: '2.1.2'

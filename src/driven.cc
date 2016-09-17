@@ -1,3 +1,5 @@
+#include "grammar.hh"
+#include "lex.yy.h"
 #include <FlexLexer.h>
 #include <stdio.h>
 

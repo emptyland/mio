@@ -1,4 +1,4 @@
-OBJS=driven.o lex.yy.o grammar.o
+OBJS=driven.o lex.yy.o grammar.o parser_utils.o
 CPP=clang++
 CC=clang
 CPPFLAGS=-c -o
@@ -8,6 +8,9 @@ main: $(OBJS)
 
 driven.o: driven.cc parser.h
 	$(CPP) driven.cc $(CPPFLAGS) driven.o 
+
+parser_utils.o: parser_utils.cc
+	$(CPP) parser_utils.cc $(CPPFLAGS) parser_utils.o
 
 lex.yy.o: lex.yy.c
 	$(CC) lex.yy.c $(CPPFLAGS) lex.yy.o 
