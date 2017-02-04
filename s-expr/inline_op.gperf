@@ -1,0 +1,21 @@
+%{
+#define NO_DEF_MIO_INLINE_OP
+#include "inline_op_def.h"
+#include <string.h>
+typedef struct keyword keyword;
+%}
+struct mio_inline_op {
+	const char *z;
+	int id;
+};
+%%
+lambda,OP_LAMBDA
+def,OP_DEF
+let,OP_LET
++,OP_PLUS
+-,OP_MINUS
+*,OP_MULTI
+/,OP_DIVI
+=,OP_EQ
+if,OP_IF
+begin,OP_BEGIN
