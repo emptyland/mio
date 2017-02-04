@@ -4,3 +4,7 @@
 
 A grammar parser demo.
 
+## 1. Rebuild all deps
+
+    bash -c "CDEP_PATH=cdep python cdep/cdep.py"
+
