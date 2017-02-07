@@ -3,7 +3,7 @@
 
 namespace mio {
 
-TEST(Base, Saniy) {
+TEST(BaseTest, Saniy) {
     auto i = 1;
     ASSERT_EQ(1, i);
 }

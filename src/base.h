@@ -2,8 +2,30 @@
 #define MIO_BASE_H_
 
 #include <stddef.h>
+#include <stdint.h>
 
 namespace mio {
+
+/**
+ * The mio types:
+ * 
+ * mio_i8_t  -> fixed  8 bits
+ * mio_i16_t -> fixed 16 bits
+ * mio_i32_t -> fixed 32 bits
+ * mio_int_t -> fixed 64 bits
+ * mio_i64_t -> fixed 64 bits
+ * mio_float_t -> fixed 32 bits floating number
+ * mio_double_t -> fixed 64 bits floating number
+ */
+
+typedef int8_t   mio_bool_t;
+typedef int8_t   mio_i8_t;
+typedef int16_t  mio_i16_t;
+typedef int32_t  mio_i32_t;
+typedef int64_t  mio_i64_t;
+typedef int64_t  mio_int_t;
+typedef float    mio_f32_t;
+typedef double   mio_f64_t;
 
 #define DISALLOW_IMPLICIT_CONSTRUCTORS(clazz_name) \
     clazz_name (const clazz_name &) = delete;      \

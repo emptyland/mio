@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		235808131E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */; };
+		235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */; };
+		235808151E495CE200C8C567 /* lexer-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2358080F1E487D4C00C8C567 /* lexer-test.cc */; };
 		2362023D1E45B9EB00B6B949 /* base.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362023C1E45B9EB00B6B949 /* base.cc */; };
 		236202491E45BC0E00B6B949 /* base.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362023C1E45B9EB00B6B949 /* base.cc */; };
 		2362024E1E45BC2F00B6B949 /* libglog.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2362024B1E45BC2F00B6B949 /* libglog.a */; };
@@ -15,6 +18,11 @@
 		236202521E45BC7E00B6B949 /* base-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236202511E45BC7E00B6B949 /* base-test.cc */; };
 		236202551E45BE2900B6B949 /* lexer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236202541E45BE2900B6B949 /* lexer.cc */; };
 		236202561E45BE2900B6B949 /* lexer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236202541E45BE2900B6B949 /* lexer.cc */; };
+		236202591E45C58800B6B949 /* token.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236202581E45C58800B6B949 /* token.cc */; };
+		2362025A1E45C58800B6B949 /* token.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236202581E45C58800B6B949 /* token.cc */; };
+		2362025D1E45CC5F00B6B949 /* token-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362025B1E45CC5F00B6B949 /* token-test.cc */; };
+		236202601E48221700B6B949 /* text-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362025F1E48221700B6B949 /* text-input-stream.cc */; };
+		236202611E48221700B6B949 /* text-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362025F1E48221700B6B949 /* text-input-stream.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -40,6 +48,9 @@
 
 /* Begin PBXFileReference section */
 		231B09A31E45B86D00BC6D18 /* mio-lang */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "mio-lang"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2358080F1E487D4C00C8C567 /* lexer-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "lexer-test.cc"; sourceTree = "<group>"; };
+		235808111E487D9400C8C567 /* fixed-memory-input-stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "fixed-memory-input-stream.h"; sourceTree = "<group>"; };
+		235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "fixed-memory-input-stream.cc"; sourceTree = "<group>"; };
 		2362023B1E45B9A700B6B949 /* base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = base.h; sourceTree = "<group>"; };
 		2362023C1E45B9EB00B6B949 /* base.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = base.cc; sourceTree = "<group>"; };
 		236202421E45BB2B00B6B949 /* mio-test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "mio-test"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -49,6 +60,12 @@
 		236202511E45BC7E00B6B949 /* base-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "base-test.cc"; sourceTree = "<group>"; };
 		236202531E45BD0D00B6B949 /* lexer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lexer.h; sourceTree = "<group>"; };
 		236202541E45BE2900B6B949 /* lexer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lexer.cc; sourceTree = "<group>"; };
+		236202571E45C34A00B6B949 /* token.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = token.h; sourceTree = "<group>"; };
+		236202581E45C58800B6B949 /* token.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = token.cc; sourceTree = "<group>"; };
+		2362025B1E45CC5F00B6B949 /* token-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "token-test.cc"; sourceTree = "<group>"; };
+		2362025E1E48214500B6B949 /* text-input-stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "text-input-stream.h"; sourceTree = "<group>"; };
+		2362025F1E48221700B6B949 /* text-input-stream.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "text-input-stream.cc"; sourceTree = "<group>"; };
+		236202621E486C9300B6B949 /* token-inl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "token-inl.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -97,6 +114,9 @@
 			children = (
 				2362023C1E45B9EB00B6B949 /* base.cc */,
 				236202541E45BE2900B6B949 /* lexer.cc */,
+				236202581E45C58800B6B949 /* token.cc */,
+				2362025F1E48221700B6B949 /* text-input-stream.cc */,
+				235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -107,6 +127,10 @@
 			children = (
 				2362023B1E45B9A700B6B949 /* base.h */,
 				236202531E45BD0D00B6B949 /* lexer.h */,
+				236202571E45C34A00B6B949 /* token.h */,
+				2362025E1E48214500B6B949 /* text-input-stream.h */,
+				236202621E486C9300B6B949 /* token-inl.h */,
+				235808111E487D9400C8C567 /* fixed-memory-input-stream.h */,
 			);
 			name = Include;
 			path = ../src;
@@ -116,6 +140,8 @@
 			isa = PBXGroup;
 			children = (
 				236202511E45BC7E00B6B949 /* base-test.cc */,
+				2362025B1E45CC5F00B6B949 /* token-test.cc */,
+				2358080F1E487D4C00C8C567 /* lexer-test.cc */,
 			);
 			name = Tests;
 			path = ../src;
@@ -211,7 +237,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				236202551E45BE2900B6B949 /* lexer.cc in Sources */,
+				235808131E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
 				2362023D1E45B9EB00B6B949 /* base.cc in Sources */,
+				236202591E45C58800B6B949 /* token.cc in Sources */,
+				236202601E48221700B6B949 /* text-input-stream.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -219,7 +248,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				235808151E495CE200C8C567 /* lexer-test.cc in Sources */,
+				235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
 				236202561E45BE2900B6B949 /* lexer.cc in Sources */,
+				2362025D1E45CC5F00B6B949 /* token-test.cc in Sources */,
+				2362025A1E45C58800B6B949 /* token.cc in Sources */,
+				236202611E48221700B6B949 /* text-input-stream.cc in Sources */,
 				236202521E45BC7E00B6B949 /* base-test.cc in Sources */,
 				236202491E45BC0E00B6B949 /* base.cc in Sources */,
 			);
@@ -375,6 +409,7 @@
 				236202481E45BB2B00B6B949 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
