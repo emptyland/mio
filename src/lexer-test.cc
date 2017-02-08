@@ -79,21 +79,49 @@ TEST(LexerTest, IntLiteral) {
     ASSERT_TRUE(lex.Next(&token));
 
     ASSERT_EQ(TOKEN_INT_LITERAL, token.token_code());
+    ASSERT_EQ(123, token.int_data());
     ASSERT_EQ(1, token.position());
     ASSERT_EQ(3, token.len());
     ASSERT_EQ("123", token.text());
 }
 
 TEST(LexerTest, IntegralSuffix) {
-    Lexer lex(new FixedMemoryInputStream(" 233b "), true);
+    Lexer lex(new FixedMemoryInputStream(" 64b "), true);
     TokenObject token;
 
     ASSERT_TRUE(lex.Next(&token));
 
     ASSERT_EQ(TOKEN_I8_LITERAL, token.token_code());
+    ASSERT_EQ(64, token.i8_data());
     ASSERT_EQ(1, token.position());
-    ASSERT_EQ(4, token.len());
-    ASSERT_EQ("233b", token.text());
+    ASSERT_EQ(3, token.len());
+    ASSERT_EQ("64b", token.text());
+}
+
+TEST(LexerTest, HexIntegral) {
+    Lexer lex(new FixedMemoryInputStream("0x1 0x001 0x00001"), true);
+    TokenObject token;
+
+    ASSERT_TRUE(lex.Next(&token));
+    ASSERT_EQ(TOKEN_I8_LITERAL, token.token_code());
+    ASSERT_EQ(1, token.i8_data());
+    ASSERT_EQ(0, token.position());
+    ASSERT_EQ(3, token.len());
+    ASSERT_EQ("0x1", token.text());
+
+    ASSERT_TRUE(lex.Next(&token));
+    ASSERT_EQ(TOKEN_I16_LITERAL, token.token_code());
+    ASSERT_EQ(1, token.i8_data());
+    ASSERT_EQ(4, token.position());
+    ASSERT_EQ(5, token.len());
+    ASSERT_EQ("0x001", token.text());
+
+    ASSERT_TRUE(lex.Next(&token));
+    ASSERT_EQ(TOKEN_I32_LITERAL, token.token_code());
+    ASSERT_EQ(1, token.i8_data());
+    ASSERT_EQ(10, token.position());
+    ASSERT_EQ(7, token.len());
+    ASSERT_EQ("0x00001", token.text());
 }
 
 } // namespace mio

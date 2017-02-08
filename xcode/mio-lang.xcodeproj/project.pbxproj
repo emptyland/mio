@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2349E56C1E4AA77F002883BC /* number-parser.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E56B1E4AA77F002883BC /* number-parser.cc */; };
+		2349E56D1E4AA77F002883BC /* number-parser.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E56B1E4AA77F002883BC /* number-parser.cc */; };
+		2349E56F1E4AB1BB002883BC /* number-parser-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E56E1E4AB1BB002883BC /* number-parser-test.cc */; };
 		235808131E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */; };
 		235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */; };
 		235808151E495CE200C8C567 /* lexer-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2358080F1E487D4C00C8C567 /* lexer-test.cc */; };
@@ -48,6 +51,9 @@
 
 /* Begin PBXFileReference section */
 		231B09A31E45B86D00BC6D18 /* mio-lang */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "mio-lang"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2349E56A1E4AA70B002883BC /* number-parser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "number-parser.h"; sourceTree = "<group>"; };
+		2349E56B1E4AA77F002883BC /* number-parser.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "number-parser.cc"; sourceTree = "<group>"; };
+		2349E56E1E4AB1BB002883BC /* number-parser-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "number-parser-test.cc"; sourceTree = "<group>"; };
 		2358080F1E487D4C00C8C567 /* lexer-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "lexer-test.cc"; sourceTree = "<group>"; };
 		235808111E487D9400C8C567 /* fixed-memory-input-stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "fixed-memory-input-stream.h"; sourceTree = "<group>"; };
 		235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "fixed-memory-input-stream.cc"; sourceTree = "<group>"; };
@@ -117,6 +123,7 @@
 				236202581E45C58800B6B949 /* token.cc */,
 				2362025F1E48221700B6B949 /* text-input-stream.cc */,
 				235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */,
+				2349E56B1E4AA77F002883BC /* number-parser.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -131,6 +138,7 @@
 				2362025E1E48214500B6B949 /* text-input-stream.h */,
 				236202621E486C9300B6B949 /* token-inl.h */,
 				235808111E487D9400C8C567 /* fixed-memory-input-stream.h */,
+				2349E56A1E4AA70B002883BC /* number-parser.h */,
 			);
 			name = Include;
 			path = ../src;
@@ -142,6 +150,7 @@
 				236202511E45BC7E00B6B949 /* base-test.cc */,
 				2362025B1E45CC5F00B6B949 /* token-test.cc */,
 				2358080F1E487D4C00C8C567 /* lexer-test.cc */,
+				2349E56E1E4AB1BB002883BC /* number-parser-test.cc */,
 			);
 			name = Tests;
 			path = ../src;
@@ -239,6 +248,7 @@
 				236202551E45BE2900B6B949 /* lexer.cc in Sources */,
 				235808131E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
 				2362023D1E45B9EB00B6B949 /* base.cc in Sources */,
+				2349E56C1E4AA77F002883BC /* number-parser.cc in Sources */,
 				236202591E45C58800B6B949 /* token.cc in Sources */,
 				236202601E48221700B6B949 /* text-input-stream.cc in Sources */,
 			);
@@ -248,6 +258,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2349E56D1E4AA77F002883BC /* number-parser.cc in Sources */,
+				2349E56F1E4AB1BB002883BC /* number-parser-test.cc in Sources */,
 				235808151E495CE200C8C567 /* lexer-test.cc in Sources */,
 				235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
 				236202561E45BE2900B6B949 /* lexer.cc in Sources */,

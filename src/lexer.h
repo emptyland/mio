@@ -45,6 +45,10 @@ public:
 
 private:
     bool ParseDecimalNumberLiteral(int sign, TokenObject *token);
+    bool ParseHexadecimalNumberLiteral(TokenObject *token);
+
+    bool ParseDecimalIntegralValue(int *ahead, TokenObject *token);
+    bool ParseDecimalFloatingValue(int *ahead, TokenObject *token);
 
     static bool IsTermination(int ch);
     static inline bool IsNotTermination(int ch) { return !IsTermination(ch); }
