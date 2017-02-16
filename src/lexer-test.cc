@@ -122,6 +122,98 @@ TEST(LexerTest, HexIntegral) {
     ASSERT_EQ(10, token.position());
     ASSERT_EQ(7, token.len());
     ASSERT_EQ("0x00001", token.text());
+
+    ASSERT_FALSE(lex.Next(&token));
+}
+
+TEST(LexerTest, IDParsing) {
+    Lexer lex(new FixedMemoryInputStream("$1 _1 name"), true);
+    TokenObject token;
+
+    ASSERT_TRUE(lex.Next(&token));
+    ASSERT_EQ(TOKEN_ID, token.token_code());
+    ASSERT_EQ(0, token.position());
+    ASSERT_EQ(2, token.len());
+    ASSERT_EQ("$1", token.text());
+
+    ASSERT_TRUE(lex.Next(&token));
+    ASSERT_EQ(TOKEN_ID, token.token_code());
+    ASSERT_EQ(3, token.position());
+    ASSERT_EQ(2, token.len());
+    ASSERT_EQ("_1", token.text());
+
+    ASSERT_TRUE(lex.Next(&token));
+    ASSERT_EQ(TOKEN_ID, token.token_code());
+    ASSERT_EQ(6, token.position());
+    ASSERT_EQ(4, token.len());
+    ASSERT_EQ("name", token.text());
+
+    ASSERT_FALSE(lex.Next(&token));
+}
+
+TEST(LexerTest, IDKeywordParsing) {
+    Lexer lex(new FixedMemoryInputStream("i8 and $1"), true);
+    TokenObject token;
+
+    ASSERT_TRUE(lex.Next(&token));
+    ASSERT_EQ(TOKEN_I8, token.token_code());
+    ASSERT_EQ(0, token.position());
+    ASSERT_EQ(2, token.len());
+    ASSERT_EQ("i8", token.text());
+
+    ASSERT_TRUE(lex.Next(&token));
+    ASSERT_EQ(TOKEN_AND, token.token_code());
+    ASSERT_EQ(3, token.position());
+    ASSERT_EQ(3, token.len());
+    ASSERT_EQ("and", token.text());
+
+    ASSERT_TRUE(lex.Next(&token));
+    ASSERT_EQ(TOKEN_ID, token.token_code());
+    ASSERT_EQ(7, token.position());
+    ASSERT_EQ(2, token.len());
+    ASSERT_EQ("$1", token.text());
+
+    ASSERT_FALSE(lex.Next(&token));
+}
+
+TEST(LexerTest, StringLiteral) {
+    Lexer lex(new FixedMemoryInputStream("\'\' \'abc\'"), true);
+    TokenObject token;
+
+    ASSERT_TRUE(lex.Next(&token));
+    ASSERT_EQ(TOKEN_STRING_LITERAL, token.token_code());
+    ASSERT_EQ(0, token.position());
+    ASSERT_EQ(2, token.len());
+    ASSERT_EQ("", token.text());
+
+    ASSERT_TRUE(lex.Next(&token));
+    ASSERT_EQ(TOKEN_STRING_LITERAL, token.token_code());
+    ASSERT_EQ(3, token.position());
+    ASSERT_EQ(5, token.len());
+    ASSERT_EQ("abc", token.text());
+}
+
+TEST(LexerTest, StringLiteralHexEscape) {
+    Lexer lex(new FixedMemoryInputStream("\'\\x00\\x01\'"), true);
+    TokenObject token;
+
+    ASSERT_TRUE(lex.Next(&token));
+    ASSERT_EQ(TOKEN_STRING_LITERAL, token.token_code()) << token.text();
+    ASSERT_EQ(0, token.position());
+    ASSERT_EQ(10, token.len());
+    EXPECT_EQ(0x00, token.text()[0]);
+    EXPECT_EQ(0x01, token.text()[1]);
+}
+
+TEST(LexerTest, StringLiteralSpecEscape) {
+    Lexer lex(new FixedMemoryInputStream("\'\\r \\n \\t'"), true);
+    TokenObject token;
+
+    ASSERT_TRUE(lex.Next(&token));
+    ASSERT_EQ(TOKEN_STRING_LITERAL, token.token_code()) << token.text();
+    ASSERT_EQ(0, token.position());
+    ASSERT_EQ(10, token.len());
+    EXPECT_EQ("\r \n \t", token.text());
 }
 
 } // namespace mio

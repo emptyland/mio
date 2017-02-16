@@ -4,6 +4,15 @@
 #include "number-parser.h"
 //#include <memory>
 
+struct mio_keyword {
+    const char *z;
+    int id;
+};
+
+extern "C"
+const struct mio_keyword *
+mio_parse_keyword (register const char *str, register unsigned int len);
+
 namespace mio {
 
 Lexer::Lexer(TextInputStream *input_stream, bool ownership) {
@@ -57,6 +66,49 @@ bool Lexer::Next(TokenObject *token) {
                 token->set_position(current()->position);
                 return false;
 
+            case '(':
+                token->set_position(current()->position);
+                token->set_len(1);
+                token->set_token_code(TOKEN_LPAREN);
+                ahead = Move();
+                return true;
+            case ')':
+                token->set_position(current()->position);
+                token->set_len(1);
+                token->set_token_code(TOKEN_RPAREN);
+                ahead = Move();
+                return true;
+            case '[':
+                token->set_position(current()->position);
+                token->set_len(1);
+                token->set_token_code(TOKEN_LBRACK);
+                ahead = Move();
+                return true;
+            case ']':
+                token->set_position(current()->position);
+                token->set_len(1);
+                token->set_token_code(TOKEN_RBRACK);
+                ahead = Move();
+                return true;
+            case '{':
+                token->set_position(current()->position);
+                token->set_len(1);
+                token->set_token_code(TOKEN_LBRACE);
+                ahead = Move();
+                return true;
+            case '}':
+                token->set_position(current()->position);
+                token->set_len(1);
+                token->set_token_code(TOKEN_RBRACE);
+                ahead = Move();
+                return true;
+            case ',':
+                token->set_position(current()->position);
+                token->set_len(1);
+                token->set_token_code(TOKEN_COMMA);
+                ahead = Move();
+                return true;
+
             case '-':
                 token->set_position(current()->position);
                 ahead = Move();
@@ -86,37 +138,9 @@ bool Lexer::Next(TokenObject *token) {
                 return true;
 
             case '#': {
+                auto rv = ParseLineComment(token);
                 if (dont_ignore_comments_) {
-                    token->set_token_code(TOKEN_LINE_COMMENT);
-                    token->mutable_text()->assign("#");
-                    token->set_position(current()->position);
-                }
-
-                Move();
-                for (;;) {
-                    auto ch = Peek();
-                    if (ch == '\n') {
-                        Move();
-                        if (dont_ignore_comments_) {
-                            token->mutable_text()->append(1, ch);
-                            token->set_len(current()->position - token->position());
-                            return true;
-                        } else {
-                            break;
-                        }
-                    } else if (ch == -1) {
-                        if (dont_ignore_comments_) {
-                            token->set_len(current()->position - token->position());
-                            return true;
-                        } else {
-                            break;
-                        }
-                    } else {
-                        Move();
-                        if (dont_ignore_comments_) {
-                            token->mutable_text()->append(1, ch);
-                        }
-                    }
+                    return rv;
                 }
             } break;
 
@@ -133,6 +157,16 @@ bool Lexer::Next(TokenObject *token) {
                 }
                 break;
 
+            case '$':
+            case '_':
+                token->set_position(current()->position);
+                return ParseSymbolOrKeyword(token);
+
+            case '\'':
+                token->set_position(current()->position);
+                token->set_token_code(TOKEN_STRING_LITERAL);
+                return ParseStringLiteral(ahead, token);
+
             default:
                 if (isspace(ahead)) {
                     while (isspace(Move()))
@@ -142,6 +176,9 @@ bool Lexer::Next(TokenObject *token) {
                     token->mutable_text()->clear();
                     token->set_position(current()->position);
                     return ParseDecimalNumberLiteral(1, token);
+                } else if (isalpha(ahead)) {
+                    token->set_position(current()->position);
+                    return ParseSymbolOrKeyword(token);
                 }
                 break;
         }
@@ -158,6 +195,124 @@ int Lexer::Move() {
     ++current_->column;
     ++current_->position;
     return current_->ahead;
+}
+
+bool Lexer::ParseLineComment(TokenObject *token) {
+    if (dont_ignore_comments_) {
+        token->set_token_code(TOKEN_LINE_COMMENT);
+        token->mutable_text()->assign("#");
+        token->set_position(current()->position);
+    }
+
+    Move();
+    for (;;) {
+        auto ch = Peek();
+        if (ch == '\n') {
+            Move();
+            if (dont_ignore_comments_) {
+                token->mutable_text()->append(1, ch);
+                token->set_len(current()->position - token->position());
+                return true;
+            } else {
+                break;
+            }
+        } else if (ch == -1) {
+            if (dont_ignore_comments_) {
+                token->set_len(current()->position - token->position());
+                return true;
+            } else {
+                break;
+            }
+        } else {
+            Move();
+            if (dont_ignore_comments_) {
+                token->mutable_text()->append(1, ch);
+            }
+        }
+    }
+    return false;
+}
+
+bool Lexer::ParseStringLiteral(int quote, TokenObject *token) {
+    token->mutable_text()->clear();
+
+    int ahead = Move();
+    if (ahead == quote) {
+        token->set_len(2);
+        Move();
+        return true;
+    }
+
+    do {
+        ahead = Peek();
+
+        if (ahead == '\\') {
+            ahead = Move();
+            switch (ahead) {
+                case 'n':
+                    token->mutable_text()->append(1, '\n');
+                    ahead = Move();
+                    break;
+                case 'r':
+                    token->mutable_text()->append(1, '\r');
+                    ahead = Move();
+                    break;
+                case 't':
+                    token->mutable_text()->append(1, '\t');
+                    ahead = Move();
+                    break;
+                case 'v':
+                    token->mutable_text()->append(1, '\v');
+                    ahead = Move();
+                    break;
+                case 'f':
+                    token->mutable_text()->append(1, '\f');
+                    ahead = Move();
+                    break;
+                case '\'':
+                    token->mutable_text()->append(1, '\'');
+                    ahead = Move();
+                    break;
+
+                case 'x': case 'X': {
+                    int real = 0;
+                    for (int i = 0; i < 2; ++i) {
+                        ahead = Move();
+                        if (!isxdigit(ahead)) {
+                            return ThrowError(token, "incorrect hex character, "
+                                              "expected %c", ahead);
+                        }
+
+                        int bit4 = 0;
+                        if (isdigit(ahead)) {
+                            bit4 = ahead - '0';
+                        } else if (isupper(ahead)) {
+                            bit4 = 10 + (ahead - 'A');
+                        } else if (islower(ahead)) {
+                            bit4 = 10 + (ahead - 'a');
+                        }
+                        real |= (bit4 << ((1 - i) * 4));
+                    }
+                    ahead = Move();
+                    token->mutable_text()->append(1, real);
+                } break;
+
+                default:
+                    return ThrowError(token, "incorrect escaped character, "
+                                      "expected %c", ahead);
+            }
+        } else if (ahead == '\r' || ahead == '\n') {
+            return ThrowError(token, "incorrect line string literal, "
+                              "expected new line");
+        } else {
+            token->mutable_text()->append(1, ahead);
+            ahead = Move();
+        }
+    } while (ahead != quote);
+    Move();
+
+    token->set_len(current()->position - token->position());
+    return true;
 }
 
 // stuffix:
@@ -358,12 +513,39 @@ bool Lexer::ParseHexadecimalNumberLiteral(TokenObject *token) {
     return true;
 }
 
+bool Lexer::ParseSymbolOrKeyword(TokenObject *token) {
+    int ahead = 0;
+    token->mutable_text()->clear();
+    do {
+        ahead = Peek();
+
+        if (ahead == '$' || ahead == '_' || isalpha(ahead) || isdigit(ahead)) {
+            token->mutable_text()->append(1, ahead);
+            ahead = Move();
+        } else {
+            return ThrowError(token, "incorrect symbol, unexpected character "
+                              "\'%c\'", ahead);
+        }
+
+    } while (IsNotTermination(ahead));
+    auto keyword = mio_parse_keyword(token->text().data(),
+                                     static_cast<unsigned int>(token->text().size()));
+    if (keyword) {
+        token->set_token_code(static_cast<Token>(keyword->id));
+    } else {
+        token->set_token_code(TOKEN_ID);
+    }
+    token->set_len(current()->position - token->position());
+    return true;
+}
+
 /*static*/ bool Lexer::IsTermination(int ch) {
     switch (ch) {
         case -1:
             return true;
 
-        case '{': case '}': case '(': case ')':
+        case '{': case '}': case '[': case ']': case '(': case ')': case ',':
+        case ':':
             // TODO:
             return true;
 

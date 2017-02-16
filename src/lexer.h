@@ -44,11 +44,15 @@ public:
     int Move();
 
 private:
+    bool ParseLineComment(TokenObject *token);
+    bool ParseStringLiteral(int quote, TokenObject *token);
     bool ParseDecimalNumberLiteral(int sign, TokenObject *token);
     bool ParseHexadecimalNumberLiteral(TokenObject *token);
 
     bool ParseDecimalIntegralValue(int *ahead, TokenObject *token);
     bool ParseDecimalFloatingValue(int *ahead, TokenObject *token);
+
+    bool ParseSymbolOrKeyword(TokenObject *token);
 
     static bool IsTermination(int ch);
     static inline bool IsNotTermination(int ch) { return !IsTermination(ch); }

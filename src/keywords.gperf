@@ -1,0 +1,23 @@
+%{
+#include "token-inl.h"
+#include <string.h>
+%}
+struct mio_keyword {
+	const char *z;
+	int id;
+};
+%%
+and, TOKEN_AND
+or, TOKEN_OR
+not, TOKEN_NOT
+package, TOKEN_PACKAGE
+with, TOKEN_WITH
+as, TOKEN_AS
+i8, TOKEN_I8
+i16, TOKEN_I16
+i32, TOKEN_I32
+i64, TOKEN_I64
+int, TOKEN_INT
+f32, TOKEN_F32
+f64, TOKEN_F64
+string, TOKEN_STRING

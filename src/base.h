@@ -77,6 +77,65 @@ char (&ArraySizeHelper(const T (&array)[N]))[N];
 #define DEF_SETTER(type, name) \
     inline void set_##name(const type &value) { name##_ = value; }
 
+    template<class T, class F>
+    inline T *down_cast(F *from) {
+#ifndef NDEBUG
+        DCHECK_NOTNULL(dynamic_cast<T*>(from));
+#endif
+        return static_cast<T*>(from);
+    }
+
+#define IS_POWER_OF_TWO(x) (((x) & ((x) - 1)) == 0)
+
+// Returns true iff x is a power of 2 (or zero). Cannot be used with the
+// maximally negative value of the type T (the -1 overflows).
+template <typename T>
+inline bool IsPowerOf2(T x) {
+    return IS_POWER_OF_TWO(x);
+}
+
+// Compute the 0-relative offset of some absolute value x of type T.
+// This allows conversion of Addresses and integral types into
+// 0-relative int offsets.
+template <typename T>
+inline intptr_t OffsetFrom(T x) {
+    return x - static_cast<T>(0);
+}
+
+
+// Compute the absolute value of type T for some 0-relative offset x.
+// This allows conversion of 0-relative int offsets into Addresses and
+// integral types.
+template <typename T>
+inline T AddressFrom(intptr_t x) {
+    return static_cast<T>(static_cast<T>(0) + x);
+}
+
+
+// Return the largest multiple of m which is <= x.
+template <typename T>
+inline T RoundDown(T x, intptr_t m) {
+    //DCHECK(IsPowerOf2(m));
+    return AddressFrom<T>(OffsetFrom(x) & -m);
+}
+
+
+// Return the smallest multiple of m which is >= x.
+template <typename T>
+inline T RoundUp(T x, intptr_t m) {
+    return RoundDown<T>(static_cast<T>(x + m - 1), m);
+}
+
+inline size_t AlignDownBounds(size_t bounds, size_t value) {
+    return (value + bounds - 1) & (~(bounds - 1));
+}
+
+// Round bytes filling
+// For int16, 32, 64 filling:
+void *Round16BytesFill(const uint16_t zag, void *chunk, size_t n);
+void *Round32BytesFill(const uint32_t zag, void *chunk, size_t n);
+void *Round64BytesFill(const uint64_t zag, void *chunk, size_t n);
+
 } // namespace mio
 
 #endif // MIO_BASE_H_

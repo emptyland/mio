@@ -20,17 +20,44 @@ namespace mio {
 #define DEFINE_TOKENS(M) \
     M(ERROR, 0, "") \
     M(EOF, 0,   "") \
+    M(LPAREN, 0, "(") \
+    M(RPAREN, 0, ")") \
+    M(LBRACK, 0, "[") \
+    M(RBRACK, 0, "]") \
+    M(LBRACE, 0, "{") \
+    M(RBRACE, 0, "}") \
+    M(COMMA, 0, ",") \
     M(LINE_COMMENT, 0, "# ...\\n") \
     M(ASSIGN, 0, "=") \
     M(MINUS, 0, "-") \
-    M(EQ, 0,     "==") \
+    M(EQ, 0, "==") \
+    M(LE, 0, "<=") \
+    M(LT, 0, "<") \
+    M(GE, 0, ">=") \
+    M(GT, 0, ">") \
+    M(AND, 0, "and") \
+    M(OR, 0, "or" ) \
+    M(NOT, 0, "not") \
+    M(PACKAGE, 0, "package") \
+    M(WITH, 0, "with") \
+    M(AS, 0, "as") \
+    M(I8, 0, "i8") \
+    M(I16, 0, "i16") \
+    M(I32, 0, "i32") \
+    M(INT, 0, "int") \
+    M(I64, 0, "i64") \
+    M(F32, 0, "f32") \
+    M(F64, 0, "f64") \
+    M(STRING, 0, "string") \
+    M(ID, 0, "[$_a-zA-Z0-9]+") \
     M(I8_LITERAL, 0, "\\d+b") \
     M(I16_LITERAL, 0, "\\d+w") \
     M(I32_LITERAL, 0, "\\d+d") \
     M(INT_LITERAL, 0, "\\d+") \
     M(I64_LITERAL, 0, "\\d+q") \
-    M(F32_LITERAL, 0, "\\d*\\.\\d+f") \
-    M(F64_LITERAL, 0, "\\d*\\.\\d+d")
+    M(F32_LITERAL, 0, "\\d*\\.\\d+F") \
+    M(F64_LITERAL, 0, "\\d*\\.\\d+D") \
+    M(STRING_LITERAL, 0, "\'...\'")
 
 
 #define Token_CODE_ENUM(name, prio, text) TOKEN_##name,
