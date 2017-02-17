@@ -30,14 +30,15 @@ public:
     static const int kMinAllocatedShift = 4;
     static const int kMinAllocatedSize  = (1 << kMinAllocatedShift);
 
+    static const int kDefaultMaxCacheBytes = kPageSize * 4;
+
     Zone();
     ~Zone();
 
-    DEF_GETTER(size_t, allocated_bytes)
-    DEF_PROP_RW(bool, dont_use_cache)
+    DEF_PROP_RW(size_t, max_cache_bytes)
+    DEF_PROP_RW(size_t, keeped_cache_bytes)
 
     size_t slab_chunk_size(int index) const;
-
     int slab_max_chunks(int index) const;
 
     void *Allocate(size_t size);
@@ -46,19 +47,21 @@ public:
     void AssertionTest();
     void PreheatEverySlab();
 
+    void TEST_Report();
+
     typedef ZonePage Page;
     typedef ZoneSlab Slab;
 private:
-    Slab *slabs_;
-    size_t allocated_bytes_ = 0;
-    bool dont_use_cache_ = false;
+    Slab *slabs_ = nullptr;
+    size_t max_cache_bytes_ = kDefaultMaxCacheBytes;
+    size_t keeped_cache_bytes_ = kDefaultMaxCacheBytes / 2;
 }; // class Zone
 
 
 class ManagedObject {
 public:
     ManagedObject() {}
-    ~ManagedObject();
+    ~ManagedObject() {}
 
     void *operator new (size_t size, Zone *z) { return z->Allocate(size); }
 

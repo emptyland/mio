@@ -10,6 +10,28 @@
 
 namespace mio {
 
+namespace {
+
+#if defined(DEBUG) || defined(_DEBUG)
+void *ZagBytesFill(const uint32_t zag, void *chunk, size_t n) {
+    return Round32BytesFill(zag, chunk, n);
+}
+#else
+inline void *ZagBytesFill(const uint32_t zag, void *chunk, size_t n) {
+    (void)zag;
+    (void)n;
+    return chunk;
+}
+#endif
+
+static const uint32_t kZoneInitialBytes = 0xcccccccc;
+static const uint32_t kZoneFreeBytes    = 0xfeedfeed;
+
+} // namespace
+
+static_assert(Zone::kMinAllocatedSize >= sizeof(List::Entry),
+              "Zone::kMinAllocatedSize too small.");
+
 class ZonePage : public List::Entry {
 public:
     void *payload() {
@@ -50,17 +72,27 @@ public:
     DEF_GETTER(int, max_chunks)
     DEF_GETTER(size_t, chunk_size)
     DEF_GETTER(int, bitmap_bytes)
+    DEF_GETTER(size_t, cached_size)
+
+    bool is_cache_not_empty() const { return List::IsNotEmpty(&cache_); }
 
     void Init(size_t chunk_size);
+    inline void Clear();
 
     void *Allocate(int shift);
 
+    inline void *HitCache();
+    inline size_t HitCache(void *chunk);
+    inline size_t PurgeCache(size_t keeped_size);
+
+private:
     void *AllocateFromPage(ZonePage *page, bool *full);
     void FreeToPage(ZonePage *page, const void *p);
 
     ZonePage *NewPage(int shift);
 
-private:
+    void ClearOne(List::Entry *pages);
+
     List::Entry partial_;
     List::Entry full_;
     List::Entry empty_;
@@ -75,28 +107,6 @@ private:
 
     int allocated_chunks_ = 0;
 }; // class ZoneSlab
-
-namespace {
-
-#if defined(DEBUG) || defined(_DEBUG)
-void *ZagBytesFill(const uint32_t zag, void *chunk, size_t n) {
-    return Round32BytesFill(zag, chunk, n);
-}
-#else
-inline void *ZagBytesFill(const uint32_t zag, void *chunk, size_t n) {
-    (void)zag;
-    (void)n;
-    return chunk;
-}
-#endif
-
-static const uint32_t kZoneInitialBytes = 0xcccccccc;
-static const uint32_t kZoneFreeBytes    = 0xfeedfeed;
-
-} // namespace
-
-static_assert(Zone::kMinAllocatedSize >= sizeof(List::Entry),
-              "Zone::kMinAllocatedSize too small.");
 
 void ZoneSlab::Init(size_t chunk_size) {
     max_chunks_ = (Zone::kPageSize - sizeof(ZonePage)) / chunk_size;
@@ -119,6 +129,20 @@ void ZoneSlab::Init(size_t chunk_size) {
     List::Init(&full_);
     List::Init(&empty_);
     List::Init(&cache_);
+}
+
+inline void ZoneSlab::Clear() {
+    ClearOne(&partial_);
+    ClearOne(&empty_);
+    ClearOne(&full_);
+}
+
+void ZoneSlab::ClearOne(List::Entry *pages) {
+    while (List::IsNotEmpty(pages)) {
+        auto header = List::Head<ZonePage>(pages);
+        List::Remove(header);
+        free(header);
+    }
 }
 
 void *ZoneSlab::Allocate(int shift) {
@@ -298,6 +322,36 @@ ZonePage *ZoneSlab::NewPage(int shift) {
     return page;
 }
 
+inline void *ZoneSlab::HitCache() {
+    DCHECK(List::IsNotEmpty(&cache_));
+
+    auto header = List::Head<List::Entry>(&cache_);
+    List::Remove(header);
+    cached_size_ -= chunk_size_;
+    return static_cast<void *>(header);
+}
+
+inline size_t ZoneSlab::HitCache(void *chunk) {
+    DCHECK_NOTNULL(chunk);
+
+    List::InsertHead(&cache_, static_cast<List::Entry *>(chunk));
+    cached_size_ += chunk_size_;
+    return cached_size_;
+}
+
+inline size_t ZoneSlab::PurgeCache(size_t keeped_size) {
+    while (cached_size_ > keeped_size) {
+        auto header = List::Head<List::Entry>(&cache_);
+        List::Remove(header);
+
+        FreeToPage(ZonePage::AlignmentGet(header),
+                   ZagBytesFill(kZoneFreeBytes, header, chunk_size_));
+
+        cached_size_ -= chunk_size_;
+    }
+    return cached_size_;
+}
+
 Zone::Zone()
     : slabs_(new Slab[kNumberOfSlabs]) {
     for (int i = 0; i < kNumberOfSlabs; i++) {
@@ -306,6 +360,9 @@ Zone::Zone()
 }
 
 Zone::~Zone() {
+    for (int i = 0; i < kNumberOfSlabs; i++) {
+        slabs_[i].Clear();
+    }
 }
 
 size_t Zone::slab_chunk_size(int index) const {
@@ -337,8 +394,14 @@ void *Zone::Allocate(size_t size) {
         ;
     DCHECK(shift >= 0 && shift < kNumberOfSlabs) << "alloc: shift out of range!";
 
+    void *result = nullptr;
     auto slab = slabs_ + shift;
-    return ZagBytesFill(kZoneInitialBytes, slab->Allocate(shift), size);
+    if (slab->is_cache_not_empty()) {
+        result = slab->HitCache();
+    } else {
+        result = slab->Allocate(shift);
+    }
+    return ZagBytesFill(kZoneInitialBytes, result, size);
 }
 
 void Zone::Free(const void *p) {
@@ -352,8 +415,10 @@ void Zone::Free(const void *p) {
     DCHECK(shift >= 0 && shift < kNumberOfSlabs) << "free: shift out of range!";
 
     auto slab = slabs_ + shift;
-    slab->FreeToPage(page, p);
-    ZagBytesFill(kZoneFreeBytes, const_cast<void *>(p), 1u << shift);
+    if (slab->HitCache(const_cast<void *>(p)) > max_cache_bytes_) {
+        slab->PurgeCache(keeped_cache_bytes_);
+    }
+
 }
 
 void Zone::AssertionTest() {
@@ -367,6 +432,20 @@ void Zone::PreheatEverySlab() {
 
         Free(DCHECK_NOTNULL(Allocate(chunk_size)));
     }
+}
+
+void Zone::TEST_Report() {
+    DLOG(INFO) << "---- zone report: ----";
+    DLOG(INFO) << "max chace size: " << max_cache_bytes_;
+    DLOG(INFO) << "keeped chace size: " << keeped_cache_bytes_;
+
+    for (int i = 0; i < kNumberOfSlabs; ++i) {
+        DLOG(INFO) << "slab[" << i << "] size: " << (kMinAllocatedSize << i);
+        DLOG(INFO) << "= cache size: " << slabs_[i].cached_size();
+        //DLOG(INFO) << "= total size: " << slabs_[i]
+    }
+
+    DLOG(INFO) << "---- end of zone report ----";
 }
 
 } // namespace mio

@@ -15,6 +15,8 @@
 		2349E5761E4C5310002883BC /* zone.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E5751E4C5310002883BC /* zone.cc */; };
 		2349E5771E4C5310002883BC /* zone.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E5751E4C5310002883BC /* zone.cc */; };
 		2349E57A1E554426002883BC /* zone-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E5791E554426002883BC /* zone-test.cc */; };
+		2349E57D1E55DD3C002883BC /* zone-hash-map-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E57C1E55DD3C002883BC /* zone-hash-map-test.cc */; };
+		2349E5801E56A71E002883BC /* zone-vector-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E57F1E56A71E002883BC /* zone-vector-test.cc */; };
 		235808131E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */; };
 		235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */; };
 		235808151E495CE200C8C567 /* lexer-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2358080F1E487D4C00C8C567 /* lexer-test.cc */; };
@@ -65,6 +67,10 @@
 		2349E5751E4C5310002883BC /* zone.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = zone.cc; sourceTree = "<group>"; };
 		2349E5781E4DC5AF002883BC /* list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = list.h; sourceTree = "<group>"; };
 		2349E5791E554426002883BC /* zone-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "zone-test.cc"; sourceTree = "<group>"; };
+		2349E57B1E55B3DB002883BC /* zone-hash-map.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "zone-hash-map.h"; sourceTree = "<group>"; };
+		2349E57C1E55DD3C002883BC /* zone-hash-map-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "zone-hash-map-test.cc"; sourceTree = "<group>"; };
+		2349E57E1E56A2A6002883BC /* zone-vector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "zone-vector.h"; sourceTree = "<group>"; };
+		2349E57F1E56A71E002883BC /* zone-vector-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "zone-vector-test.cc"; sourceTree = "<group>"; };
 		2358080F1E487D4C00C8C567 /* lexer-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "lexer-test.cc"; sourceTree = "<group>"; };
 		235808111E487D9400C8C567 /* fixed-memory-input-stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "fixed-memory-input-stream.h"; sourceTree = "<group>"; };
 		235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "fixed-memory-input-stream.cc"; sourceTree = "<group>"; };
@@ -155,6 +161,8 @@
 				235808111E487D9400C8C567 /* fixed-memory-input-stream.h */,
 				2349E56A1E4AA70B002883BC /* number-parser.h */,
 				2349E5741E4C51C1002883BC /* zone.h */,
+				2349E57B1E55B3DB002883BC /* zone-hash-map.h */,
+				2349E57E1E56A2A6002883BC /* zone-vector.h */,
 			);
 			name = Include;
 			path = ../src;
@@ -168,6 +176,8 @@
 				2358080F1E487D4C00C8C567 /* lexer-test.cc */,
 				2349E56E1E4AB1BB002883BC /* number-parser-test.cc */,
 				2349E5791E554426002883BC /* zone-test.cc */,
+				2349E57C1E55DD3C002883BC /* zone-hash-map-test.cc */,
+				2349E57F1E56A71E002883BC /* zone-vector-test.cc */,
 			);
 			name = Tests;
 			path = ../src;
@@ -289,7 +299,9 @@
 				2349E5731E4B1800002883BC /* keywords.c in Sources */,
 				236202611E48221700B6B949 /* text-input-stream.cc in Sources */,
 				236202521E45BC7E00B6B949 /* base-test.cc in Sources */,
+				2349E57D1E55DD3C002883BC /* zone-hash-map-test.cc in Sources */,
 				236202491E45BC0E00B6B949 /* base.cc in Sources */,
+				2349E5801E56A71E002883BC /* zone-vector-test.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

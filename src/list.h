@@ -52,8 +52,8 @@ public:
         (h)->prev->next = (h);
     }
 
-    inline static bool IsEmpty(Entry *h) { return h->next == h; }
-    inline static bool IsNotEmpty(Entry *h) { return !IsEmpty(h); }
+    inline static bool IsEmpty(const Entry *h) { return h->next == h; }
+    inline static bool IsNotEmpty(const Entry *h) { return !IsEmpty(h); }
 
 };
 
