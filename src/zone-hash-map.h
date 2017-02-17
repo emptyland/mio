@@ -2,6 +2,7 @@
 #define MIO_ZONE_HASH_MAP_H_
 
 #include "zone.h"
+#include "raw-string.h"
 #include "glog/logging.h"
 #include <string>
 
@@ -39,6 +40,20 @@ struct Hasher<std::string> {
         return lhs == rhs;
     }
 }; // struct Hasher<std::string>
+
+template<>
+struct Hasher<RawStringRef> {
+    static inline int Compute(RawStringRef input) {
+        unsigned int hash = 1315423911;
+        for (int i = 0; i < input->size(); ++i) {
+            hash ^= ((hash << 5) + input->at(i) + (hash >> 2));
+        }
+        return (hash & 0x7FFFFFFF);
+    }
+    static inline bool Equal(RawStringRef lhs, RawStringRef rhs) {
+        return lhs->Compare(rhs) == 0;
+    }
+};// struct Hasher<RawStringRef>
 
 template<class K, class V>
 class ZoneHashMapPair : public ManagedObject {
