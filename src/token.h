@@ -8,6 +8,8 @@
 
 namespace mio {
 
+extern const char *const kTokenName2Text[];
+
 #define TokenObject_PRIMITIVE_DATA_PROPERTY(name, type, size, stuffix) \
     TokenObject_PRIMITIVE_DATA_SETTER(name)                            \
     TokenObject_PRIMITIVE_DATA_GETTER(name)
@@ -33,6 +35,8 @@ public:
     DEF_PROP_RW(int, position);
     DEF_PROP_RW(int, len);
     DEF_PROP_RMW(std::string, text);
+
+    bool is_error() const { return token_code_ == TOKEN_ERROR; }
 
     DEFINE_PRIMITIVE_TYPES(TokenObject_PRIMITIVE_DATA_PROPERTY)
 

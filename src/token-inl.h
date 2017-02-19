@@ -28,6 +28,7 @@ namespace mio {
     M(RBRACE, 0, "}") \
     M(COMMA, 0, ",") \
     M(LINE_COMMENT, 0, "# ...\\n") \
+    M(DOT, 0, ".") \
     M(ASSIGN, 0, "=") \
     M(MINUS, 0, "-") \
     M(EQ, 0, "==") \

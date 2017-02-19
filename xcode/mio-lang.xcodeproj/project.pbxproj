@@ -23,6 +23,9 @@
 		2349E58B1E56F3DB002883BC /* raw-string.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E5891E56F3DB002883BC /* raw-string.cc */; };
 		2349E58D1E56FCC9002883BC /* ast.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E58C1E56FCC9002883BC /* ast.cc */; };
 		2349E58E1E56FCC9002883BC /* ast.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E58C1E56FCC9002883BC /* ast.cc */; };
+		2349E5911E56FF02002883BC /* parser.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E5901E56FF02002883BC /* parser.cc */; };
+		2349E5921E56FF02002883BC /* parser.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E5901E56FF02002883BC /* parser.cc */; };
+		2349E5941E56FF12002883BC /* parser-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E5931E56FF12002883BC /* parser-test.cc */; };
 		235808131E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */; };
 		235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */; };
 		235808151E495CE200C8C567 /* lexer-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2358080F1E487D4C00C8C567 /* lexer-test.cc */; };
@@ -83,6 +86,9 @@
 		2349E5851E56EF38002883BC /* raw-string-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "raw-string-test.cc"; sourceTree = "<group>"; };
 		2349E5891E56F3DB002883BC /* raw-string.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "raw-string.cc"; sourceTree = "<group>"; };
 		2349E58C1E56FCC9002883BC /* ast.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ast.cc; sourceTree = "<group>"; };
+		2349E58F1E56FE40002883BC /* parser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parser.h; sourceTree = "<group>"; };
+		2349E5901E56FF02002883BC /* parser.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parser.cc; sourceTree = "<group>"; };
+		2349E5931E56FF12002883BC /* parser-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "parser-test.cc"; sourceTree = "<group>"; };
 		2358080F1E487D4C00C8C567 /* lexer-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "lexer-test.cc"; sourceTree = "<group>"; };
 		235808111E487D9400C8C567 /* fixed-memory-input-stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "fixed-memory-input-stream.h"; sourceTree = "<group>"; };
 		235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "fixed-memory-input-stream.cc"; sourceTree = "<group>"; };
@@ -158,6 +164,7 @@
 				2349E5751E4C5310002883BC /* zone.cc */,
 				2349E5891E56F3DB002883BC /* raw-string.cc */,
 				2349E58C1E56FCC9002883BC /* ast.cc */,
+				2349E5901E56FF02002883BC /* parser.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -179,6 +186,7 @@
 				2349E57E1E56A2A6002883BC /* zone-vector.h */,
 				2349E5811E56E2F0002883BC /* ast.h */,
 				2349E5841E56EE9E002883BC /* raw-string.h */,
+				2349E58F1E56FE40002883BC /* parser.h */,
 			);
 			name = Include;
 			path = ../src;
@@ -196,6 +204,7 @@
 				2349E57F1E56A71E002883BC /* zone-vector-test.cc */,
 				2349E5821E56E378002883BC /* ast-test.cc */,
 				2349E5851E56EF38002883BC /* raw-string-test.cc */,
+				2349E5931E56FF12002883BC /* parser-test.cc */,
 			);
 			name = Tests;
 			path = ../src;
@@ -299,6 +308,7 @@
 				2349E56C1E4AA77F002883BC /* number-parser.cc in Sources */,
 				236202591E45C58800B6B949 /* token.cc in Sources */,
 				236202601E48221700B6B949 /* text-input-stream.cc in Sources */,
+				2349E5911E56FF02002883BC /* parser.cc in Sources */,
 				2349E5761E4C5310002883BC /* zone.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -316,11 +326,13 @@
 				235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
 				236202561E45BE2900B6B949 /* lexer.cc in Sources */,
 				2362025D1E45CC5F00B6B949 /* token-test.cc in Sources */,
+				2349E5941E56FF12002883BC /* parser-test.cc in Sources */,
 				2362025A1E45C58800B6B949 /* token.cc in Sources */,
 				2349E58E1E56FCC9002883BC /* ast.cc in Sources */,
 				2349E57A1E554426002883BC /* zone-test.cc in Sources */,
 				2349E5731E4B1800002883BC /* keywords.c in Sources */,
 				236202611E48221700B6B949 /* text-input-stream.cc in Sources */,
+				2349E5921E56FF02002883BC /* parser.cc in Sources */,
 				2349E58B1E56F3DB002883BC /* raw-string.cc in Sources */,
 				236202521E45BC7E00B6B949 /* base-test.cc in Sources */,
 				2349E57D1E55DD3C002883BC /* zone-hash-map-test.cc in Sources */,

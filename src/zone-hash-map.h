@@ -83,6 +83,7 @@ public:
 
     typedef ZoneHashMapPair<K, V> Pair;
 
+    inline bool Put(const K &key, const V &value);
     Pair *GetOrInsert(const K &key, bool *has_insert);
     Pair *Get(const K &key);
     bool Exist(const K &key) { return Get(key) != nullptr; }
@@ -135,6 +136,14 @@ ZoneHashMap<K, V>::CreateSlots(int size) {
     }
     memset(chunk, 0, sizeof(Pair*) * size);
     return static_cast<Pair **>(chunk);
+}
+
+template<class K, class V>
+inline bool ZoneHashMap<K, V>::Put(const K &key, const V &value) {
+    bool has_insert = false;
+    auto pair = GetOrInsert(key, &has_insert);
+    DCHECK_NOTNULL(pair)->value_ = value;
+    return has_insert;
 }
 
 template<class K, class V>

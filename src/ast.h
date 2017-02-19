@@ -17,6 +17,7 @@ namespace mio {
     DEFINE_STATEMENT_NODES(M)
 
 #define DECLARE_AST_NODE(name)                                               \
+    friend class AstNodeFactory;                                             \
     virtual void Accept(AstVisitor *v) override;                             \
     virtual AstNode::Type type() const override { return AstNode::k##name; } \
 
@@ -25,6 +26,7 @@ class PackageImporter;
 class Expression;
 
 class AstVisitor;
+class AstNodeFactory;
 
 class AstNode : public ManagedObject {
 public:
@@ -67,25 +69,29 @@ public:
 
 class PackageImporter : public Statement {
 public:
-    PackageImporter(int position, Zone *zone)
-        : Statement(position)
-        , import_list_(zone) {}
-
     RawStringRef package_name() const { return package_name_; }
+
+    ZoneHashMap<RawStringRef, RawStringRef> *mutable_import_list() {
+        return &import_list_;
+    }
 
     DECLARE_AST_NODE(PackageImporter)
     DISALLOW_IMPLICIT_CONSTRUCTORS(PackageImporter)
 private:
+    PackageImporter(int position, Zone *zone)
+        : Statement(position)
+        , import_list_(zone) {}
+
     RawStringRef package_name_ = RawString::kEmpty;
     ZoneHashMap<RawStringRef, RawStringRef> import_list_;
 
 }; // class PackageImporter
 
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // AstVisitor
 ////////////////////////////////////////////////////////////////////////////////
+
 class AstVisitor {
 public:
 #define AstVisitor_VISIT_METHOD(name) virtual void Visit##name(name *) = 0;
@@ -94,6 +100,29 @@ public:
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(AstVisitor)
 }; // class AstVisitor
+
+
+////////////////////////////////////////////////////////////////////////////////
+// AstNodeFactory
+////////////////////////////////////////////////////////////////////////////////
+
+class AstNodeFactory {
+public:
+    AstNodeFactory(Zone *zone) : zone_(zone) {}
+
+    PackageImporter *CreatePackageImporter(const std::string &package_name,
+                                           int position) {
+        auto node = new (zone_) PackageImporter(position, zone_);
+        if (!node) {
+            return nullptr;
+        }
+        node->package_name_ = RawString::Create(package_name, zone_);
+        return node;
+    }
+
+private:
+    Zone *zone_;
+}; // class AstNodeFactory
 
 } // namespace mio
 

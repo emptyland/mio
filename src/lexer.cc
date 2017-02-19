@@ -108,6 +108,12 @@ bool Lexer::Next(TokenObject *token) {
                 token->set_token_code(TOKEN_COMMA);
                 ahead = Move();
                 return true;
+            case '.':
+                token->set_position(current()->position);
+                token->set_len(1);
+                token->set_token_code(TOKEN_DOT);
+                ahead = Move();
+                return true;
 
             case '-':
                 token->set_position(current()->position);
