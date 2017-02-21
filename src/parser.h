@@ -8,6 +8,7 @@
 namespace mio {
 
 class PackageImporter;
+class Expression;
 
 class Lexer;
 class TextInputStream;
@@ -38,9 +39,16 @@ public:
     void ClearError();
 
     PackageImporter *ParsePackageImporter(bool *ok);
+    Expression *ParseExpression(int limit, int *rop, bool *ok);
+    Expression *ParseOperation(int limit, int *rop, bool *ok);
+    Expression *ParseSimpleExpression(bool *ok);
+    Expression *ParseSuffixed(bool *ok);
+    Expression *ParsePrimary(bool *ok);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Parser)
 private:
+    Token Peek() const { return ahead_.token_code(); }
+
     void Match(Token code, bool *ok) { Match(code, nullptr, ok); }
     void Match(Token code, std::string *txt, bool *ok);
 

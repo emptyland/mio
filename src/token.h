@@ -1,14 +1,24 @@
 #ifndef MIO_TOKEN_H_
 #define MIO_TOKEN_H_
 
-
 #include "token-inl.h"
 #include "base.h"
 #include <string>
 
 namespace mio {
 
-extern const char *const kTokenName2Text[];
+struct TokenMetadata {
+    Token       code;
+    const char *name;
+    int         op_priority;
+    const char *text;
+};
+
+extern const TokenMetadata kTokenMetadata[];
+
+int TokenOpPriority(Token token, bool *ok);
+
+std::string TokenNameWithText(Token token);
 
 #define TokenObject_PRIMITIVE_DATA_PROPERTY(name, type, size, stuffix) \
     TokenObject_PRIMITIVE_DATA_SETTER(name)                            \
@@ -39,6 +49,14 @@ public:
     bool is_error() const { return token_code_ == TOKEN_ERROR; }
 
     DEFINE_PRIMITIVE_TYPES(TokenObject_PRIMITIVE_DATA_PROPERTY)
+
+    std::string ToNameWithText() const {
+        return TokenNameWithText(token_code_);
+    }
+
+    int GetOpPriority(bool *ok) const {
+        return TokenOpPriority(token_code_, ok);
+    }
 
 private:
     Token token_code_;

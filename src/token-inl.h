@@ -19,7 +19,7 @@ namespace mio {
 // All tokens
 #define DEFINE_TOKENS(M) \
     M(ERROR, 0, "") \
-    M(EOF, 0,   "") \
+    M(EOF, 0, "") \
     M(LPAREN, 0, "(") \
     M(RPAREN, 0, ")") \
     M(LBRACK, 0, "[") \
@@ -29,9 +29,23 @@ namespace mio {
     M(COMMA, 0, ",") \
     M(LINE_COMMENT, 0, "# ...\\n") \
     M(DOT, 0, ".") \
+    M(COLON, 0, ":") \
+    M(NAME_BREAK, 0, "::") \
     M(ASSIGN, 0, "=") \
+    M(PLUS, 0, "+") \
+    M(STAR, 0, "*") \
+    M(PERCENT, 0, "%") \
+    M(SLASH, 0, "/") \
     M(MINUS, 0, "-") \
+    M(LSHIFT, 0, "<<") \
+    M(RSHIFT_L, 0, "|>") \
+    M(RSHIFT_A, 0, ">>") \
+    M(BIT_OR, 0, "|") \
+    M(BIT_AND, 0, "&") \
+    M(BIT_XOR, 0, "^") \
+    M(WAVE, 0, "~") \
     M(EQ, 0, "==") \
+    M(NE, 0, "<>") \
     M(LE, 0, "<=") \
     M(LT, 0, "<") \
     M(GE, 0, ">=") \
@@ -58,7 +72,13 @@ namespace mio {
     M(I64_LITERAL, 0, "\\d+q") \
     M(F32_LITERAL, 0, "\\d*\\.\\d+F") \
     M(F64_LITERAL, 0, "\\d*\\.\\d+D") \
-    M(STRING_LITERAL, 0, "\'...\'")
+    M(STRING_LITERAL, 0, "\'...\'") \
+    M(IF, 0, "if") \
+    M(ELSE, 0, "else") \
+    M(WHILE, 0, "while") \
+    M(FOR, 0, "for") \
+    M(TRUE, 0, "true") \
+    M(FALSE, 0, "false")
 
 
 #define Token_CODE_ENUM(name, prio, text) TOKEN_##name,

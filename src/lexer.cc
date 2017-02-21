@@ -102,6 +102,24 @@ bool Lexer::Next(TokenObject *token) {
                 token->set_token_code(TOKEN_RBRACE);
                 ahead = Move();
                 return true;
+            case '+':
+                token->set_position(current()->position);
+                token->set_len(1);
+                token->set_token_code(TOKEN_PLUS);
+                ahead = Move();
+                return true;
+            case '*':
+                token->set_position(current()->position);
+                token->set_len(1);
+                token->set_token_code(TOKEN_STAR);
+                ahead = Move();
+                return true;
+            case '/':
+                token->set_position(current()->position);
+                token->set_len(1);
+                token->set_token_code(TOKEN_SLASH);
+                ahead = Move();
+                return true;
             case ',':
                 token->set_position(current()->position);
                 token->set_len(1);
@@ -113,6 +131,84 @@ bool Lexer::Next(TokenObject *token) {
                 token->set_len(1);
                 token->set_token_code(TOKEN_DOT);
                 ahead = Move();
+                return true;
+            case '~':
+                token->set_position(current()->position);
+                token->set_len(1);
+                token->set_token_code(TOKEN_WAVE);
+                ahead = Move();
+                return true;
+            case '^':
+                token->set_position(current()->position);
+                token->set_len(1);
+                token->set_token_code(TOKEN_BIT_XOR);
+                ahead = Move();
+                return true;
+            case '&':
+                token->set_position(current()->position);
+                token->set_len(1);
+                token->set_token_code(TOKEN_BIT_AND);
+                ahead = Move();
+                return true;
+            case '|':
+                token->set_position(current()->position);
+                ahead = Move();
+                if (ahead == '>') {
+                    ahead = Move();
+                    token->set_len(2);
+                    token->set_token_code(TOKEN_RSHIFT_L);
+                } else {
+                    token->set_len(1);
+                    token->set_token_code(TOKEN_BIT_OR);
+                }
+                return true;
+            case ':':
+                token->set_position(current()->position);
+                ahead = Move();
+                if (ahead == ':') {
+                    ahead = Move();
+                    token->set_len(2);
+                    token->set_token_code(TOKEN_NAME_BREAK);
+                } else {
+                    token->set_len(1);
+                    token->set_token_code(TOKEN_COLON);
+                }
+                return true;
+            case '>':
+                token->set_position(current()->position);
+                ahead = Move();
+                if (ahead == '>') {
+                    ahead = Move();
+                    token->set_len(2);
+                    token->set_token_code(TOKEN_RSHIFT_A);
+                } else if (ahead == '=') {
+                    ahead = Move();
+                    token->set_len(2);
+                    token->set_token_code(TOKEN_GE);
+                } else {
+                    token->set_len(1);
+                    token->set_token_code(TOKEN_GT);
+                }
+                return true;
+            case '<':
+                token->set_position(current()->position);
+                ahead = Move();
+                if (ahead == '>') {
+                    ahead = Move();
+                    token->set_len(2);
+                    token->set_token_code(TOKEN_NE);
+                } else if (ahead == '<') {
+                    ahead = Move();
+                    token->set_len(2);
+                    token->set_token_code(TOKEN_LSHIFT);
+                } else if (ahead == '=') {
+                    ahead = Move();
+                    token->set_len(2);
+                    token->set_token_code(TOKEN_LE);
+                } else {
+                    token->set_len(1);
+                    token->set_token_code(TOKEN_LT);
+                }
                 return true;
 
             case '-':
@@ -551,7 +647,7 @@ bool Lexer::ParseSymbolOrKeyword(TokenObject *token) {
             return true;
 
         case '{': case '}': case '[': case ']': case '(': case ')': case ',':
-        case ':':
+        case ':': case '<': case '>': case '=': case '~':
             // TODO:
             return true;
 

@@ -216,4 +216,58 @@ TEST(LexerTest, StringLiteralSpecEscape) {
     EXPECT_EQ("\r \n \t", token.text());
 }
 
+TEST(LexerTest, Operators1) {
+    Lexer lex(new FixedMemoryInputStream("< << <= <>"), true);
+    TokenObject token;
+
+    ASSERT_TRUE(lex.Next(&token));
+    EXPECT_EQ(TOKEN_LT, token.token_code()) << token.text();
+    EXPECT_EQ(0, token.position());
+    EXPECT_EQ(1, token.len());
+
+    ASSERT_TRUE(lex.Next(&token));
+    EXPECT_EQ(TOKEN_LSHIFT, token.token_code()) << token.text();
+    EXPECT_EQ(2, token.position());
+    EXPECT_EQ(2, token.len());
+
+    ASSERT_TRUE(lex.Next(&token));
+    EXPECT_EQ(TOKEN_LE, token.token_code()) << token.text();
+    EXPECT_EQ(5, token.position());
+    EXPECT_EQ(2, token.len());
+
+    ASSERT_TRUE(lex.Next(&token));
+    EXPECT_EQ(TOKEN_NE, token.token_code()) << token.text();
+    EXPECT_EQ(8, token.position());
+    EXPECT_EQ(2, token.len());
+
+    ASSERT_FALSE(lex.Next(&token));
+}
+
+TEST(LexerTest, Operators2) {
+    Lexer lex(new FixedMemoryInputStream("> |> >> >="), true);
+    TokenObject token;
+
+    ASSERT_TRUE(lex.Next(&token));
+    EXPECT_EQ(TOKEN_GT, token.token_code()) << token.text();
+    EXPECT_EQ(0, token.position());
+    EXPECT_EQ(1, token.len());
+
+    ASSERT_TRUE(lex.Next(&token));
+    EXPECT_EQ(TOKEN_RSHIFT_L, token.token_code()) << token.text();
+    EXPECT_EQ(2, token.position());
+    EXPECT_EQ(2, token.len());
+
+    ASSERT_TRUE(lex.Next(&token));
+    EXPECT_EQ(TOKEN_RSHIFT_A, token.token_code()) << token.text();
+    EXPECT_EQ(5, token.position());
+    EXPECT_EQ(2, token.len());
+
+    ASSERT_TRUE(lex.Next(&token));
+    EXPECT_EQ(TOKEN_GE, token.token_code()) << token.text();
+    EXPECT_EQ(8, token.position());
+    EXPECT_EQ(2, token.len());
+
+    ASSERT_FALSE(lex.Next(&token));
+}
+
 } // namespace mio

@@ -7,7 +7,7 @@
 namespace mio {
 
 template<class T>
-class ZoneVector : ManagedObject {
+class ZoneVector : public ManagedObject {
 public:
     enum { kDefaultCapacity = 8, };
 

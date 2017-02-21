@@ -84,12 +84,167 @@ PackageImporter *Parser::ParsePackageImporter(bool *ok) {
     return node;
 }
 
+Expression *Parser::ParseExpression(int limit, int *rop, bool *ok) {
+    switch (ahead_.token_code()) {
+        case TOKEN_LBRACE: // {
+            // ParseBlockExpression
+            break;
+
+        case TOKEN_ID:
+        case TOKEN_I8_LITERAL:
+        case TOKEN_I16_LITERAL:
+        case TOKEN_I32_LITERAL:
+        case TOKEN_INT_LITERAL:
+        case TOKEN_F32_LITERAL:
+        case TOKEN_F64_LITERAL:
+        case TOKEN_STRING_LITERAL:
+        case TOKEN_MINUS:
+        case TOKEN_WAVE:
+            return ParseOperation(limit, rop, ok);
+
+        case TOKEN_IF:
+            // ParseIfExpression
+            break;
+
+        default:
+            break;
+    }
+    return nullptr;
+}
+
+// 1 + 2 * i
+// node = SmiLiteral(1)
+// op = +
+// rhs =
+// -- node = SmiLiteral(2)
+// -- op = *
+// -- rhs = Symbol(i)
+//
+// 2 * i + 1
+// node = SmiLiteral(2)
+// op = *
+// rhs =
+// -- node = Symbol(i)
+// -- op = +
+//
+Expression *Parser::ParseOperation(int limit, int *rop, bool *ok) {
+    auto position = ahead_.position();
+    auto op = TokenToUnaryOperator(ahead_.token_code());
+    if (op != OP_NOT_UNARY) {
+        lexer_->Next(&ahead_);
+
+        auto operand = ParseExpression(limit, rop, CHECK_OK);
+        *rop = op;
+        return factory_->CreateUnaryOperation(op, operand, position);
+    }
+
+    auto node = ParseSimpleExpression(CHECK_OK);
+    op = TokenToBinaryOperator(ahead_.token_code());
+    while (op != OP_NOT_BINARY && GetOperatorPriority(op)->left > limit) {
+        lexer_->Next(&ahead_);
+        position = ahead_.position();
+
+        int next_op;
+        auto rhs = ParseExpression(GetOperatorPriority(op)->right, &next_op,
+                                   CHECK_OK);
+        node = factory_->CreateBinaryOperation(op, node, rhs, position);
+
+        op = static_cast<Operator>(next_op);
+    }
+    *rop = op;
+    return node;
+}
+
+Expression *Parser::ParseSimpleExpression(bool *ok) {
+    auto position = ahead_.position();
+    switch (Peek()) {
+        case TOKEN_TRUE:
+            lexer_->Next(&ahead_);
+            return factory_->CreateI1SmiLiteral(true, position);
+
+        case TOKEN_FALSE:
+            lexer_->Next(&ahead_);
+            return factory_->CreateI1SmiLiteral(false, position);
+
+        case TOKEN_INT_LITERAL:
+            lexer_->Next(&ahead_);
+            return factory_->CreateI64SmiLiteral(ahead_.int_data(), position);
+
+        default:
+            return ParseSuffixed(ok);
+    }
+}
+
+Expression *Parser::ParseSuffixed(bool *ok) {
+    auto position = ahead_.position();
+    auto primary = ParsePrimary(CHECK_OK);
+    int rop = 0;
+
+    for (;;) {
+        switch (Peek()) {
+            // expr ( a1, b1, c1)
+            case TOKEN_LPAREN: {
+                auto args = new (zone_) ZoneVector<Expression *>(zone_);
+                Match(TOKEN_LPAREN, CHECK_OK);
+                if (!Test(TOKEN_RPAREN)) {
+                    auto arg = ParseExpression(0, &rop, CHECK_OK);
+                    args->Add(arg);
+                    while (Test(TOKEN_COMMA)) {
+                        arg = ParseExpression(0, &rop, CHECK_OK);
+                        args->Add(arg);
+                    }
+                    Match(TOKEN_RPAREN, CHECK_OK);
+                }
+                return factory_->CreateCall(primary, args, position);
+            } break;
+
+            case TOKEN_DOT:
+                break;
+
+            default:
+                return primary;
+        }
+    }
+}
+
+Expression *Parser::ParsePrimary(bool *ok) {
+    auto position = ahead_.position();
+    switch (Peek()) {
+         // ( expression )
+        case TOKEN_LPAREN: {
+            Match(TOKEN_LPAREN, CHECK_OK);
+            int rop = 0;
+            auto node = ParseExpression(0, &rop, CHECK_OK);
+            Match(TOKEN_RPAREN, CHECK_OK);
+            return node;
+        } break;
+
+        case TOKEN_ID: {
+            std::string id, ns;
+            Match(TOKEN_ID, &id, CHECK_OK);
+            if (Test(TOKEN_NAME_BREAK)) { // ::
+                auto ns = id;
+                Match(TOKEN_ID, &id, CHECK_OK);
+            }
+            return factory_->CreateSymbol(id, ns, position);
+        } break;
+
+        default:
+            ThrowError("unexpected \'expression\', expected %s",
+                       TokenNameWithText(Peek()).c_str());
+            break;
+
+    }
+    *ok = false;
+    return nullptr;
+}
+
 void Parser::Match(Token code, std::string *txt, bool *ok) {
     if (ahead_.token_code() != code) {
         *ok = false;
         ThrowError("unexpected: %s, expected: %s",
-                   kTokenName2Text[code],
-                   kTokenName2Text[ahead_.token_code()]);
+                   TokenNameWithText(code).c_str(),
+                   ahead_.ToNameWithText().c_str());
     }
     if (txt) {
         txt->assign(ahead_.text());
