@@ -270,4 +270,32 @@ TEST(LexerTest, Operators2) {
     ASSERT_FALSE(lex.Next(&token));
 }
 
+TEST(LexerTest, FloatingLiteral) {
+    Lexer lex(new FixedMemoryInputStream("0.1"), true);
+    TokenObject token;
+
+    ASSERT_TRUE(lex.Next(&token));
+    EXPECT_EQ(TOKEN_F32_LITERAL, token.token_code()) << token.text();
+    EXPECT_EQ(0, token.position());
+    EXPECT_EQ(3, token.len());
+    EXPECT_NEAR(0.1f, token.f32_data(), 0.0000001f);
+}
+
+TEST(LexerTest, FloatingLiteralWithStuffix) {
+    Lexer lex(new FixedMemoryInputStream("0.1D 0.22F"), true);
+    TokenObject token;
+
+    ASSERT_TRUE(lex.Next(&token));
+    EXPECT_EQ(TOKEN_F64_LITERAL, token.token_code()) << token.text();
+    EXPECT_EQ(0, token.position());
+    EXPECT_EQ(4, token.len());
+    EXPECT_NEAR(0.1f, token.f64_data(), 0.01f);
+
+    ASSERT_TRUE(lex.Next(&token));
+    EXPECT_EQ(TOKEN_F32_LITERAL, token.token_code()) << token.text();
+    EXPECT_EQ(5, token.position());
+    EXPECT_EQ(5, token.len());
+    EXPECT_NEAR(0.22f, token.f32_data(), 0.001f);
+}
+
 } // namespace mio

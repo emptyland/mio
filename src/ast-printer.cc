@@ -35,10 +35,7 @@ public:
     // operand: 1
     virtual void VisitUnaryOperation(UnaryOperation *node) override {
         WriteMapPair("op", kOperatorTextName[node->op()]);
-        WriteMapPair("operand", "");
-        ++indent_;
-        node->operand()->Accept(this);
-        --indent_;
+        Indent(); WriteMapPair("operand", node->operand());
     }
 
     // op: OP_ADD
@@ -50,21 +47,13 @@ public:
     //   i8: 110
     virtual void VisitBinaryOperation(BinaryOperation *node) override {
         WriteMapPair("op", kOperatorTextName[node->op()]);
-        WriteMapPair("lhs", "");
-        ++indent_;
-        node->lhs()->Accept(this);
-        --indent_;
-
-        WriteMapPair("rhs", "");
-        ++indent_;
-        node->rhs()->Accept(this);
-        --indent_;
+        Indent(); WriteMapPair("lhs", node->lhs());
+        Indent(); WriteMapPair("rhs", node->rhs());
     }
 
     // i1: 1
     // i32: 100
     virtual void VisitSmiLiteral(SmiLiteral *node) override {
-        Indent();
         Write("i%d: ", node->bitwide());
         switch (node->bitwide()) {
             case 1:
@@ -96,6 +85,53 @@ public:
         }
     }
 
+    // expression:
+    //   expr
+    // arguments:
+    //   - op: ADD
+    //     lhs:
+    //       i8: 1
+    //     rhs:
+    //       i8: 1
+    //   - i8: -127
+    virtual void VisitCall(Call *node) override {
+        WriteMapPair("expression", node->expression());
+        Indent(); WriteMapPair("arguments", node->mutable_arguments());
+    }
+
+    // expression:
+    //   expr
+    // field_name: name
+    virtual void VisitFieldAccessing(FieldAccessing *node) override {
+        WriteMapPair("expression", node->expression());
+        Indent(); WriteMapPair("field_name", node->field_name()->c_str());
+    }
+
+    // target:
+    //   symbol: ns:name
+    // rval:
+    //   i64: 1
+    virtual void VisitAssignment(Assignment *node) override {
+        WriteMapPair("taget", node->target());
+        Indent(); WriteMapPair("rval", node->rval());
+    }
+
+    virtual void VisitIfOperation(IfOperation *node) override {
+        WriteMapPair("if", node->condition());
+        Indent(); WriteMapPair("then", node->then_statement());
+        if (node->has_else()) {
+            Indent(); WriteMapPair("else", node->else_statement());
+        }
+    }
+
+    virtual void VisitReturn(Return *node) override {
+        if (node->has_return_value()) {
+            WriteMapPair("return", node->expression());
+        } else {
+            WriteMapPair("return", "void");
+        }
+    }
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(YamlPrinterVisitor)
 private:
     void Write(const char *fmt, ...) {
@@ -108,7 +144,6 @@ private:
     }
 
     void WriteMapPair(const char *key, const char *fmt, ...) {
-        Indent();
         buf_->append(key);
         buf_->append(": ");
 
@@ -119,6 +154,31 @@ private:
         va_end(ap);
         buf_->append(buf);
         buf_->append("\n");
+    }
+
+    void WriteMapPair(const char *key, AstNode *node) {
+        WriteMapPair(key, "");
+        ++indent_;
+        Indent(); node->Accept(this);
+        --indent_;
+    }
+
+    template<class T>
+    void WriteMapPair(const char *key, ZoneVector<T*> *array) {
+        WriteMapPair(key, "");
+        ++indent_;
+        for (int i = 0; i < array->size(); i++) {
+            WriteArrayElement(array->At(i));
+        }
+        --indent_;
+    }
+
+    void WriteArrayElement(AstNode *node) {
+        Indent();
+        buf_->append("- ");
+        ++indent_;
+        node->Accept(this);
+        --indent_;
     }
 
     void Indent() {

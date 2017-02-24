@@ -11,14 +11,18 @@
 namespace mio {
 
 #define DEFINE_STATEMENT_NODES(M)  \
-    M(PackageImporter)
+    M(PackageImporter) \
+    M(Return)
 
 #define DEFINE_EXPRESSION_NODES(M) \
     M(UnaryOperation) \
     M(BinaryOperation) \
     M(SmiLiteral) \
     M(Symbol) \
-    M(Call)
+    M(Call) \
+    M(FieldAccessing) \
+    M(IfOperation) \
+    M(Assignment)
 
 #define DEFINE_AST_NODES(M)    \
     DEFINE_STATEMENT_NODES(M)  \
@@ -32,9 +36,13 @@ namespace mio {
 
 class Statement;
 class PackageImporter;
+class Return;
 class Expression;
+class Assignment;
+class IfOperation;
 class Symbol;
 class Call;
+class FieldAccessing;
 class Literal;
 class SmiLiteral;
 class UnaryOperation;
@@ -76,13 +84,6 @@ private:
     int position_;
 }; // class AstNode;
 
-class Statement : public AstNode {
-public:
-    Statement(int position) : AstNode(position) {}
-
-    DISALLOW_IMPLICIT_CONSTRUCTORS(Statement)
-}; // class Statement
-
 class PackageImporter : public AstNode {
 public:
     RawStringRef package_name() const { return package_name_; }
@@ -103,9 +104,37 @@ private:
 
 }; // class PackageImporter
 
+
+class Statement : public AstNode {
+public:
+    // TODO:
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Statement)
+
+protected:
+    Statement(int position) : AstNode(position) {}
+}; // class Statement
+
+
+class Return : public Statement {
+public:
+    Expression *expression() const { return expression_; }
+
+    bool has_return_value() const { return expression_ != nullptr; }
+
+    DECLARE_AST_NODE(Return)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Return);
+private:
+    Return(Expression *expression, int position)
+        : Statement(position)
+        , expression_(expression) {}
+
+    Expression *expression_;
+}; // class Return
+
+
 class Expression : public Statement {
 public:
-    //TODO
+    bool is_lval() const;
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Expression)
 protected:
@@ -168,6 +197,14 @@ private:
     M(AND, 2, 2, TOKEN_AND) \
     M(OR,  1, 1, TOKEN_OR) \
 
+#define DEFINE_CONDITION_OPS(M) \
+    M(EQ, 6, 6, TOKEN_EQ) \
+    M(NE, 6, 6, TOKEN_NE) \
+    M(LT, 6, 6, TOKEN_LT) \
+    M(LE, 6, 6, TOKEN_LE) \
+    M(GT, 6, 6, TOKEN_GT) \
+    M(GE, 6, 6, TOKEN_GE)
+
 #define DEFINE_UNARY_OPS(M) \
     M(MINUS,   11, 11, TOKEN_MINUS) \
     M(NOT,     11, 11, TOKEN_NOT) \
@@ -177,7 +214,9 @@ private:
     DEFINE_SIMPLE_ARITH_OPS(M) \
     DEFINE_BIT_OPS(M) \
     DEFINE_LOGIC_OPS(M) \
-    DEFINE_UNARY_OPS(M)
+    DEFINE_CONDITION_OPS(M) \
+    DEFINE_UNARY_OPS(M) \
+    M(OTHER, 11, 11, TOKEN_ERROR)
 
 enum Operator : int {
 #define Operator_ENUM(name, left_proi, right_proi, token) OP_##name,
@@ -277,6 +316,69 @@ private:
 }; // class Call
 
 
+class FieldAccessing : public Expression {
+public:
+    RawStringRef field_name() const { return field_name_; }
+    Expression *expression() const { return expression_; }
+
+    DECLARE_AST_NODE(FieldAccessing)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(FieldAccessing)
+private:
+    FieldAccessing(RawStringRef field_name, Expression *expression,
+                   int position)
+        : Expression(position)
+        , field_name_(DCHECK_NOTNULL(field_name))
+        , expression_(DCHECK_NOTNULL(expression)) {
+    }
+
+    RawStringRef field_name_;
+    Expression *expression_;
+}; // class FieldAccessing
+
+
+class IfOperation : public Expression {
+public:
+    Expression *condition() const { return condition_; }
+    Statement  *then_statement() const { return then_statement_; }
+    Statement  *else_statement() const { return else_statement_; }
+
+    bool has_else() const { return else_statement_ != nullptr; }
+
+    DECLARE_AST_NODE(IfOperation)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(IfOperation)
+private:
+    IfOperation(Expression *condition, Statement *then_statement,
+                Statement *else_statement, int position)
+        : Expression(position)
+        , condition_(DCHECK_NOTNULL(condition))
+        , then_statement_(DCHECK_NOTNULL(then_statement))
+        , else_statement_(else_statement) {
+    }
+
+    Expression *condition_;
+    Statement  *then_statement_;
+    Statement  *else_statement_;
+
+}; // class IfOperation
+
+class Assignment : public Expression {
+public:
+    Expression *target() const { return target_; }
+    Expression *rval() const { return rval_; }
+
+    DECLARE_AST_NODE(Assignment)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Assignment)
+private:
+    Assignment(Expression *target, Expression *rval, int position)
+        : Expression(position)
+        , target_(DCHECK_NOTNULL(target))
+        , rval_(DCHECK_NOTNULL(rval)) {
+    }
+
+    Expression *target_;
+    Expression *rval_;
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 // AstVisitor
 ////////////////////////////////////////////////////////////////////////////////
@@ -300,7 +402,11 @@ public:
 
 class AstNodeFactory {
 public:
-    AstNodeFactory(Zone *zone) : zone_(zone) {}
+    AstNodeFactory(Zone *zone) : zone_(DCHECK_NOTNULL(zone)) {}
+
+    Return *CreateReturn(Expression *expression, int position) {
+        return new (zone_) Return(expression, position);
+    }
 
     PackageImporter *CreatePackageImporter(const std::string &package_name,
                                            int position) {
@@ -351,6 +457,26 @@ public:
     Call *CreateCall(Expression *expression, ZoneVector<Expression *> *arguments,
                      int position) {
         return new (zone_) Call(expression, arguments, position);
+    }
+
+    FieldAccessing *CreateFieldAccessing(const std::string &field_name,
+                                         Expression *expression,
+                                         int position) {
+        return new (zone_) FieldAccessing(RawString::Create(field_name, zone_),
+                                          expression, position);
+    }
+
+    IfOperation *CreateIfOperation(Expression *condition,
+                                   Statement *then_statement,
+                                   Statement *else_statement,
+                                   int position) {
+        return new (zone_) IfOperation(condition, then_statement,
+                                       else_statement, position);
+    }
+
+    Assignment *CreateAssignment(Expression *target, Expression *rval,
+                                 int position) {
+        return new (zone_) Assignment(target, rval, position);
     }
 
 private:

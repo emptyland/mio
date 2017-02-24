@@ -25,3 +25,10 @@ if, TOKEN_IF
 else, TOKEN_ELSE
 while, TOKEN_WHILE
 for, TOKEN_FOR
+return, TOKEN_RETURN
+break, TOKEN_BREAK
+continue, TOKEN_CONTINUE
+val, TOKEN_VAL
+var, TOKEN_VAR
+func, TOKEN_FUNC
+def, TOKEN_DEF

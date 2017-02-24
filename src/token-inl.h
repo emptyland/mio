@@ -77,6 +77,13 @@ namespace mio {
     M(ELSE, 0, "else") \
     M(WHILE, 0, "while") \
     M(FOR, 0, "for") \
+    M(RETURN, 0, "return") \
+    M(BREAK, 0, "break") \
+    M(CONTINUE, 0, "continue") \
+    M(VAL, 0, "val") \
+    M(VAR, 0, "var") \
+    M(FUNC, 0, "func") \
+    M(DEF, 0, "def") \
     M(TRUE, 0, "true") \
     M(FALSE, 0, "false")
 

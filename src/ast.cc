@@ -24,6 +24,7 @@ Operator TokenToBinaryOperator(Token token) {
         DEFINE_SIMPLE_ARITH_OPS(TokenToBinaryOperator_SWITCH_CASE)
         DEFINE_BIT_OPS(TokenToBinaryOperator_SWITCH_CASE)
         DEFINE_LOGIC_OPS(TokenToBinaryOperator_SWITCH_CASE)
+        DEFINE_CONDITION_OPS(TokenToBinaryOperator_SWITCH_CASE)
 #undef TokenToBinaryOperator_SWITCH_CASE
         default: return OP_NOT_BINARY;
     }
@@ -45,6 +46,14 @@ const OperatorPriority *GetOperatorPriority(Operator op) {
     DCHECK_LT(index, MAX_OP);
 
     return &kOpsPriority[index];
+}
+
+bool Expression::is_lval() const {
+    if (IsSymbol() || IsFieldAccessing() || IsCall() || IsAssignment()) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 } // namespace mio

@@ -35,6 +35,19 @@ public:
         return new Parser(zone_, input, true);
     }
 
+    void AssertionToYamlAstTree(const char *z, std::string *yaml) {
+        std::unique_ptr<Parser> p(CreateOnecParser(z));
+
+        bool ok = true;
+        int rop = 0;
+        auto node = p->ParseExpression(0, &rop, &ok);
+        auto err = p->last_error();
+        ASSERT_TRUE(ok) << err.position << ":" << err.message;
+        ASSERT_TRUE(node != nullptr);
+
+        AstPrinter::ToYamlString(node, 2, yaml);
+    }
+
     Zone *zone_ = nullptr;
     TextInputStream *input_ = nullptr;
 }; // class ParserTest
@@ -117,6 +130,118 @@ TEST_F(ParserTest, OperationProi) {
     EXPECT_EQ(OP_ADD, bin->op());
     EXPECT_TRUE(bin->lhs()->IsSmiLiteral());
     EXPECT_TRUE(bin->rhs()->IsBinaryOperation());
+}
+
+TEST_F(ParserTest, FieldAccessing) {
+    std::unique_ptr<Parser> p(CreateOnecParser("base::object.name"));
+
+    bool ok = true;
+    int rop = 0;
+    auto node = p->ParseExpression(0, &rop, &ok);
+    ASSERT_TRUE(ok) << p->last_error().message;
+    ASSERT_TRUE(node != nullptr);
+
+    EXPECT_TRUE(node->IsFieldAccessing());
+
+    auto fa = node->AsFieldAccessing();
+    EXPECT_STREQ("name", fa->field_name()->c_str());
+
+    EXPECT_TRUE(fa->expression()->IsSymbol());
+
+    auto symbol = fa->expression()->AsSymbol();
+    EXPECT_TRUE(symbol->has_name_space());
+    EXPECT_STREQ("object", symbol->name()->c_str());
+    EXPECT_STREQ("base", symbol->name_space()->c_str());
+}
+
+TEST_F(ParserTest, Calling) {
+    std::string yaml;
+
+    AssertionToYamlAstTree("base::eval(1, 2, i+1, -i)", &yaml);
+
+    const char z[] =
+    "expression: \n"
+    "  symbol: eval::base\n"
+    "arguments: \n"
+    "  - i64: 1\n"
+    "  - i64: 2\n"
+    "  - op: ADD\n"
+    "    lhs: \n"
+    "      symbol: i\n"
+    "    rhs: \n"
+    "      i64: 1\n"
+    "  - op: MINUS\n"
+    "    operand: \n"
+    "      symbol: i\n";
+
+    EXPECT_STREQ(z, yaml.c_str());
+}
+
+TEST_F(ParserTest, IfOperationOnlyThen) {
+    std::string yaml;
+
+    AssertionToYamlAstTree("if (i < 0) 1", &yaml);
+
+    const char z[] =
+    "if: \n"
+    "  op: LT\n"
+    "  lhs: \n"
+    "    symbol: i\n"
+    "  rhs: \n"
+    "    i64: 0\n"
+    "then: \n"
+    "  i64: 1\n";
+
+    EXPECT_STREQ(z, yaml.c_str());
+}
+
+TEST_F(ParserTest, IfOperationHasElse) {
+    std::string yaml;
+
+    AssertionToYamlAstTree("if (i < 0) 1 else -1", &yaml);
+
+    const char z[] =
+    "if: \n"
+    "  op: LT\n"
+    "  lhs: \n"
+    "    symbol: i\n"
+    "  rhs: \n"
+    "    i64: 0\n"
+    "then: \n"
+    "  i64: 1\n"
+    "else: \n"
+    "  i64: -1\n"
+    ;
+
+    EXPECT_STREQ(z, yaml.c_str());
+}
+
+TEST_F(ParserTest, IfOperationElseIf) {
+    std::string yaml;
+
+    AssertionToYamlAstTree("if (i < 0) 1 else if (i > 0) -1", &yaml);
+
+    const char z[] =
+    "if: \n"
+    "  op: LT\n"
+    "  lhs: \n"
+    "    symbol: i\n"
+    "  rhs: \n"
+    "    i64: 0\n"
+    "then: \n"
+    "  i64: 1\n"
+    "else: \n"
+    "  if: \n"
+    "    op: GT\n"
+    "    lhs: \n"
+    "      symbol: i\n"
+    "    rhs: \n"
+    "      i64: 0\n"
+    "  then: \n"
+    "    i64: -1\n"
+    ;
+
+    EXPECT_STREQ(z, yaml.c_str());
 }
 
 } // namespace mio

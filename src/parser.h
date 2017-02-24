@@ -8,7 +8,9 @@
 namespace mio {
 
 class PackageImporter;
+class Statement;
 class Expression;
+class IfOperation;
 
 class Lexer;
 class TextInputStream;
@@ -38,8 +40,10 @@ public:
 
     void ClearError();
 
+    Statement *ParseStatement(bool *ok);
     PackageImporter *ParsePackageImporter(bool *ok);
     Expression *ParseExpression(int limit, int *rop, bool *ok);
+    IfOperation *ParseIfOperation(bool *ok);
     Expression *ParseOperation(int limit, int *rop, bool *ok);
     Expression *ParseSimpleExpression(bool *ok);
     Expression *ParseSuffixed(bool *ok);

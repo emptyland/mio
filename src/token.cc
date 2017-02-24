@@ -31,7 +31,7 @@ std::string TokenNameWithText(Token token) {
     }
 
     char buf[128];
-    snprintf(buf, arraysize(buf), "%s (%s)", metadata->name, metadata->text);
+    snprintf(buf, arraysize(buf), "%s `%s\'", metadata->name, metadata->text);
     return std::string(buf);
 }
 

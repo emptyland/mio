@@ -45,6 +45,25 @@ void Parser::ClearError() {
     last_error_ = ParsingError::NoError();
 }
 
+Statement *Parser::ParseStatement(bool *ok) {
+    int rop = 0;
+
+    switch (Peek()) {
+        case TOKEN_WHILE:
+            // TODO:
+            break;
+
+        case TOKEN_FOR:
+            // TODO:
+            break;
+
+        default:
+            return ParseExpression(0, &rop, ok);
+    }
+
+    return nullptr;
+}
+
 /*
  * package_define_import = package_define [ import_statment ]
  * package_define = "package" id
@@ -85,7 +104,7 @@ PackageImporter *Parser::ParsePackageImporter(bool *ok) {
 }
 
 Expression *Parser::ParseExpression(int limit, int *rop, bool *ok) {
-    switch (ahead_.token_code()) {
+    switch (Peek()) {
         case TOKEN_LBRACE: // {
             // ParseBlockExpression
             break;
@@ -103,13 +122,41 @@ Expression *Parser::ParseExpression(int limit, int *rop, bool *ok) {
             return ParseOperation(limit, rop, ok);
 
         case TOKEN_IF:
-            // ParseIfExpression
-            break;
+            *rop = OP_OTHER;
+            return ParseIfOperation(ok);
 
         default:
+            *ok = false;
+            if (Peek() == TOKEN_ERROR) {
+                ThrowError("unexpected expression, lexer error: %s",
+                           ahead_.text().c_str());
+            } else {
+                ThrowError("unexpected expression, expected: %s",
+                           ahead_.ToNameWithText().c_str());
+            }
             break;
     }
     return nullptr;
+}
+
+// if ( condition) then_statement else else_statement
+IfOperation *Parser::ParseIfOperation(bool *ok) {
+    auto position = ahead_.position();
+    Match(TOKEN_IF, CHECK_OK);
+
+    Match(TOKEN_LPAREN, CHECK_OK);
+    int rop;
+    auto expr = ParseExpression(0, &rop, CHECK_OK);
+    Match(TOKEN_RPAREN, CHECK_OK);
+
+    auto then_stmt = ParseStatement(CHECK_OK);
+    Statement *else_stmt = nullptr;
+    if (Test(TOKEN_ELSE)) {
+        else_stmt = ParseStatement(CHECK_OK);
+    }
+
+    auto node = factory_->CreateIfOperation(expr, then_stmt, else_stmt, position);
+    return node;
 }
 
 // 1 + 2 * i
@@ -129,7 +176,7 @@ Expression *Parser::ParseExpression(int limit, int *rop, bool *ok) {
 //
 Expression *Parser::ParseOperation(int limit, int *rop, bool *ok) {
     auto position = ahead_.position();
-    auto op = TokenToUnaryOperator(ahead_.token_code());
+    auto op = TokenToUnaryOperator(Peek());
     if (op != OP_NOT_UNARY) {
         lexer_->Next(&ahead_);
 
@@ -139,7 +186,19 @@ Expression *Parser::ParseOperation(int limit, int *rop, bool *ok) {
     }
 
     auto node = ParseSimpleExpression(CHECK_OK);
-    op = TokenToBinaryOperator(ahead_.token_code());
+    if (Test(TOKEN_ASSIGN)) { // = assignment
+        if (!node->is_lval()) {
+            ThrowError("assigment target is not lval");
+            *ok = false;
+            return nullptr;
+        }
+        auto rval = ParseExpression(0, rop, CHECK_OK);
+        *rop = OP_OTHER;
+
+        return factory_->CreateAssignment(node, rval, position);
+    }
+
+    op = TokenToBinaryOperator(Peek());
     while (op != OP_NOT_BINARY && GetOperatorPriority(op)->left > limit) {
         lexer_->Next(&ahead_);
         position = ahead_.position();
@@ -177,7 +236,7 @@ Expression *Parser::ParseSimpleExpression(bool *ok) {
 
 Expression *Parser::ParseSuffixed(bool *ok) {
     auto position = ahead_.position();
-    auto primary = ParsePrimary(CHECK_OK);
+    auto node = ParsePrimary(CHECK_OK);
     int rop = 0;
 
     for (;;) {
@@ -195,14 +254,21 @@ Expression *Parser::ParseSuffixed(bool *ok) {
                     }
                     Match(TOKEN_RPAREN, CHECK_OK);
                 }
-                return factory_->CreateCall(primary, args, position);
+                node = factory_->CreateCall(node, args, position);
             } break;
 
-            case TOKEN_DOT:
-                break;
+            // expr . field . field
+            case TOKEN_DOT: {
+                Match(TOKEN_DOT, CHECK_OK);
+
+                std::string field_name;
+                Match(TOKEN_ID, &field_name, CHECK_OK);
+
+                node = factory_->CreateFieldAccessing(field_name, node, position);
+            } break;
 
             default:
-                return primary;
+                return node;
         }
     }
 }
@@ -219,11 +285,13 @@ Expression *Parser::ParsePrimary(bool *ok) {
             return node;
         } break;
 
+        // symbol
+        // namespace::symbol
         case TOKEN_ID: {
             std::string id, ns;
             Match(TOKEN_ID, &id, CHECK_OK);
             if (Test(TOKEN_NAME_BREAK)) { // ::
-                auto ns = id;
+                ns = id;
                 Match(TOKEN_ID, &id, CHECK_OK);
             }
             return factory_->CreateSymbol(id, ns, position);
@@ -240,11 +308,19 @@ Expression *Parser::ParsePrimary(bool *ok) {
 }
 
 void Parser::Match(Token code, std::string *txt, bool *ok) {
+    DCHECK_NE(TOKEN_ERROR, code);
+
     if (ahead_.token_code() != code) {
         *ok = false;
-        ThrowError("unexpected: %s, expected: %s",
-                   TokenNameWithText(code).c_str(),
-                   ahead_.ToNameWithText().c_str());
+        if (ahead_.is_error()) {
+            ThrowError("unexpected: %s, lexer error: %s",
+                       TokenNameWithText(code).c_str(),
+                       ahead_.text().c_str());
+        } else {
+            ThrowError("unexpected: %s, expected: %s",
+                       TokenNameWithText(code).c_str(),
+                       ahead_.ToNameWithText().c_str());
+        }
     }
     if (txt) {
         txt->assign(ahead_.text());

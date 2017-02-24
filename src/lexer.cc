@@ -428,7 +428,7 @@ bool Lexer::ParseStringLiteral(int quote, TokenObject *token) {
 bool Lexer::ParseDecimalNumberLiteral(int sign, TokenObject *token) {
     bool has_dot = false;
     int ahead = 0;
-    do {
+    for (;;) {
         ahead = Peek();
 
         if (isdigit(ahead)) {
@@ -454,12 +454,13 @@ bool Lexer::ParseDecimalNumberLiteral(int sign, TokenObject *token) {
         } else if (ahead == 'F' ||
                    ahead == 'D') {
             return ParseDecimalFloatingValue(&ahead, token);
+        } else if (IsTermination(ahead)) {
+            break;
         } else {
-            return ThrowError(token, "incorrect decimal number literal, "
-                              "unexpected character \'%c\'.", ahead);
+            return ThrowError(token, "incorrect decimal number literal, expected: `%c'",
+                              ahead);
         }
-
-    } while (IsNotTermination(ahead));
+    }
 
     bool ok = true;
     if (has_dot) {
@@ -647,7 +648,8 @@ bool Lexer::ParseSymbolOrKeyword(TokenObject *token) {
             return true;
 
         case '{': case '}': case '[': case ']': case '(': case ')': case ',':
-        case ':': case '<': case '>': case '=': case '~':
+        case ':': case '<': case '>': case '=': case '~': case '.': case '+':
+        case '-': case '*': case '/': case '%': case '^':
             // TODO:
             return true;
 
