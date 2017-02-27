@@ -64,6 +64,8 @@ namespace mio {
     M(F32, 0, "f32") \
     M(F64, 0, "f64") \
     M(STRING, 0, "string") \
+    M(VOID, 0, "void") \
+    M(UNION, 0, "union") \
     M(ID, 0, "[$_a-zA-Z0-9]+") \
     M(I8_LITERAL, 0, "\\d+b") \
     M(I16_LITERAL, 0, "\\d+w") \
@@ -82,7 +84,9 @@ namespace mio {
     M(CONTINUE, 0, "continue") \
     M(VAL, 0, "val") \
     M(VAR, 0, "var") \
-    M(FUNC, 0, "func") \
+    M(FUNCTION, 0, "function") \
+    M(NATIVE, 0, "native") \
+    M(EXPORT, 0, "export") \
     M(DEF, 0, "def") \
     M(TRUE, 0, "true") \
     M(FALSE, 0, "false")

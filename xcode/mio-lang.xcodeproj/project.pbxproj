@@ -44,6 +44,10 @@
 		236202611E48221700B6B949 /* text-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362025F1E48221700B6B949 /* text-input-stream.cc */; };
 		23E3D59A1E5C1A7900C51DDE /* ast-printer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5991E5C1A7900C51DDE /* ast-printer.cc */; };
 		23E3D59B1E5C1A7900C51DDE /* ast-printer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5991E5C1A7900C51DDE /* ast-printer.cc */; };
+		23E3D59F1E600DCE00C51DDE /* types.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D59E1E600DCE00C51DDE /* types.cc */; };
+		23E3D5A01E600DCE00C51DDE /* types.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D59E1E600DCE00C51DDE /* types.cc */; };
+		23E3D5A31E63C6DD00C51DDE /* scopes.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5A21E63C6DD00C51DDE /* scopes.cc */; };
+		23E3D5A41E63C6DD00C51DDE /* scopes.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5A21E63C6DD00C51DDE /* scopes.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -111,6 +115,10 @@
 		236202621E486C9300B6B949 /* token-inl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "token-inl.h"; sourceTree = "<group>"; };
 		23E3D5991E5C1A7900C51DDE /* ast-printer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "ast-printer.cc"; sourceTree = "<group>"; };
 		23E3D59C1E5C231400C51DDE /* ast-printer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ast-printer.h"; sourceTree = "<group>"; };
+		23E3D59D1E600CB800C51DDE /* types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = types.h; sourceTree = "<group>"; };
+		23E3D59E1E600DCE00C51DDE /* types.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = types.cc; sourceTree = "<group>"; };
+		23E3D5A11E63C6B100C51DDE /* scopes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = scopes.h; sourceTree = "<group>"; };
+		23E3D5A21E63C6DD00C51DDE /* scopes.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = scopes.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -168,8 +176,10 @@
 				2349E5751E4C5310002883BC /* zone.cc */,
 				2349E5891E56F3DB002883BC /* raw-string.cc */,
 				2349E58C1E56FCC9002883BC /* ast.cc */,
+				23E3D59E1E600DCE00C51DDE /* types.cc */,
 				23E3D5991E5C1A7900C51DDE /* ast-printer.cc */,
 				2349E5901E56FF02002883BC /* parser.cc */,
+				23E3D5A21E63C6DD00C51DDE /* scopes.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -191,8 +201,10 @@
 				2349E57E1E56A2A6002883BC /* zone-vector.h */,
 				2349E5811E56E2F0002883BC /* ast.h */,
 				23E3D59C1E5C231400C51DDE /* ast-printer.h */,
+				23E3D59D1E600CB800C51DDE /* types.h */,
 				2349E5841E56EE9E002883BC /* raw-string.h */,
 				2349E58F1E56FE40002883BC /* parser.h */,
+				23E3D5A11E63C6B100C51DDE /* scopes.h */,
 			);
 			name = Include;
 			path = ../src;
@@ -307,12 +319,14 @@
 			files = (
 				2349E58D1E56FCC9002883BC /* ast.cc in Sources */,
 				2349E5721E4B1800002883BC /* keywords.c in Sources */,
+				23E3D5A31E63C6DD00C51DDE /* scopes.cc in Sources */,
 				236202551E45BE2900B6B949 /* lexer.cc in Sources */,
 				23E3D59A1E5C1A7900C51DDE /* ast-printer.cc in Sources */,
 				235808131E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
 				2362023D1E45B9EB00B6B949 /* base.cc in Sources */,
 				2349E58A1E56F3DB002883BC /* raw-string.cc in Sources */,
 				2349E56C1E4AA77F002883BC /* number-parser.cc in Sources */,
+				23E3D59F1E600DCE00C51DDE /* types.cc in Sources */,
 				236202591E45C58800B6B949 /* token.cc in Sources */,
 				236202601E48221700B6B949 /* text-input-stream.cc in Sources */,
 				2349E5911E56FF02002883BC /* parser.cc in Sources */,
@@ -334,8 +348,10 @@
 				23E3D59B1E5C1A7900C51DDE /* ast-printer.cc in Sources */,
 				236202561E45BE2900B6B949 /* lexer.cc in Sources */,
 				2362025D1E45CC5F00B6B949 /* token-test.cc in Sources */,
+				23E3D5A41E63C6DD00C51DDE /* scopes.cc in Sources */,
 				2349E5941E56FF12002883BC /* parser-test.cc in Sources */,
 				2362025A1E45C58800B6B949 /* token.cc in Sources */,
+				23E3D5A01E600DCE00C51DDE /* types.cc in Sources */,
 				2349E58E1E56FCC9002883BC /* ast.cc in Sources */,
 				2349E57A1E554426002883BC /* zone-test.cc in Sources */,
 				2349E5731E4B1800002883BC /* keywords.c in Sources */,

@@ -12,7 +12,10 @@ namespace mio {
 
 #define DEFINE_STATEMENT_NODES(M)  \
     M(PackageImporter) \
-    M(Return)
+    M(Return) \
+    M(ValDeclaration) \
+    M(VarDeclaration) \
+    M(FunctionDefine)
 
 #define DEFINE_EXPRESSION_NODES(M) \
     M(UnaryOperation) \
@@ -22,40 +25,59 @@ namespace mio {
     M(Call) \
     M(FieldAccessing) \
     M(IfOperation) \
-    M(Assignment)
+    M(Assignment) \
+    M(Block) \
+    M(FunctionLiteral)
 
 #define DEFINE_AST_NODES(M)    \
     DEFINE_STATEMENT_NODES(M)  \
     DEFINE_EXPRESSION_NODES(M) \
 
-#define DECLARE_AST_NODE(name)                                               \
-    friend class AstNodeFactory;                                             \
-    virtual void Accept(AstVisitor *v) override;                             \
-    virtual AstNode::Type type() const override { return AstNode::k##name; } \
+#define DECLARE_AST_NODE(name)                           \
+    friend class AstNodeFactory;                         \
+    virtual void Accept(AstVisitor *v) override;         \
+    virtual AstNode::NodeType node_type() const override \
+        { return AstNode::k##name; }
 
+class AstNode;
+    class Statement;
+        class Expression;
+            class Block;
+            class Assignment;
+            class IfOperation;
+            class Symbol;
+            class Call;
+            class FieldAccessing;
+            class Literal;
+                class SmiLiteral;
+                class FunctionLiteral;
+            class UnaryOperation;
+            class BinaryOperation;
+        class Declaration;
+            class ValDeclaration;
+            class VarDeclaration;
+            class FunctionDefine;
+        class PackageImporter;
+        class Return;
 
-class Statement;
-class PackageImporter;
-class Return;
-class Expression;
-class Assignment;
-class IfOperation;
-class Symbol;
-class Call;
-class FieldAccessing;
-class Literal;
-class SmiLiteral;
-class UnaryOperation;
-class BinaryOperation;
-
+class Type;
+    class FunctionPrototype;
+    class Integral;
+    class Floating;
+    class String;
+    class Struct;
+    class Array;
+    class Void;
+    class Union;
 
 class AstVisitor;
 class AstNodeFactory;
+class Scope;
 
 class AstNode : public ManagedObject {
 public:
 #define AstNode_Types_ENUM(node) k##node,
-    enum Type {
+    enum NodeType {
         DEFINE_AST_NODES(AstNode_Types_ENUM)
         kInvalid = -1,
     };
@@ -64,12 +86,12 @@ public:
     AstNode(int position) : position_(position) {}
 
     virtual void Accept(AstVisitor *visitor) = 0;
-    virtual Type type() const = 0;
+    virtual NodeType node_type() const = 0;
 
     DEF_GETTER(int, position)
 
 #define AstNode_TYPE_ASSERT(node)                                      \
-    bool Is##node() const { return type() == k##node; }                \
+    bool Is##node() const { return node_type() == k##node; }           \
     node *As##node() {                                                 \
         return Is##node() ? reinterpret_cast<node *>(this) : nullptr;  \
     }                                                                  \
@@ -83,6 +105,7 @@ public:
 private:
     int position_;
 }; // class AstNode;
+
 
 class PackageImporter : public AstNode {
 public:
@@ -115,6 +138,81 @@ protected:
 }; // class Statement
 
 
+
+class Declaration : public Statement {
+public:
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Declaration)
+protected:
+    Declaration(int position) : Statement(position) {}
+}; // class Declaration
+
+
+class ValDeclaration : public Declaration {
+public:
+    RawStringRef name() const { return name_; }
+    Type *type() const { return type_; }
+    Expression *initializer() const { return initializer_; }
+
+    DEF_GETTER(bool, is_export)
+
+    bool has_initializer() const { return initializer_ != nullptr; }
+
+    DECLARE_AST_NODE(ValDeclaration)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(ValDeclaration)
+private:
+    ValDeclaration(RawStringRef name,
+                   bool is_export,
+                   Type *type,
+                   Expression *initializer,
+                   Scope *scope,
+                   int position)
+        : Declaration(position)
+        , name_(DCHECK_NOTNULL(name))
+        , is_export_(is_export)
+        , type_(DCHECK_NOTNULL(type))
+        , initializer_(initializer)
+        , scope_(DCHECK_NOTNULL(scope)) {}
+
+    RawStringRef name_;
+    bool is_export_;
+    Type *type_;
+    Expression *initializer_;
+    Scope *scope_;
+}; // class ValDeclaration
+
+
+class VarDeclaration : public Declaration {
+public:
+    RawStringRef name() const { return name_; }
+    Type *type() const { return type_; }
+    Expression *initializer() const { return initializer_; }
+
+    DEF_GETTER(bool, is_export)
+
+    bool has_initializer() const { return initializer_ != nullptr; }
+
+    DECLARE_AST_NODE(VarDeclaration)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(VarDeclaration)
+private:
+    VarDeclaration(RawStringRef name,
+                   bool is_export,
+                   Type *type,
+                   Expression *initializer,
+                   int position)
+        : Declaration(position)
+        , name_(DCHECK_NOTNULL(name))
+        , is_export_(is_export)
+        , type_(DCHECK_NOTNULL(type))
+        , initializer_(initializer) {}
+
+    RawStringRef name_;
+    bool is_export_;
+    Type *type_;
+    Expression *initializer_;
+}; // class ValDeclaration
+
+
 class Return : public Statement {
 public:
     Expression *expression() const { return expression_; }
@@ -131,6 +229,39 @@ private:
     Expression *expression_;
 }; // class Return
 
+
+class FunctionDefine : public Declaration {
+public:
+    RawStringRef name() const { return name_; }
+    FunctionLiteral *function_literal() const { return function_literal_; }
+    int start_position() const { return position(); }
+
+    DEF_GETTER(int, end_position)
+    DEF_GETTER(bool, is_export)
+    DEF_GETTER(bool, is_native)
+
+    DECLARE_AST_NODE(FunctionDefine)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(FunctionDefine);
+private:
+    FunctionDefine(RawStringRef name,
+                   bool is_export,
+                   bool is_native,
+                   FunctionLiteral *function_literal,
+                   int start_position,
+                   int end_position)
+        : Declaration(start_position)
+        , name_(DCHECK_NOTNULL(name))
+        , is_export_(is_export)
+        , is_native_(is_native)
+        , function_literal_(DCHECK_NOTNULL(function_literal))
+        , end_position_(end_position) {}
+
+    RawStringRef name_;
+    bool is_export_;
+    bool is_native_;
+    FunctionLiteral *function_literal_;
+    int end_position_;
+}; // class FunctionDefine
 
 class Expression : public Statement {
 public:
@@ -176,6 +307,30 @@ private:
     } data_;
 
 }; // class SmiLiteral
+
+
+class FunctionLiteral : public Literal {
+public:
+    FunctionPrototype *prototype() const { return prototype_; }
+    Expression *body() const { return body_; }
+    int start_position() const { return position(); }
+
+    DEF_GETTER(int, end_position)
+
+    DECLARE_AST_NODE(FunctionLiteral)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(FunctionLiteral);
+private:
+    FunctionLiteral(FunctionPrototype *prototype, Expression *body,
+                    int start_position, int end_position)
+        : Literal(start_position)
+        , prototype_(DCHECK_NOTNULL(prototype))
+        , body_(DCHECK_NOTNULL(body))
+        , end_position_(end_position) {}
+
+    FunctionPrototype *prototype_;
+    Expression *body_;
+    int end_position_;
+}; // class FunctionLiteral
 
 
 #define DEFINE_SIMPLE_ARITH_OPS(M) \
@@ -377,7 +532,28 @@ private:
 
     Expression *target_;
     Expression *rval_;
-};
+}; // class Assignment
+
+class Block : public Expression {
+public:
+    ZoneVector<Statement *> *mutable_body() { return body_; }
+
+    int number_of_statements() const { return body_->size(); }
+    int start_position() const { return position(); }
+
+    DEF_GETTER(int, end_position)
+
+    DECLARE_AST_NODE(Block)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Block)
+private:
+    Block(ZoneVector<Statement *> *body, int start_position, int end_position)
+        : Expression(start_position)
+        , body_(DCHECK_NOTNULL(body))
+        , end_position_(end_position) {}
+
+    ZoneVector<Statement *> *body_;
+    int end_position_;
+}; // class Block
 
 ////////////////////////////////////////////////////////////////////////////////
 // AstVisitor
@@ -477,6 +653,59 @@ public:
     Assignment *CreateAssignment(Expression *target, Expression *rval,
                                  int position) {
         return new (zone_) Assignment(target, rval, position);
+    }
+
+    Block *CreateBlock(ZoneVector<Statement *> *body, int start_position,
+                       int end_position) {
+        return new (zone_) Block(body, start_position, end_position);
+    }
+
+    FunctionDefine *CreateFunctionDefine(const std::string &name,
+                                         bool is_export,
+                                         bool is_native,
+                                         FunctionLiteral *function_literal,
+                                         int start_position,
+                                         int end_position) {
+        return new (zone_) FunctionDefine(RawString::Create(name, zone_),
+                                          is_export,
+                                          is_native,
+                                          function_literal,
+                                          start_position,
+                                          end_position);
+    }
+
+    FunctionLiteral *CreateFunctionLiteral(FunctionPrototype *prototype,
+                                           Expression *body,
+                                           int start_position,
+                                           int end_position) {
+        return new (zone_) FunctionLiteral(prototype, body, start_position,
+                                           end_position);
+    }
+
+    ValDeclaration *CreateValDeclaration(const std::string &name,
+                                         bool is_export,
+                                         Type *type,
+                                         Expression *initializer,
+                                         Scope *scope,
+                                         int position) {
+        return new (zone_) ValDeclaration(RawString::Create(name, zone_),
+                                          is_export,
+                                          type,
+                                          initializer,
+                                          scope,
+                                          position);
+    }
+
+    VarDeclaration *CreateVarDeclaration(const std::string &name,
+                                         bool is_export,
+                                         Type *type,
+                                         Expression *initializer,
+                                         int position) {
+        return new (zone_) VarDeclaration(RawString::Create(name, zone_),
+                                          is_export,
+                                          type,
+                                          initializer,
+                                          position);
     }
 
 private:

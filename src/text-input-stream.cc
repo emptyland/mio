@@ -2,7 +2,10 @@
 
 namespace mio {
 
-/* virtual */ TextInputStream::~TextInputStream() {
+/*virtual*/ TextInputStream::~TextInputStream() {
+}
+
+/*virtual*/ TextStreamFactory::~TextStreamFactory() {
 }
 
 } // namespace mio

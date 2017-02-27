@@ -1,8 +1,10 @@
 #include "parser.h"
+#include "scopes.h"
 #include "fixed-memory-input-stream.h"
 #include "zone-hash-map.h"
 #include "zone-vector.h"
 #include "zone.h"
+#include "types.h"
 #include "ast-printer.h"
 #include "ast.h"
 #include "token.h"
@@ -17,30 +19,30 @@ class ParserTest : public ::testing::Test {
 public:
     virtual void SetUp() override {
         zone_ = new Zone;
-
+        global_scope_ = new (zone_) Scope(nullptr, GLOBAL_SCOPE, zone_);
+        types_ = new TypeFactory(zone_);
+        streams_ = new FixedMemoryStreamFactory();
     }
 
     virtual void TearDown() override {
+        delete streams_;
+        delete types_;
         delete  zone_;
-        delete  input_;
-    }
-
-    void PutString(const char *z) {
-        delete input_;
-        input_ = new FixedMemoryInputStream(z);
     }
 
     Parser *CreateOnecParser(const char *z) {
-        auto input = new FixedMemoryInputStream(z);
-        return new Parser(zone_, input, true);
+        streams_->PutInputStream(":memory:", z);
+
+        auto p = new Parser(types_, streams_, global_scope_, zone_);
+        p->SwitchInputStream(":memory:");
+        return p;
     }
 
     void AssertionToYamlAstTree(const char *z, std::string *yaml) {
         std::unique_ptr<Parser> p(CreateOnecParser(z));
 
         bool ok = true;
-        int rop = 0;
-        auto node = p->ParseExpression(0, &rop, &ok);
+        auto node = p->ParseStatement(&ok);
         auto err = p->last_error();
         ASSERT_TRUE(ok) << err.position << ":" << err.message;
         ASSERT_TRUE(node != nullptr);
@@ -49,7 +51,9 @@ public:
     }
 
     Zone *zone_ = nullptr;
-    TextInputStream *input_ = nullptr;
+    Scope *global_scope_ = nullptr;
+    TypeFactory *types_ = nullptr;
+    FixedMemoryStreamFactory *streams_ = nullptr;
 }; // class ParserTest
 
 TEST_F(ParserTest, Sanity) {
@@ -154,6 +158,25 @@ TEST_F(ParserTest, FieldAccessing) {
     EXPECT_STREQ("base", symbol->name_space()->c_str());
 }
 
+TEST_F(ParserTest, Assignment) {
+    std::unique_ptr<Parser> p(CreateOnecParser("i = 1"));
+
+    bool ok = true;
+    int rop = 0;
+    auto node = p->ParseExpression(0, &rop, &ok);
+    ASSERT_TRUE(ok) << p->last_error().message;
+    ASSERT_TRUE(node != nullptr);
+
+    EXPECT_TRUE(node->IsAssignment());
+
+    auto assignment = node->AsAssignment();
+    EXPECT_TRUE(assignment->target()->IsSymbol());
+    EXPECT_STREQ("i", assignment->target()->AsSymbol()->name()->c_str());
+
+    EXPECT_TRUE(assignment->rval()->IsSmiLiteral());
+    EXPECT_EQ(1, assignment->rval()->AsSmiLiteral()->i64());
+}
+
 TEST_F(ParserTest, Calling) {
     std::string yaml;
 
@@ -241,6 +264,32 @@ TEST_F(ParserTest, IfOperationElseIf) {
     "    i64: -1\n"
     ;
 
+    EXPECT_STREQ(z, yaml.c_str());
+}
+
+TEST_F(ParserTest, EmptyBlock) {
+    std::string yaml;
+    AssertionToYamlAstTree("{}", &yaml);
+
+    const char z[] = "block: -EMPTY-\n";
+    EXPECT_STREQ(z, yaml.c_str());
+}
+
+TEST_F(ParserTest, Block) {
+    std::string yaml;
+    AssertionToYamlAstTree("{\nc = a + b\nc}\n", &yaml);
+
+    const char z[] =
+    "block: \n"
+    "  - taget: \n"
+    "      symbol: c\n"
+    "    rval: \n"
+    "      op: ADD\n"
+    "      lhs: \n"
+    "        symbol: a\n"
+    "      rhs: \n"
+    "        symbol: b\n"
+    "  - symbol: c\n";
     EXPECT_STREQ(z, yaml.c_str());
 }
 

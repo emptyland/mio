@@ -132,6 +132,34 @@ public:
         }
     }
 
+    virtual void VisitValDeclaration(ValDeclaration *node) override {
+        
+    }
+
+    virtual void VisitVarDeclaration(VarDeclaration *node) override {
+        // TODO:
+    }
+
+    // block:
+    //   - node 1
+    //   - node 2
+    //   - node 3
+    virtual void VisitBlock(Block *node) override {
+        if (node->mutable_body()->size() == 0) {
+            WriteMapPair("block", "-EMPTY-");
+        } else {
+            WriteMapPair("block", node->mutable_body());
+        }
+    }
+
+    virtual void VisitFunctionLiteral(FunctionLiteral *node) override {
+        // TODO:
+    }
+
+    virtual void VisitFunctionDefine(FunctionDefine *node) override {
+        // TODO:
+    }
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(YamlPrinterVisitor)
 private:
     void Write(const char *fmt, ...) {

@@ -30,5 +30,9 @@ break, TOKEN_BREAK
 continue, TOKEN_CONTINUE
 val, TOKEN_VAL
 var, TOKEN_VAR
-func, TOKEN_FUNC
+function, TOKEN_FUNCTION
 def, TOKEN_DEF
+void, TOKEN_VOID
+union, TOKEN_UNION
+native, TOKEN_NATIVE
+export, TOKEN_EXPORT
