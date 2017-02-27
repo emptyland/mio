@@ -55,7 +55,7 @@ public:
     void ClearError();
 
     TextInputStream *SwitchInputStream(const std::string &key);
-    Scope *EnterScope(int scope_type);
+    Scope *EnterScope(const std::string &name, int scope_type);
     Scope *LeaveScope();
 
     Statement *ParseStatement(bool *ok);

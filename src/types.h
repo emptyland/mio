@@ -9,6 +9,11 @@
 
 namespace mio {
 
+#define DEFINE_TYPE_NODES(M) \
+    M(FunctionPrototype) \
+    M(Integral) \
+    M(Void)
+
 class Type;
     class FunctionPrototype;
     class Integral;
@@ -23,13 +28,18 @@ class TypeFactory;
 
 class Type : public ManagedObject {
 public:
-    virtual bool is_integral() const { return false; }
-    virtual bool is_floating() const { return false; }
-    virtual bool is_function() const { return false; }
-    virtual bool is_string() const { return false; }
-    virtual bool is_void() const { return false; }
-    virtual bool is_union() const { return false; }
-    virtual bool is_unknown() const { return true; }
+#define Type_TYPE_ASSERT(kind) \
+    virtual bool Is##kind () const { return false; } \
+    kind *As##kind() { \
+        return Is##kind() ? reinterpret_cast<kind *>(this) : nullptr; \
+    } \
+    const kind *As##kind() const { \
+        return Is##kind() ? reinterpret_cast<const kind *>(this) : nullptr; \
+    }
+
+    DEFINE_TYPE_NODES(Type_TYPE_ASSERT)
+
+#undef Type_TYPE_ASSERT
 
     int64_t id() const { return id_; }
 
@@ -44,7 +54,7 @@ protected:
 
 class Void : public Type {
 public:
-    virtual bool is_void() const override { return true; }
+    virtual bool IsVoid() const override { return true; }
 
     friend class TypeFactory;
     DISALLOW_IMPLICIT_CONSTRUCTORS(Void);
@@ -57,7 +67,7 @@ class Integral : public Type {
 public:
     DEF_GETTER(int, bitwide)
 
-    virtual bool is_integral() const override { return true; }
+    virtual bool IsIntegral() const override { return true; }
 
     friend class TypeFactory;
     DISALLOW_IMPLICIT_CONSTRUCTORS(Integral);
@@ -97,14 +107,16 @@ public:
     Type *return_type() const { return return_type_; }
     void set_return_type(Type *type) { return_type_ = type; }
 
+    void UpdateId();
+
     friend class TypeFactory;
     DISALLOW_IMPLICIT_CONSTRUCTORS(FunctionPrototype);
 private:
     FunctionPrototype(ZoneVector<Paramter *> *paramters, Type *return_type,
                       int id)
-    : Type(id)
-    , paramters_(DCHECK_NOTNULL(paramters))
-    , return_type_(DCHECK_NOTNULL(return_type)) {}
+        : Type(id)
+        , paramters_(DCHECK_NOTNULL(paramters))
+        , return_type_(DCHECK_NOTNULL(return_type)) {}
     
     ZoneVector<Paramter *> *paramters_;
     Type *return_type_;

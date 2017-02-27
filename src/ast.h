@@ -141,10 +141,15 @@ protected:
 
 class Declaration : public Statement {
 public:
+    Scope *scope() const { return scope_; }
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Declaration)
 protected:
-    Declaration(int position) : Statement(position) {}
+    Declaration(Scope *scope, int position)
+        : Statement(position)
+        , scope_(DCHECK_NOTNULL(scope)) {}
+
+    Scope *scope_;
 }; // class Declaration
 
 
@@ -153,6 +158,8 @@ public:
     RawStringRef name() const { return name_; }
     Type *type() const { return type_; }
     Expression *initializer() const { return initializer_; }
+
+    bool is_argument() const { return is_argument_; }
 
     DEF_GETTER(bool, is_export)
 
@@ -166,19 +173,20 @@ private:
                    Type *type,
                    Expression *initializer,
                    Scope *scope,
+                   bool is_argument,
                    int position)
-        : Declaration(position)
+        : Declaration(scope, position)
         , name_(DCHECK_NOTNULL(name))
         , is_export_(is_export)
         , type_(DCHECK_NOTNULL(type))
         , initializer_(initializer)
-        , scope_(DCHECK_NOTNULL(scope)) {}
+        , is_argument_(is_argument) {}
 
     RawStringRef name_;
     bool is_export_;
     Type *type_;
     Expression *initializer_;
-    Scope *scope_;
+    bool is_argument_;
 }; // class ValDeclaration
 
 
@@ -199,8 +207,9 @@ private:
                    bool is_export,
                    Type *type,
                    Expression *initializer,
+                   Scope *scope,
                    int position)
-        : Declaration(position)
+        : Declaration(scope, position)
         , name_(DCHECK_NOTNULL(name))
         , is_export_(is_export)
         , type_(DCHECK_NOTNULL(type))
@@ -212,22 +221,6 @@ private:
     Expression *initializer_;
 }; // class ValDeclaration
 
-
-class Return : public Statement {
-public:
-    Expression *expression() const { return expression_; }
-
-    bool has_return_value() const { return expression_ != nullptr; }
-
-    DECLARE_AST_NODE(Return)
-    DISALLOW_IMPLICIT_CONSTRUCTORS(Return);
-private:
-    Return(Expression *expression, int position)
-        : Statement(position)
-        , expression_(expression) {}
-
-    Expression *expression_;
-}; // class Return
 
 
 class FunctionDefine : public Declaration {
@@ -247,9 +240,10 @@ private:
                    bool is_export,
                    bool is_native,
                    FunctionLiteral *function_literal,
+                   Scope *scope,
                    int start_position,
                    int end_position)
-        : Declaration(start_position)
+        : Declaration(scope, start_position)
         , name_(DCHECK_NOTNULL(name))
         , is_export_(is_export)
         , is_native_(is_native)
@@ -262,6 +256,24 @@ private:
     FunctionLiteral *function_literal_;
     int end_position_;
 }; // class FunctionDefine
+
+
+class Return : public Statement {
+public:
+    Expression *expression() const { return expression_; }
+
+    bool has_return_value() const { return expression_ != nullptr; }
+
+    DECLARE_AST_NODE(Return)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Return);
+private:
+    Return(Expression *expression, int position)
+    : Statement(position)
+    , expression_(expression) {}
+    
+    Expression *expression_;
+}; // class Return
+
 
 class Expression : public Statement {
 public:
@@ -324,7 +336,7 @@ private:
                     int start_position, int end_position)
         : Literal(start_position)
         , prototype_(DCHECK_NOTNULL(prototype))
-        , body_(DCHECK_NOTNULL(body))
+        , body_(body)
         , end_position_(end_position) {}
 
     FunctionPrototype *prototype_;
@@ -664,12 +676,14 @@ public:
                                          bool is_export,
                                          bool is_native,
                                          FunctionLiteral *function_literal,
+                                         Scope *scope,
                                          int start_position,
                                          int end_position) {
         return new (zone_) FunctionDefine(RawString::Create(name, zone_),
                                           is_export,
                                           is_native,
                                           function_literal,
+                                          scope,
                                           start_position,
                                           end_position);
     }
@@ -687,12 +701,14 @@ public:
                                          Type *type,
                                          Expression *initializer,
                                          Scope *scope,
+                                         bool is_argument,
                                          int position) {
         return new (zone_) ValDeclaration(RawString::Create(name, zone_),
                                           is_export,
                                           type,
                                           initializer,
                                           scope,
+                                          is_argument,
                                           position);
     }
 
@@ -700,11 +716,13 @@ public:
                                          bool is_export,
                                          Type *type,
                                          Expression *initializer,
+                                         Scope *scope,
                                          int position) {
         return new (zone_) VarDeclaration(RawString::Create(name, zone_),
                                           is_export,
                                           type,
                                           initializer,
+                                          scope,
                                           position);
     }
 

@@ -293,4 +293,25 @@ TEST_F(ParserTest, Block) {
     EXPECT_STREQ(z, yaml.c_str());
 }
 
+TEST_F(ParserTest, ValDeclaration) {
+    std::unique_ptr<Parser> p(CreateOnecParser("val a: int = 1"));
+
+    auto scope = p->EnterScope("mock", FUNCTION_SCOPE);
+    bool ok = true;
+    auto node = p->ParseStatement(&ok);
+    auto err = p->last_error();
+    p->LeaveScope();
+    ASSERT_TRUE(ok) << err.position << ":" << err.message;
+    ASSERT_TRUE(node != nullptr);
+
+    Scope *owned = nullptr;
+    auto declaration = global_scope_->FindOrNullDownTo("a", &owned);
+    ASSERT_TRUE(declaration != nullptr);
+
+    EXPECT_EQ(declaration, node);
+    EXPECT_TRUE(declaration->IsValDeclaration());
+    EXPECT_EQ(declaration->AsValDeclaration()->scope(), owned);
+    EXPECT_EQ(scope, owned);
+}
+
 } // namespace mio

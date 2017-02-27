@@ -61,10 +61,11 @@ void Parser::ClearError() {
     last_error_ = ParsingError::NoError();
 }
 
-Scope *Parser::EnterScope(int scope_type) {
+Scope *Parser::EnterScope(const std::string &name, int scope_type) {
     auto scope = new (zone_) Scope(scope_,
                                    static_cast<ScopeType>(scope_type),
                                    zone_);
+    scope->set_name(RawString::Create(name, zone_));
     scope_ = DCHECK_NOTNULL(scope);
     return scope;
 }
@@ -132,22 +133,48 @@ Statement *Parser::ParseDeclaration(bool *ok) {
 FunctionDefine *Parser::ParseFunctionDefine(bool is_export, bool is_native,
                                             bool *ok) {
     auto position = ahead_.position();
-    auto scope = new (zone_) Scope(scope_, FUNCTION_SCOPE, zone_);
-    scope_ = scope;
+    auto scope = EnterScope("", FUNCTION_SCOPE);
 
     std::string name;
     auto prototype = ParseFunctionPrototype(false, &name, CHECK_OK);
 
-    Test(TOKEN_ASSIGN); // =
+    Expression *body = nullptr;
+    if (!is_native) {
+        for (int i = 0; i < prototype->mutable_paramters()->size(); ++i) {
+            auto param = prototype->mutable_paramters()->At(i);
 
-    auto body = ParseExpression(CHECK_OK);
+            if (scope->FindOrNullLocal(param->param_name())) {
+                *ok = false;
+                ThrowError("duplicated argument name: %s",
+                           param->param_name()->c_str());
+                return nullptr;
+            }
+
+            auto declaration = factory_->CreateValDeclaration(
+                param->param_name()->ToString(),
+                false,
+                param->param_type(),
+                nullptr,
+                scope,
+                true,
+                position);
+            scope->Declare(param->param_name(), declaration);
+        }
+
+        Test(TOKEN_ASSIGN); // =
+        body = ParseExpression(CHECK_OK);
+    }
     auto literal = factory_->CreateFunctionLiteral(prototype, body, position,
                                                    ahead_.position());
+    auto function = factory_->CreateFunctionDefine(name, is_export, is_native,
+                                                   literal, scope, position,
+                                                   ahead_.position());
+    scope->set_name(function->name());
+    scope->Declare(function->name(), function);
+    scope->set_function(function);
 
-
-    scope_ = scope->outter_scope();
-    return factory_->CreateFunctionDefine(name, is_export, is_native, literal,
-                                          position, ahead_.position());
+    LeaveScope();
+    return function;
 }
 
 // val name: type [ = expression ]
@@ -169,11 +196,8 @@ ValDeclaration *Parser::ParseValDeclaration(bool is_export, bool *ok) {
         initializer = ParseExpression(CHECK_OK);
     }
 
-    auto val_decl = factory_->CreateValDeclaration(name,
-                                                   is_export,
-                                                   val_type,
-                                                   initializer,
-                                                   scope_,
+    auto val_decl = factory_->CreateValDeclaration(name, is_export, val_type,
+                                                   initializer, scope_, false,
                                                    position);
     if (!scope_->Declare(val_decl->name(), val_decl)) {
         *ok = false;
@@ -203,8 +227,18 @@ VarDeclaration *Parser::ParseVarDeclaration(bool is_export, bool *ok) {
         initializer = ParseExpression(CHECK_OK);
     }
 
-    return factory_->CreateVarDeclaration(name, is_export, var_type,
-                                          initializer, position);
+    auto var_decl = factory_->CreateVarDeclaration(name, is_export, var_type,
+                                                   initializer, scope_,
+                                                   position);
+    if (!scope_->Declare(var_decl->name(), var_decl)) {
+        *ok = false;
+        ThrowError("duplicated var name: %s", var_decl->name()->c_str());
+
+        var_decl->~VarDeclaration();
+        zone_->Free(var_decl);
+        return nullptr;
+    }
+    return var_decl;
 }
 
 /*
@@ -490,7 +524,7 @@ Expression *Parser::ParsePrimary(bool *ok) {
 // val a = function (a:int, b:int): int { return a + b }
 // foreach(elements, lambda (a) -> print('a='..a)))
 Expression *Parser::ParseClosure(bool *ok) {
-
+    // TODO:
     return nullptr;
 }
 

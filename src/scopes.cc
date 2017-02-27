@@ -8,7 +8,15 @@ Scope::Scope(Scope *outter_scope, ScopeType type, Zone *zone)
     , declarations_(DCHECK_NOTNULL(zone))
     , type_(type)
     , zone_(DCHECK_NOTNULL(zone)) {
-    //DCHECK(type_ == GLOBAL_SCOPE && outter_scope_ != nullptr);
+
+    if (outter_scope_) {
+        for (int i = 0; i < outter_scope_->inner_scopes_.size(); ++i) {
+            if (this == outter_scope_->inner_scopes_.At(i)) {
+                return;
+            }
+        }
+        outter_scope_->inner_scopes_.Add(this);
+    }
 }
 
 Scope *Scope::FindInnerScopeOrNull(RawStringRef name) const {

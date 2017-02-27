@@ -9,10 +9,12 @@
 namespace mio {
 
 class Declaration;
+class FunctionDefine;
 
 enum ScopeType: int {
     GLOBAL_SCOPE,
     MODULE_SCOPE,
+    FILE_SCOPE,
     FUNCTION_SCOPE,
     BLOCK_SCOPE,
 };
@@ -34,6 +36,9 @@ public:
     RawStringRef name() const { return name_; }
     void set_name(RawStringRef name) { name_ = DCHECK_NOTNULL(name); }
 
+    FunctionDefine *function() const { return function_; }
+    void set_function(FunctionDefine *function) { function_ = function; }
+
     Scope *outter_scope() const { return outter_scope_; }
 
     bool is_global_scope() const { return type_ == GLOBAL_SCOPE; }
@@ -49,6 +54,7 @@ private:
     Scope *outter_scope_;
     ZoneVector<Scope *> inner_scopes_;
     ZoneHashMap<RawStringRef, Declaration *> declarations_;
+    FunctionDefine *function_ = nullptr;
     Zone *zone_;
 };
 
