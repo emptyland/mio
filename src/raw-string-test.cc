@@ -24,4 +24,9 @@ TEST(RawStringTest, EmptyCreating) {
     EXPECT_EQ(RawString::kEmpty, z);
 }
 
+TEST(RawStringRef, ConstantDeclaration) {
+    EXPECT_STREQ("main", kMainValue->c_str());
+    EXPECT_EQ(4, kMainValue->size());
+}
+
 } // namespace mio

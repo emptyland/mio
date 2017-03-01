@@ -17,7 +17,11 @@ public:
     DEF_GETTER(int, size)
     DEF_GETTER(int, capacity)
 
+    bool is_empty() const { return size() == 0; }
+    bool is_not_empty() const { return !is_empty(); }
+
     void Add(const T &element);
+    void Assign(ZoneVector<T> &&other);
 
     const T &At(int i) const;
     T *MutableAt(int i);
@@ -25,6 +29,7 @@ public:
     void Set(int i, const T &element);
 
     void Resize(int new_size);
+    void Clear();
 private:
     void AdvanceIfNeeded(int new_size);
 
@@ -72,6 +77,25 @@ void ZoneVector<T>::Resize(int new_size) {
     DCHECK_GE(new_size, 0);
     AdvanceIfNeeded(new_size);
     size_ = new_size;
+}
+
+template<class T>
+void ZoneVector<T>::Clear() {
+    zone_->Free(element_);
+    element_  = nullptr;
+    size_     = 0;
+    capacity_ = 0;
+}
+
+template<class T>
+void ZoneVector<T>::Assign(ZoneVector<T> &&other) {
+    element_  = other.element_;
+    size_     = other.size_;
+    capacity_ = other.capacity_;
+
+    other.element_  = nullptr;
+    other.size_     = 0;
+    other.capacity_ = 0;
 }
 
 template<class T>

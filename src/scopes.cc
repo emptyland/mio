@@ -1,4 +1,5 @@
 #include "scopes.h"
+#include "ast.h"
 
 namespace mio {
 
@@ -61,6 +62,29 @@ bool Scope::Declare(RawStringRef name, Declaration *declaration) {
     }
     pair->set_value(declaration);
     return true;
+}
+
+void Scope::MergeInnerScopes() {
+    ZoneVector<Scope *> new_inner_scopes(zone_);
+
+    for (int i = 0; i < inner_scopes_.size(); ++i) {
+        auto inner = inner_scopes_.At(i);
+
+        DeclaratedMap::Iterator iter(&inner->declarations_);
+        for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
+            auto declaration = iter->value();
+
+            declaration->set_scope(this);
+            declarations_.Put(iter->key(), declaration);
+        }
+
+        for (int j = 0; j < inner->inner_scopes_.size(); ++j) {
+            inner->inner_scopes_.At(j)->outter_scope_ = this;
+            new_inner_scopes.Add(inner->inner_scopes_.At(j));
+        }
+    }
+    inner_scopes_.Clear();
+    inner_scopes_.Assign(std::move(new_inner_scopes));
 }
 
 } // namespace mio

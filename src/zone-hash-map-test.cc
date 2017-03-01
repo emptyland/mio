@@ -59,4 +59,27 @@ TEST(ZoneHashMapTest, Rehash) {
     }
 }
 
+TEST(ZoneHashMapTest, Iterator) {
+    Zone zone;
+    IntHashMap map(&zone);
+
+    for (int i = 0; i < 3; ++i) {
+        bool has_insert = false;
+        map.GetOrInsert(i, &has_insert)->set_value(i + 1);
+    }
+
+    IntHashMap::Iterator iter(&map);
+    iter.Init();
+    ASSERT_TRUE(iter.HasNext());
+
+    iter.MoveNext();
+    ASSERT_TRUE(iter.HasNext());
+
+    iter.MoveNext();
+    ASSERT_TRUE(iter.HasNext());
+
+    iter.MoveNext();
+    ASSERT_FALSE(iter.HasNext());
+}
+
 } // namespace mio

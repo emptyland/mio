@@ -21,6 +21,7 @@ namespace mio {
     M(UnaryOperation) \
     M(BinaryOperation) \
     M(SmiLiteral) \
+    M(Variable) \
     M(Symbol) \
     M(Call) \
     M(FieldAccessing) \
@@ -45,6 +46,7 @@ class AstNode;
             class Block;
             class Assignment;
             class IfOperation;
+            class Variable;
             class Symbol;
             class Call;
             class FieldAccessing;
@@ -107,27 +109,6 @@ private:
 }; // class AstNode;
 
 
-class PackageImporter : public AstNode {
-public:
-    RawStringRef package_name() const { return package_name_; }
-
-    ZoneHashMap<RawStringRef, RawStringRef> *mutable_import_list() {
-        return &import_list_;
-    }
-
-    DECLARE_AST_NODE(PackageImporter)
-    DISALLOW_IMPLICIT_CONSTRUCTORS(PackageImporter)
-private:
-    PackageImporter(int position, Zone *zone)
-        : AstNode(position)
-        , import_list_(zone) {}
-
-    RawStringRef package_name_ = RawString::kEmpty;
-    ZoneHashMap<RawStringRef, RawStringRef> import_list_;
-
-}; // class PackageImporter
-
-
 class Statement : public AstNode {
 public:
     // TODO:
@@ -138,10 +119,35 @@ protected:
 }; // class Statement
 
 
+class PackageImporter : public Statement {
+public:
+    typedef ZoneHashMap<RawStringRef, RawStringRef> ImportList;
+
+    RawStringRef package_name() const { return package_name_; }
+
+    ImportList *mutable_import_list() {
+        return &import_list_;
+    }
+
+    DECLARE_AST_NODE(PackageImporter)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(PackageImporter)
+private:
+    PackageImporter(int position, Zone *zone)
+        : Statement(position)
+        , import_list_(zone) {}
+
+    RawStringRef package_name_ = RawString::kEmpty;
+    ImportList import_list_;
+    
+}; // class PackageImporter
+
 
 class Declaration : public Statement {
 public:
     Scope *scope() const { return scope_; }
+    void set_scope(Scope *scope) { scope_ = DCHECK_NOTNULL(scope); }
+
+    virtual Type *type() const = 0;
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Declaration)
 protected:
@@ -156,7 +162,10 @@ protected:
 class ValDeclaration : public Declaration {
 public:
     RawStringRef name() const { return name_; }
-    Type *type() const { return type_; }
+
+    virtual Type *type() const override { return type_; }
+    void set_type(Type *type) { type_ = DCHECK_NOTNULL(type); }
+
     Expression *initializer() const { return initializer_; }
 
     bool is_argument() const { return is_argument_; }
@@ -193,7 +202,10 @@ private:
 class VarDeclaration : public Declaration {
 public:
     RawStringRef name() const { return name_; }
-    Type *type() const { return type_; }
+
+    virtual Type *type() const override { return type_; }
+    void set_type(Type *type) { type_ = DCHECK_NOTNULL(type); }
+
     Expression *initializer() const { return initializer_; }
 
     DEF_GETTER(bool, is_export)
@@ -228,6 +240,8 @@ public:
     RawStringRef name() const { return name_; }
     FunctionLiteral *function_literal() const { return function_literal_; }
     int start_position() const { return position(); }
+
+    virtual Type *type() const override;
 
     DEF_GETTER(int, end_position)
     DEF_GETTER(bool, is_export)
@@ -443,6 +457,17 @@ private:
 }; // class BinaryOperation
 
 
+class Variable : public Expression {
+public:
+    bool is_read_only() const {
+        return declaration_->IsValDeclaration() ||
+               declaration_->IsVarDeclaration();
+    }
+
+private:
+    Declaration *declaration_;
+
+};
 
 class Symbol : public Expression {
 public:
@@ -582,6 +607,20 @@ public:
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(AstVisitor)
 }; // class AstVisitor
+
+
+class DoNothingAstVisitor : public AstVisitor {
+public:
+    DoNothingAstVisitor() {}
+    virtual ~DoNothingAstVisitor() {}
+
+#define DoNothingAstVisitor_VISIT_METHOD(name) \
+    virtual void Visit##name(name *) override {}
+    DEFINE_AST_NODES(DoNothingAstVisitor_VISIT_METHOD)
+#undef DoNothingAstVisitor_VISIT_METHOD
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(DoNothingAstVisitor)
+}; // DoNothingAstVisitor
 
 
 ////////////////////////////////////////////////////////////////////////////////

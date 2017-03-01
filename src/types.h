@@ -41,7 +41,12 @@ public:
 
 #undef Type_TYPE_ASSERT
 
+    // TODO:
+    bool is_numeric() const { return IsIntegral(); }
+
     int64_t id() const { return id_; }
+
+    bool CanAcceptFrom(Type *type) { return id() == DCHECK_NOTNULL(type)->id(); }
 
     friend class TypeFactory;
     DISALLOW_IMPLICIT_CONSTRUCTORS(Type);

@@ -160,6 +160,10 @@ public:
         // TODO:
     }
 
+//    virtual void VisitVariable(Variable *node) override {
+//        // TODO:
+//    }
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(YamlPrinterVisitor)
 private:
     void Write(const char *fmt, ...) {

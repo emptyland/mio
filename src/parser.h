@@ -1,6 +1,7 @@
 #ifndef MIO_PARSER_H_
 #define MIO_PARSER_H_
 
+#include "compiler.h"
 #include "token.h"
 #include <stdarg.h>
 #include <string>
@@ -27,17 +28,6 @@ class TypeFactory;
 class Type;
 class FunctionPrototype;
 
-struct ParsingError {
-    int column;
-    int line;
-    int position;
-    std::string file_name;
-    std::string message;
-
-    ParsingError();
-
-    static ParsingError NoError();
-}; // struct ParsingError
 
 class Parser {
 public:

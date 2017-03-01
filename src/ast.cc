@@ -1,4 +1,5 @@
 #include "ast.h"
+#include "types.h"
 #include "glog/logging.h"
 
 namespace mio {
@@ -54,6 +55,10 @@ bool Expression::is_lval() const {
     } else {
         return false;
     }
+}
+
+/*virtual*/ Type *FunctionDefine::type() const {
+    return function_literal()->prototype();
 }
 
 } // namespace mio

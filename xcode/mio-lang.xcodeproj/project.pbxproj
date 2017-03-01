@@ -48,6 +48,8 @@
 		23E3D5A01E600DCE00C51DDE /* types.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D59E1E600DCE00C51DDE /* types.cc */; };
 		23E3D5A31E63C6DD00C51DDE /* scopes.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5A21E63C6DD00C51DDE /* scopes.cc */; };
 		23E3D5A41E63C6DD00C51DDE /* scopes.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5A21E63C6DD00C51DDE /* scopes.cc */; };
+		23E3D5A81E65075C00C51DDE /* checker.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5A71E65075C00C51DDE /* checker.cc */; };
+		23E3D5A91E65075C00C51DDE /* checker.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5A71E65075C00C51DDE /* checker.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -119,6 +121,9 @@
 		23E3D59E1E600DCE00C51DDE /* types.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = types.cc; sourceTree = "<group>"; };
 		23E3D5A11E63C6B100C51DDE /* scopes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = scopes.h; sourceTree = "<group>"; };
 		23E3D5A21E63C6DD00C51DDE /* scopes.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = scopes.cc; sourceTree = "<group>"; };
+		23E3D5A51E6506AB00C51DDE /* checker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = checker.h; sourceTree = "<group>"; };
+		23E3D5A61E6506F200C51DDE /* compiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = compiler.h; sourceTree = "<group>"; };
+		23E3D5A71E65075C00C51DDE /* checker.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = checker.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -180,6 +185,7 @@
 				23E3D5991E5C1A7900C51DDE /* ast-printer.cc */,
 				2349E5901E56FF02002883BC /* parser.cc */,
 				23E3D5A21E63C6DD00C51DDE /* scopes.cc */,
+				23E3D5A71E65075C00C51DDE /* checker.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -205,6 +211,8 @@
 				2349E5841E56EE9E002883BC /* raw-string.h */,
 				2349E58F1E56FE40002883BC /* parser.h */,
 				23E3D5A11E63C6B100C51DDE /* scopes.h */,
+				23E3D5A61E6506F200C51DDE /* compiler.h */,
+				23E3D5A51E6506AB00C51DDE /* checker.h */,
 			);
 			name = Include;
 			path = ../src;
@@ -317,6 +325,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				23E3D5A81E65075C00C51DDE /* checker.cc in Sources */,
 				2349E58D1E56FCC9002883BC /* ast.cc in Sources */,
 				2349E5721E4B1800002883BC /* keywords.c in Sources */,
 				23E3D5A31E63C6DD00C51DDE /* scopes.cc in Sources */,
@@ -353,6 +362,7 @@
 				2362025A1E45C58800B6B949 /* token.cc in Sources */,
 				23E3D5A01E600DCE00C51DDE /* types.cc in Sources */,
 				2349E58E1E56FCC9002883BC /* ast.cc in Sources */,
+				23E3D5A91E65075C00C51DDE /* checker.cc in Sources */,
 				2349E57A1E554426002883BC /* zone-test.cc in Sources */,
 				2349E5731E4B1800002883BC /* keywords.c in Sources */,
 				236202611E48221700B6B949 /* text-input-stream.cc in Sources */,

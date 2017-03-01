@@ -2,6 +2,10 @@
 
 namespace mio {
 
+static const char kMainValueBlob[] = "\x04\x00\x00\x00main";
+
+const RawString *const kMainValue = reinterpret_cast<RawStringRef>(kMainValueBlob);
+
 static const int kEmptyStringBlob[2] = { 0, 0 };
 
 static_assert(sizeof(kEmptyStringBlob) >= sizeof(RawString),

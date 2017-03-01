@@ -9,6 +9,7 @@
 namespace mio {
 
 template<class K, class V> class ZoneHashMap;
+template<class K, class V> class ZoneHashMapIterator;
 
 // The hashers
 template<class T>
@@ -64,14 +65,16 @@ public:
     DEF_PROP_RMW(V, value)
 
     friend class ZoneHashMap<K, V>;
+    friend class ZoneHashMapIterator<K, V>;
 private:
     ZoneHashMapPair *next_ = nullptr;
     K key_;
     V value_;
 }; // class ZoneHashMapPair<K, V>
 
+
 template<class K, class V>
-class ZoneHashMap : ManagedObject {
+class ZoneHashMap : public ManagedObject {
 public:
     static const int kDefaultNumberOfSlots = 16;
 
@@ -81,13 +84,15 @@ public:
     DEF_GETTER(int, size);
     DEF_GETTER(int, num_slots);
 
-    typedef ZoneHashMapPair<K, V> Pair;
+    typedef ZoneHashMapPair<K, V>     Pair;
+    typedef ZoneHashMapIterator<K, V> Iterator;
 
     inline bool Put(const K &key, const V &value);
     Pair *GetOrInsert(const K &key, bool *has_insert);
     Pair *Get(const K &key);
     bool Exist(const K &key) { return Get(key) != nullptr; }
 
+    friend class ZoneHashMapIterator<K, V>;
 private:
     void Init();
     Pair **CreateSlots(int size);
@@ -103,6 +108,64 @@ private:
     int num_slots_ = 0;
     int size_      = 0;
 }; // class ZoneHashMap<K, V>
+
+// ZoneHashMap::Iterator iter(&map);
+// for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
+//     iter->value();
+//     iter->key();
+//     ...
+// }
+template<class K, class V>
+class ZoneHashMapIterator {
+public:
+    typedef ZoneHashMapPair<K, V> Pair;
+    typedef ZoneHashMap<K, V>     Map;
+
+    ZoneHashMapIterator(Map *map)
+        : slots_(map->slots_)
+        , num_slots_(map->num_slots_) {}
+
+    void Init() {
+        for (int i = 0; i < num_slots_; ++i) {
+            if (slots_[i]) {
+                current_ = slots_[i];
+                slot_index_ = i;
+                return;
+            }
+        }
+        slot_index_ = num_slots_;
+    }
+
+    bool HasNext() const { return slot_index_ < num_slots_; }
+
+    void MoveNext() {
+        current_ = current_->next_;
+        if (!current_) {
+            for (int i = slot_index_ + 1; i < num_slots_; ++i) {
+                if (slots_[i]) {
+                    current_ = slots_[i];
+                    slot_index_ = i;
+                    return;
+                }
+            }
+            slot_index_ = num_slots_;
+        }
+
+    }
+
+//    const K &key() const { return current_->key(); }
+//    const V &value() const { return current_->value(); }
+//    void set_value(const V &other) { current_->set_value(other); }
+//    V *mutable_value() { current_->mutable_value(); }
+
+    Pair *operator -> () const { return DCHECK_NOTNULL(current_); }
+
+private:
+    Pair **slots_;
+    int    num_slots_;
+    int    slot_index_ = 0;
+    Pair  *current_ = nullptr;
+};
 
 template<class K, class V>
 ZoneHashMap<K, V>::~ZoneHashMap() {
