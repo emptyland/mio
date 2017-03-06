@@ -13,6 +13,7 @@ typedef const RawString * RawStringRef;
 
 extern const RawString *const kMainValue;
 
+
 class RawString {
 public:
     DEF_GETTER(int, size)

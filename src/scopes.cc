@@ -29,12 +29,31 @@ Scope *Scope::FindInnerScopeOrNull(RawStringRef name) const {
     return nullptr;
 }
 
-Declaration *Scope::FindOrNullLocal(RawStringRef name) {
+Variable *Scope::FindOrNullLocal(RawStringRef name) {
     auto pair = declarations_.Get(name);
     return pair ? pair->value() : nullptr;
 }
 
-Declaration *Scope::FindOrNullDownTo(RawStringRef name, Scope **owned) {
+Variable *Scope::FindOrNullRecursive(RawStringRef name, Scope **owned) {
+    auto var = FindOrNullLocal(name);
+    if (var) {
+        *owned = this;
+        return var;
+    }
+
+    auto up_layout = outter_scope_;
+    while (up_layout) {
+        var = up_layout->FindOrNullLocal(name);
+        if (var) {
+            *owned = up_layout;
+            break;
+        }
+        up_layout = up_layout->outter_scope_;
+    }
+    return var;
+}
+
+Variable *Scope::FindOrNullDownTo(RawStringRef name, Scope **owned) {
     auto found = FindOrNullLocal(name);
     if (found) {
         *owned = this;
@@ -54,14 +73,15 @@ Declaration *Scope::FindOrNullDownTo(RawStringRef name, Scope **owned) {
     return nullptr;
 }
 
-bool Scope::Declare(RawStringRef name, Declaration *declaration) {
+Variable *Scope::Declare(RawStringRef name, Declaration *declaration) {
     bool has_insert = false;
     auto pair = declarations_.GetOrInsert(name, &has_insert);
     if (!has_insert) {
-        return false;
+        return nullptr;
     }
-    pair->set_value(declaration);
-    return true;
+    auto var = new (zone_) Variable(declaration, declaration->position());
+    pair->set_value(var);
+    return var;
 }
 
 void Scope::MergeInnerScopes() {
@@ -72,10 +92,10 @@ void Scope::MergeInnerScopes() {
 
         DeclaratedMap::Iterator iter(&inner->declarations_);
         for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
-            auto declaration = iter->value();
+            auto var = iter->value();
 
-            declaration->set_scope(this);
-            declarations_.Put(iter->key(), declaration);
+            var->declaration()->set_scope(this);
+            declarations_.Put(iter->key(), var);
         }
 
         for (int j = 0; j < inner->inner_scopes_.size(); ++j) {

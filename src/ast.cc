@@ -4,9 +4,13 @@
 
 namespace mio {
 
-const OperatorPriority kOpsPriority[] = {
-#define OpsPriority_GLOBAL_DEFINE(name, left_proi, right_proi, token) \
-    { .left = left_proi, .right = right_proi, },
+const OperatorMetadata kOperatorsMetadata[MAX_OP] = {
+#define OpsPriority_GLOBAL_DEFINE(op, left_proi, right_proi, token) \
+    { \
+        .name = #op, \
+        .priority = { .left = left_proi, .right = right_proi, }, \
+        .associated_token = token  \
+    },
     DEFINE_OPS(OpsPriority_GLOBAL_DEFINE)
 #undef  OpsPriority_GLOBAL_DEFINE
 };
@@ -46,7 +50,16 @@ const OperatorPriority *GetOperatorPriority(Operator op) {
     DCHECK_GE(index, 0);
     DCHECK_LT(index, MAX_OP);
 
-    return &kOpsPriority[index];
+    return &kOperatorsMetadata[index].priority;
+}
+
+const char *GetOperatorText(Operator op) {
+    auto index = static_cast<int>(op);
+    DCHECK_GE(index, 0);
+    DCHECK_LT(index, MAX_OP);
+
+    auto token = kOperatorsMetadata[index].associated_token;
+    return kTokenMetadata[static_cast<int>(token)].text;
 }
 
 bool Expression::is_lval() const {

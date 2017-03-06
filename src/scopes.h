@@ -9,6 +9,7 @@
 namespace mio {
 
 class Declaration;
+class Variable;
 class FunctionDefine;
 
 enum ScopeType: int {
@@ -21,19 +22,19 @@ enum ScopeType: int {
 
 class Scope : public ManagedObject {
 public:
-    typedef ZoneHashMap<RawStringRef, Declaration *> DeclaratedMap;
+    typedef ZoneHashMap<RawStringRef, Variable *> DeclaratedMap;
 
     Scope(Scope *outter_scope, ScopeType type, Zone *zone);
 
     Scope *FindInnerScopeOrNull(RawStringRef name) const;
-    Declaration *FindOrNullLocal(RawStringRef name);
-
-    Declaration *FindOrNullDownTo(const char *name, Scope **owned) {
+    Variable *FindOrNullLocal(RawStringRef name);
+    Variable *FindOrNullRecursive(RawStringRef name, Scope **owned);
+    Variable *FindOrNullDownTo(const char *name, Scope **owned) {
         return FindOrNullDownTo(RawString::Create(name, zone_), owned);
     }
-    Declaration *FindOrNullDownTo(RawStringRef name, Scope **owned);
+    Variable *FindOrNullDownTo(RawStringRef name, Scope **owned);
 
-    bool Declare(RawStringRef name, Declaration *declaration);
+    Variable *Declare(RawStringRef name, Declaration *declaration);
 
     // merge the low 1 layout scopes, in this layout.
     // 

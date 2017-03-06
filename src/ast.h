@@ -406,22 +406,33 @@ enum Operator : int {
     MAX_OP,
     OP_NOT_BINARY = -2, // not a binary operator
     OP_NOT_UNARY  = -1, // not a unary operator
-};
+}; // enum Operator
 
 struct OperatorPriority {
     int left;
     int right;
-};
+}; // struct OperatorPriority
+
+struct OperatorMetadata {
+    const char     * name;
+    OperatorPriority priority;
+    Token            associated_token;
+}; // struct OperatorMetadata
+
+extern const OperatorMetadata kOperatorMetadata[MAX_OP];
 
 Operator TokenToBinaryOperator(Token token);
 Operator TokenToUnaryOperator(Token token);
 
 const OperatorPriority *GetOperatorPriority(Operator op);
+const char *GetOperatorText(Operator op);
 
 class UnaryOperation : public Expression {
 public:
     DEF_GETTER(Operator, op)
+
     Expression *operand() const { return operand_; }
+    void set_operand(Expression *node) { operand_ = DCHECK_NOTNULL(node); }
 
     DECLARE_AST_NODE(UnaryOperation)
     DISALLOW_IMPLICIT_CONSTRUCTORS(UnaryOperation)
@@ -440,7 +451,10 @@ class BinaryOperation : public Expression {
 public:
     DEF_GETTER(Operator, op)
     Expression *lhs() const { return lhs_; }
+    void set_lhs(Expression *node) { lhs_ = DCHECK_NOTNULL(node); }
+
     Expression *rhs() const { return rhs_; }
+    void set_rhs(Expression *node) { rhs_ = DCHECK_NOTNULL(node); }
 
     DECLARE_AST_NODE(BinaryOperation)
     DISALLOW_IMPLICIT_CONSTRUCTORS(BinaryOperation)
@@ -457,17 +471,43 @@ private:
 }; // class BinaryOperation
 
 
+
 class Variable : public Expression {
 public:
+//    enum BindType {
+//        GLOBAL,
+//        LOCAL,
+//        ARGUMENT,
+//        UP_VALUE,
+//    };
+    Variable(Declaration *declaration, int position)
+        : Expression(position)
+        , declaration_(DCHECK_NOTNULL(declaration)) {
+    }
+
+
     bool is_read_only() const {
         return declaration_->IsValDeclaration() ||
                declaration_->IsVarDeclaration();
     }
 
+    bool is_readwrite() const { return !is_read_only(); }
+
+    bool is_function() const { return declaration_->IsFunctionDefine(); }
+
+    Declaration *declaration() const { return declaration_; }
+
+    Scope *scope() const { return declaration_->scope(); }
+
+    Type *type() { return declaration_->type(); }
+
+    DECLARE_AST_NODE(Variable)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Variable)
 private:
     Declaration *declaration_;
+}; // class Variable
 
-};
+
 
 class Symbol : public Expression {
 public:
@@ -763,6 +803,11 @@ public:
                                           initializer,
                                           scope,
                                           position);
+    }
+
+    Variable *CreateVariable(Declaration *declaration,
+                             int position) {
+        return new (zone_) Variable(declaration, position);
     }
 
 private:

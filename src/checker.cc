@@ -2,6 +2,8 @@
 #include "scopes.h"
 #include "types.h"
 #include "ast.h"
+#include <stack>
+#include <vector>
 
 namespace mio {
 
@@ -11,25 +13,37 @@ namespace mio {
 
 class CheckingAstVisitor : public DoNothingAstVisitor {
 public:
-    CheckingAstVisitor();
+    CheckingAstVisitor(TypeFactory *types,
+                       RawStringRef unit_name,
+                       PackageImporter::ImportList *import_list,
+                       Scope *global,
+                       Scope *scope,
+                       Checker *checker)
+        : types_(DCHECK_NOTNULL(types))
+        , unit_name_(DCHECK_NOTNULL(unit_name))
+        , import_list_(DCHECK_NOTNULL(import_list))
+        , global_(DCHECK_NOTNULL(global))
+        , current_scope_(DCHECK_NOTNULL(scope))
+        , checker_(DCHECK_NOTNULL(checker)) {}
 
     virtual void VisitValDeclaration(ValDeclaration *node) override {
         if (node->has_initializer()) {
             node->initializer()->Accept(this);
         }
+        if (has_error()) {
+            return;
+        }
 
         if (node->type() == types_->GetUnknown()) {
             DCHECK_NOTNULL(node->initializer());
             node->set_type(AnalysisType());
-            PopEvalType();
         } else {
-//            if (!node->type()->CanAcceptFrom(AnalysisType())) {
-//                ThrowError(node, "val %s can not accept initializer type",
-//                           node->name()->c_str());
-//                PopEvalType();
-//            }
+            if (!node->type()->CanAcceptFrom(AnalysisType())) {
+                ThrowError(node, "val %s can not accept initializer type",
+                           node->name()->c_str());
+            }
         }
-        PushEvalType(types_->GetVoid());
+        SetEvalType(types_->GetVoid());
     }
 
     virtual void VisitVarDeclaration(VarDeclaration *node) override {
@@ -43,20 +57,20 @@ public:
         if (node->type() == types_->GetUnknown()) {
             DCHECK_NOTNULL(node->initializer());
             node->set_type(AnalysisType());
-            PopEvalType();
         } else {
-//            if (!node->type()->CanAcceptFrom(AnalysisType())) {
-//                ThrowError(node, "var %s can not accept initializer type",
-//                           node->name()->c_str());
-//                PopEvalType();
-//            }
+            if (!node->type()->CanAcceptFrom(AnalysisType())) {
+                ThrowError(node, "var %s can not accept initializer type",
+                           node->name()->c_str());
+            }
         }
-        PushEvalType(types_->GetVoid());
+        SetEvalType(types_->GetVoid());
     }
 
     virtual void VisitUnaryOperation(UnaryOperation *node) override {
         node->operand()->Accept(this);
-
+        if (AnalysisExpression()) {
+            node->set_operand(AnalysisExpression());
+        }
         switch (node->op()) {
             case OP_MINUS:
                 if (!AnalysisType()->is_numeric()) {
@@ -84,26 +98,82 @@ public:
 
     virtual void VisitBinaryOperation(BinaryOperation *node) override {
         node->lhs()->Accept(this);
+        if (AnalysisExpression()) {
+            node->set_lhs(AnalysisExpression());
+        }
         auto lhs_ty = AnalysisType();
         PopEvalType();
 
         node->rhs()->Accept(this);
+        if (AnalysisExpression()) {
+            node->set_rhs(AnalysisExpression());
+        }
         auto rhs_ty = AnalysisType();
         PopEvalType();
 
         switch(node->op()) {
             case OP_ADD:
+            case OP_SUB:
+            case OP_MUL:
+            case OP_DIV:
+            case OP_MOD:
                 if (lhs_ty->id() != rhs_ty->id()) {
-                    ThrowError(node, "operator: `+' has different type of operands.");
+                    ThrowError(node, "operator: `%s' has different type of operands.",
+                               GetOperatorText(node->op()));
                 }
                 if (!lhs_ty->is_numeric()) {
-                    ThrowError(node, "operator: `+' only accept numeric type.");
+                    ThrowError(node, "operator: `%s' only accept numeric type.",
+                               GetOperatorText(node->op()));
                 }
                 PushEvalType(lhs_ty);
                 break;
 
-                // TODO:
+            case OP_BIT_OR:
+            case OP_BIT_AND:
+            case OP_BIT_XOR:
+            case OP_LSHIFT:
+            case OP_RSHIFT_A:
+            case OP_RSHIFT_L:
+                if (!lhs_ty->IsIntegral() || !rhs_ty->IsIntegral()) {
+                    ThrowError(node, "operator: `%s' only accept integral type.",
+                               GetOperatorText(node->op()));
+                }
+                PushEvalType(lhs_ty);
+                break;
+
+            case OP_EQ:
+            case OP_NE:
+            case OP_LT:
+            case OP_LE:
+            case OP_GT:
+            case OP_GE:
+                if (lhs_ty->id() != rhs_ty->id()) {
+                    ThrowError(node, "operator: `%s' has different type of operands.",
+                               GetOperatorText(node->op()));
+                }
+                // TODO: string type
+                if (!lhs_ty->is_numeric()) {
+                    ThrowError(node, "operator: `%s' only accept numeric type.",
+                               GetOperatorText(node->op()));
+                }
+                PushEvalType(lhs_ty);
+                break;
+
+            case OP_OR:
+            case OP_AND:
+                if (lhs_ty->id() != rhs_ty->id()) {
+                    ThrowError(node, "operator: `%s' has different type of operands.",
+                               GetOperatorText(node->op()));
+                }
+                if (!lhs_ty->IsIntegral()) {
+                    ThrowError(node, "operator: `%s' only accept integral type.",
+                               GetOperatorText(node->op()));
+                }
+                PushEvalType(lhs_ty);
+                break;
+
             default:
+                DCHECK(0) << "noreached";
                 break;
         }
     }
@@ -121,48 +191,69 @@ public:
             scope = global_->FindInnerScopeOrNull(node->name_space());
         }
 
-        auto declaration = scope->FindOrNullLocal(node->name());
-        if (!declaration) {
+        Scope *owned;
+        auto var = scope->FindOrNullRecursive(node->name(), &owned);
+        if (!var) {
             ThrowError(node, "symbol %s not found", node->name()->c_str());
             return;
         }
+        DCHECK_EQ(var->scope(), owned);
 
-        PushEvalType(declaration->type());
+        if (var->type() == types_->GetUnknown()) {
+            if (!var->is_function()) {
+                ThrowError(node, "symbol %s not found", node->name()->c_str());
+                return;
+            }
+        }
+
+        PushAnalysisExpression(var);
+        PushEvalType(var->type());
     }
 
 
-    Type *AnalysisType() { // TODO:
-        return types_->GetUnknown();
-    };
+    Type *AnalysisType() { return type_stack_.top(); };
 
-    bool has_error() { // TODO:
-        return false;
+    void PopEvalType() { type_stack_.pop(); }
+
+    Expression *AnalysisExpression() { return expr_stack_.top(); }
+
+    void PushAnalysisExpression(Expression *expression) {
+        expr_stack_.push(expression);
     }
+
+    void PopAnalysisExpression() { expr_stack_.pop(); }
+
+    bool has_error() { return checker_->has_error(); }
 
 private:
 
-    void PushEvalType(Type *type) {
-        // TODO:
+    void SetEvalType(Type *type) {
+        type_stack_.pop();
+        type_stack_.push(type);
     }
 
-    void PopEvalType() {
-        // TODO:
-    }
+    void PushEvalType(Type *type) { type_stack_.push(type); }
 
     void ThrowError(AstNode *node, const char *fmt, ...) {
         // TODO:
     }
 
     TypeFactory *types_;
+    RawStringRef unit_name_;
     PackageImporter::ImportList *import_list_;
     Scope *global_;
     Scope *current_scope_;
+    Checker *checker_;
+    std::stack<Type *> type_stack_;
+    std::stack<Expression *> expr_stack_;
 };
 
 //} // namespace
 
-Checker::Checker(CompiledUnitMap *all_units, Scope *global, Zone *zone)
-    : all_units_(DCHECK_NOTNULL(all_units))
+Checker::Checker(TypeFactory *types, CompiledUnitMap *all_units, Scope *global,
+                 Zone *zone)
+    : types_(DCHECK_NOTNULL(types))
+    , all_units_(DCHECK_NOTNULL(all_units))
     , all_modules_(DCHECK_NOTNULL(zone))
     , global_(DCHECK_NOTNULL(global))
     , zone_(DCHECK_NOTNULL(zone)) {
@@ -181,12 +272,13 @@ bool Checker::Run() {
 
     auto found = all_modules_.Get(kMainValue);
     if (!found) {
-        ThrowError("main module not found!");
+        ThrowError(nullptr, nullptr, "`main' module not found!");
         return false;
     }
 
-
-    return false;
+    bool ok = true;
+    CheckModule(kMainValue, found->value(), &ok);
+    return ok;
 }
 
 bool Checker::CheckPackageImporter() {
@@ -202,8 +294,8 @@ bool Checker::CheckPackageImporter() {
         }
 
         if (!stmts->At(0)->IsPackageImporter()) {
-            ThrowError("%s:package ... with ... statement not found.",
-                       iter->key()->c_str());
+            ThrowError(iter->key(), stmts->At(0),
+                       "package ... with ... statement not found.");
             return false;
         }
 
@@ -217,6 +309,19 @@ bool Checker::CheckPackageImporter() {
     }
 
     return true;
+}
+
+RawStringRef Checker::CheckImportList(RawStringRef module_name,
+                                      RawStringRef unit_name,
+                                      bool *ok) {
+    auto found = check_state_.find(module_name->ToString());
+    if (found->second == MODULE_CHECKING) {
+        *ok = false;
+        ThrowError(unit_name, nullptr, "recursive import module: %s",
+                   module_name->c_str());
+        return nullptr;
+    }
+    return module_name;
 }
 
 CompiledUnitMap *Checker::CheckModule(RawStringRef name,
@@ -237,6 +342,13 @@ CompiledUnitMap *Checker::CheckModule(RawStringRef name,
         DCHECK(stmts->At(0)->IsPackageImporter());
 
         auto pkg_stmt = stmts->At(0)->AsPackageImporter();
+        PackageImporter::ImportList::Iterator jter(pkg_stmt->mutable_import_list());
+        for (jter.Init(); jter.HasNext(); jter.MoveNext()) {
+            auto pair = all_modules_.Get(jter->key());
+
+            CheckImportList(jter->key(), iter->key(), CHECK_OK);
+            CheckModule(jter->key(), DCHECK_NOTNULL(pair->value()), CHECK_OK);
+        }
         CheckUnit(iter->key(), pkg_stmt, scope, iter->value(), CHECK_OK);
     }
     check_state_.emplace(name->ToString(), MODULE_CHECKED);
@@ -250,8 +362,19 @@ int Checker::CheckUnit(RawStringRef name,
                        bool *ok) {
     DCHECK_EQ(MODULE_SCOPE, module_scope->type());
 
+    CheckingAstVisitor visitor(types_,
+                               pkg_metadata->mutable_import_list(),
+                               module_scope->outter_scope(),
+                               module_scope,
+                               this);
     for (int i = 0; i < stmts->size(); ++i) {
+        stmts->At(i)->Accept(&visitor);
 
+        if (visitor.AnalysisExpression()) {
+            stmts->Set(i, visitor.AnalysisExpression());
+            visitor.PopAnalysisExpression();
+        }
+        visitor.PopEvalType();
     }
     return 0;
 }
@@ -267,8 +390,34 @@ CompiledUnitMap *Checker::GetOrInsertModule(RawStringRef name) {
     return pair->value();
 }
 
-void Checker::ThrowError(const char *fmt, ...) {
-    // TODO:
+void Checker::ThrowError(RawStringRef unit_name, AstNode *node,
+                         const char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    VThrowError(unit_name, node, fmt, ap);
+    va_end(ap);
+}
+
+void Checker::VThrowError(RawStringRef unit_name, AstNode *node,
+                          const char *fmt, va_list ap) {
+    has_error_ = true;
+    last_error_.column    = 0;
+    last_error_.line      = 0;
+    last_error_.position  = node ? node->position() : 0;
+    last_error_.file_name = unit_name->ToString();
+
+    va_list copied;
+    int len = 512, rv = len;
+    std::string buf;
+    do {
+        len = rv + 512;
+        buf.resize(len, 0);
+        va_copy(copied, ap);
+        rv = vsnprintf(&buf[0], len, fmt, ap);
+        va_copy(ap, copied);
+    } while (rv > len);
+    buf.resize(strlen(buf.c_str()), 0);
+    last_error_.message = std::move(buf);
 }
 
 } // namespace mio

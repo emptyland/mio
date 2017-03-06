@@ -7,8 +7,11 @@
 
 namespace mio {
 
-class PackageImporter;
+class CheckingAstVisitor;
 
+class AstNode;
+class PackageImporter;
+class TypeFactory;
 class Scope;
 class Zone;
 
@@ -23,11 +26,18 @@ public:
         MODULE_CHECKED,
     };
 
-    Checker(CompiledUnitMap *all_units, Scope *global, Zone *zone);
+    Checker(TypeFactory *types,
+            CompiledUnitMap *all_units, Scope *global, Zone *zone);
+
+    DEF_GETTER(bool, has_error)
+    DEF_GETTER(ParsingError, last_error)
 
     bool Run();
     bool CheckPackageImporter();
 
+    RawStringRef CheckImportList(RawStringRef module_name,
+                                 RawStringRef unit_name,
+                                 bool *ok);
     CompiledUnitMap *CheckModule(RawStringRef name, CompiledUnitMap *all_units,
                                  bool *ok);
     int CheckUnit(RawStringRef name,
@@ -37,18 +47,25 @@ public:
                   bool *ok);
     
 
+    friend class CheckingAstVisitor;
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(Checker);
 private:
     CompiledUnitMap *GetOrInsertModule(RawStringRef name);
 
-    void ThrowError(const char *fmt, ...);
+    void ThrowError(RawStringRef file_name, AstNode *node, const char *fmt, ...);
+    void VThrowError(RawStringRef file_name, AstNode *node, const char *fmt,
+                     va_list ap);
 
     // [moduleName, checkingState]
     std::map<std::string, CheckState> check_state_;
+    TypeFactory *types_;
     CompiledUnitMap *all_units_;
     CompiledModuleMap all_modules_;
     Scope *global_;
     Zone *zone_;
+    bool has_error_ = false;
+    ParsingError last_error_;
 };
 
 } // namespace mio
