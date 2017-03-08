@@ -127,4 +127,19 @@ bool Scope::MergeInnerScopes(MergingConflicts *conflicts) {
     return conflicts->empty();
 }
 
+/*static*/ void Scope::TEST_PrintAllVariables(int level, Scope *scope) {
+    std::string indent(level, '-');
+
+    printf("%s=====%s: %d=====\n", indent.c_str(), scope->name_->c_str(),
+           scope->type_);
+
+    DeclaratedMap::Iterator iter(&scope->declarations_);
+    for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
+        printf("%s%s", indent.c_str(), iter->key()->c_str());
+    }
+    for (int i = 0; i < scope->inner_scopes_.size(); ++i) {
+        TEST_PrintAllVariables(level + 1, scope->inner_scopes_.At(i));
+    }
+}
+
 } // namespace mio

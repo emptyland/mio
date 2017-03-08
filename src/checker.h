@@ -35,6 +35,9 @@ public:
     bool Run();
     bool CheckPackageImporter();
 
+    CompiledUnitMap *all_units() const { return all_units_; }
+    CompiledModuleMap *mutable_all_modules() { return &all_modules_; }
+
     RawStringRef CheckImportList(RawStringRef module_name,
                                  RawStringRef unit_name,
                                  bool *ok);

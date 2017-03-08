@@ -26,6 +26,9 @@ public:
     const T &At(int i) const;
     T *MutableAt(int i);
 
+    const T &first() const { return At(0); }
+    const T &last() const { return At(size() - 1); }
+
     void Set(int i, const T &element);
 
     void Resize(int new_size);

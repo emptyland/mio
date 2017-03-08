@@ -25,7 +25,8 @@ private:
 TypeFactory::TypeFactory(Zone *zone)
     : zone_(DCHECK_NOTNULL(zone))
     , void_type_(new (zone) Void(TOKEN_VOID))
-    , unknown_type_(new (zone) Type(-1)) {
+    , unknown_type_(new (zone) Unknown(-1))
+    , string_type_(new (zone) String(TOKEN_STRING)) {
     integral_types_[0] = new (zone_) Integral(1,  TOKEN_BOOL);
     integral_types_[1] = new (zone_) Integral(8,  TOKEN_I8);
     integral_types_[2] = new (zone_) Integral(16, TOKEN_I16);

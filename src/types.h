@@ -12,7 +12,9 @@ namespace mio {
 #define DEFINE_TYPE_NODES(M) \
     M(FunctionPrototype) \
     M(Integral) \
-    M(Void)
+    M(String) \
+    M(Void) \
+    M(Unknown)
 
 class Type;
     class FunctionPrototype;
@@ -23,8 +25,13 @@ class Type;
     class Array;
     class Void;
     class Union;
+    class Unknown;
 
 class TypeFactory;
+
+#define DECLARE_TYPE(name) \
+    virtual bool Is##name() const override { return true; } \
+    friend class TypeFactory;
 
 class Type : public ManagedObject {
 public:
@@ -41,7 +48,7 @@ public:
 
 #undef Type_TYPE_ASSERT
 
-    // TODO:
+    // TODO: floating
     bool is_numeric() const { return IsIntegral(); }
 
     int64_t id() const { return id_; }
@@ -59,10 +66,9 @@ protected:
 
 class Void : public Type {
 public:
-    virtual bool IsVoid() const override { return true; }
 
-    friend class TypeFactory;
-    DISALLOW_IMPLICIT_CONSTRUCTORS(Void);
+    DECLARE_TYPE(Void)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Void)
 private:
     Void(int64_t id) : Type(id) {}
 }; // class Void
@@ -72,9 +78,8 @@ class Integral : public Type {
 public:
     DEF_GETTER(int, bitwide)
 
-    virtual bool IsIntegral() const override { return true; }
 
-    friend class TypeFactory;
+    DECLARE_TYPE(Integral)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Integral);
 private:
     Integral(int bitwide, int id)
@@ -114,7 +119,7 @@ public:
 
     void UpdateId();
 
-    friend class TypeFactory;
+    DECLARE_TYPE(FunctionPrototype)
     DISALLOW_IMPLICIT_CONSTRUCTORS(FunctionPrototype);
 private:
     FunctionPrototype(ZoneVector<Paramter *> *paramters, Type *return_type,
@@ -126,6 +131,26 @@ private:
     ZoneVector<Paramter *> *paramters_;
     Type *return_type_;
 }; // class FunctionPrototype
+
+
+class Unknown : public Type {
+public:
+    DECLARE_TYPE(Unknown)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Unknown);
+
+private:
+    Unknown(int id) : Type(id) {}
+}; // class Unknown
+
+
+class String : public Type {
+public:
+    DECLARE_TYPE(String)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(String)
+
+private:
+    String(int id) : Type(id) {}
+}; // class String
 
 
 class TypeFactory {
@@ -141,7 +166,8 @@ public:
     Integral *GetI64() const { return integral_types_[4]; }
 
     Void *GetVoid() const { return void_type_; }
-    Type *GetUnknown() const { return unknown_type_; }
+    Unknown *GetUnknown() const { return unknown_type_; }
+    String *GetString() const { return string_type_; }
 
     FunctionPrototype *GetFunctionPrototype(ZoneVector<Paramter *> *paramters,
                                             Type *return_type);
@@ -158,8 +184,9 @@ private:
     // i32
     // i64
     Integral *integral_types_[kMaxIntegralTypes];
-    Void *void_type_;
-    Type *unknown_type_;
+    Void     *void_type_;
+    Unknown  *unknown_type_;
+    String   *string_type_;
 
     Zone *zone_;
 };

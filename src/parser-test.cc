@@ -305,12 +305,12 @@ TEST_F(ParserTest, ValDeclaration) {
     ASSERT_TRUE(node != nullptr);
 
     Scope *owned = nullptr;
-    auto declaration = global_scope_->FindOrNullDownTo("a", &owned);
-    ASSERT_TRUE(declaration != nullptr);
+    auto var = global_scope_->FindOrNullDownTo("a", &owned);
+    ASSERT_TRUE(var != nullptr);
 
-    EXPECT_EQ(declaration, node);
-    EXPECT_TRUE(declaration->IsValDeclaration());
-    EXPECT_EQ(declaration->AsValDeclaration()->scope(), owned);
+    EXPECT_EQ(var->declaration(), node);
+    EXPECT_TRUE(var->declaration()->IsValDeclaration());
+    EXPECT_EQ(var->declaration()->AsValDeclaration()->scope(), owned);
     EXPECT_EQ(scope, owned);
 }
 

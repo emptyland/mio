@@ -38,6 +38,8 @@ private:
     DISALLOW_IMPLICIT_CONSTRUCTORS(TextStreamFactory)
 };
 
+TextStreamFactory *CreateFileStreamFactory();
+
 } // namespace mio
 
 #endif // MIO_TEXT_INPUT_STREAM_H_

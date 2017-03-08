@@ -30,6 +30,7 @@ Operator TokenToBinaryOperator(Token token) {
         DEFINE_BIT_OPS(TokenToBinaryOperator_SWITCH_CASE)
         DEFINE_LOGIC_OPS(TokenToBinaryOperator_SWITCH_CASE)
         DEFINE_CONDITION_OPS(TokenToBinaryOperator_SWITCH_CASE)
+        DEFINE_STRING_OPS(TokenToBinaryOperator_SWITCH_CASE)
 #undef TokenToBinaryOperator_SWITCH_CASE
         default: return OP_NOT_BINARY;
     }

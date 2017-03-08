@@ -126,12 +126,6 @@ bool Lexer::Next(TokenObject *token) {
                 token->set_token_code(TOKEN_COMMA);
                 ahead = Move();
                 return true;
-            case '.':
-                token->set_position(current()->position);
-                token->set_len(1);
-                token->set_token_code(TOKEN_DOT);
-                ahead = Move();
-                return true;
             case '~':
                 token->set_position(current()->position);
                 token->set_len(1);
@@ -149,6 +143,18 @@ bool Lexer::Next(TokenObject *token) {
                 token->set_len(1);
                 token->set_token_code(TOKEN_BIT_AND);
                 ahead = Move();
+                return true;
+            case '.':
+                token->set_position(current()->position);
+                ahead = Move();
+                if (ahead == '.') {
+                    ahead = Move();
+                    token->set_len(2);
+                    token->set_token_code(TOKEN_TWO_DOT);
+                } else {
+                    token->set_len(1);
+                    token->set_token_code(TOKEN_DOT);
+                }
                 return true;
             case '|':
                 token->set_position(current()->position);

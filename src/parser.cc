@@ -70,6 +70,11 @@ Scope *Parser::EnterScope(const std::string &name, int scope_type) {
     return scope;
 }
 
+void Parser::EnterScope(Scope *scope) {
+    DCHECK_EQ(scope_, DCHECK_NOTNULL(scope)->outter_scope());
+    scope_ = scope;
+}
+
 Scope *Parser::LeaveScope() {
     scope_ = scope_->outter_scope();
     return scope_;
@@ -78,6 +83,9 @@ Scope *Parser::LeaveScope() {
 Statement *Parser::ParseStatement(bool *ok) {
 
     switch (Peek()) {
+
+//        case TOKEN_PACKAGE:
+//            return ParsePackageImporter(ok);
 
         case TOKEN_VAL:
             return ParseValDeclaration(false, ok);
@@ -102,6 +110,9 @@ Statement *Parser::ParseStatement(bool *ok) {
 
         case TOKEN_FUNCTION:
             return ParseFunctionDefine(false, false, ok);
+
+        case TOKEN_EOF:
+            break;
 
         default:
             return ParseExpression(ok);
@@ -261,20 +272,27 @@ PackageImporter *Parser::ParsePackageImporter(bool *ok) {
     std::string txt;
     Match(TOKEN_ID, &txt, CHECK_OK);
     auto node = factory_->CreatePackageImporter(txt, position);
-    auto module_scope = scope_->FindInnerScopeOrNull(node->package_name());
-    if (!module_scope) {
-        module_scope = new (zone_) Scope(scope_, MODULE_SCOPE, zone_);
-        DCHECK_NOTNULL(module_scope)->set_name(node->package_name());
-    }
-    DCHECK(module_scope->is_module_scope());
-    scope_ = module_scope;
+//    auto module_scope = scope_->FindInnerScopeOrNull(node->package_name());
+//    if (!module_scope) {
+//        module_scope = new (zone_) Scope(scope_, MODULE_SCOPE, zone_);
+//        DCHECK_NOTNULL(module_scope)->set_name(node->package_name());
+//    }
+//    DCHECK(module_scope->is_module_scope());
+//    //scope_ = module_scope;
+//
+//    // src/
+//    // src/main/1.mio
+//    // src/foo/2.mio
+//    // src/bar/3.mio
+//    auto unit_scope = new (zone_) Scope(module_scope, UNIT_SCOPE, zone_);
+//    unit_scope->set_name(T(lexer_->current()->input_stream->file_name()));
+//    scope_ = unit_scope;
 
     if (!Test(TOKEN_WITH)) {
         return node;
     }
     Match(TOKEN_LPAREN, CHECK_OK);
 
-    // TODO:
     while (!Test(TOKEN_RPAREN)) {
         Match(TOKEN_STRING_LITERAL, &txt, CHECK_OK);
         auto import_name = txt;
@@ -579,7 +597,7 @@ FunctionPrototype *Parser::ParseFunctionPrototype(bool strict,
         std::string param_name;
         while (!Test(TOKEN_RPAREN)) {
             Match(TOKEN_ID, &param_name, CHECK_OK);
-            auto param_type = types_->GetUnknown();
+            auto param_type = static_cast<Type *>(types_->GetUnknown());
             if (strict) {
                 Match(TOKEN_COLON, CHECK_OK);
                 param_type = ParseType(CHECK_OK);
@@ -592,7 +610,7 @@ FunctionPrototype *Parser::ParseFunctionPrototype(bool strict,
             params->Add(types_->CreateParamter(param_name, param_type));
         }
     }
-    auto return_type = types_->GetUnknown();
+    auto return_type = static_cast<Type *>(types_->GetUnknown());
     if (strict) {
         Match(TOKEN_COLON, CHECK_OK);
         return_type = ParseType(CHECK_OK);

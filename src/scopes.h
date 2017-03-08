@@ -29,6 +29,7 @@ public:
     Scope(Scope *outter_scope, ScopeType type, Zone *zone);
 
     Scope *FindInnerScopeOrNull(RawStringRef name) const;
+
     Variable *FindOrNullLocal(RawStringRef name);
     Variable *FindOrNullRecursive(RawStringRef name, Scope **owned);
     Variable *FindOrNullDownTo(const char *name, Scope **owned) {
@@ -62,6 +63,8 @@ public:
     bool is_module_scope() const { return type_ == MODULE_SCOPE; }
     bool is_function_scope() const { return type_ == FUNCTION_SCOPE; }
     bool is_block_scope() const { return type_ == BLOCK_SCOPE; }
+
+    static void TEST_PrintAllVariables(int level, Scope *scope);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Scope)
 private:

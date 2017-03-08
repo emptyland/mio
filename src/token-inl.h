@@ -29,6 +29,7 @@ namespace mio {
     M(COMMA, 0, ",") \
     M(LINE_COMMENT, 0, "# ...\\n") \
     M(DOT, 0, ".") \
+    M(TWO_DOT, 0, "..") \
     M(COLON, 0, ":") \
     M(NAME_BREAK, 0, "::") \
     M(ASSIGN, 0, "=") \

@@ -46,6 +46,7 @@ public:
 
     TextInputStream *SwitchInputStream(const std::string &key);
     Scope *EnterScope(const std::string &name, int scope_type);
+    void EnterScope(Scope *scope);
     Scope *LeaveScope();
 
     Statement *ParseStatement(bool *ok);

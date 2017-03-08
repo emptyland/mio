@@ -8,6 +8,9 @@
 namespace mio {
 
 class Statement;
+class TypeFactory;
+class Scope;
+class SimpleFileSystem;
 
 // [unitName, [statement]]
 typedef ZoneHashMap<RawStringRef, ZoneVector<Statement *> *> CompiledUnitMap;
@@ -23,6 +26,20 @@ struct ParsingError {
 
     static ParsingError NoError();
 }; // struct ParsingError
+
+class Compiler {
+public:
+    static CompiledUnitMap *ParseProject(const char *project_dir,
+                                         SimpleFileSystem *sfs,
+                                         TypeFactory *types,
+                                         Scope *global,
+                                         Zone *zone,
+                                         ParsingError *error);
+
+    Compiler() = delete;
+    ~Compiler() = delete;
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Compiler)
+};
 
 } // namespace mio
 

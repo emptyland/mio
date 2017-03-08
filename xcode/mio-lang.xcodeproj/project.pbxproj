@@ -52,6 +52,12 @@
 		23E3D5A91E65075C00C51DDE /* checker.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5A71E65075C00C51DDE /* checker.cc */; };
 		23E3D5AC1E6CF20700C51DDE /* checker-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5AA1E6CF20700C51DDE /* checker-test.cc */; };
 		23E3D5AE1E6D004C00C51DDE /* scopes-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5AD1E6D004C00C51DDE /* scopes-test.cc */; };
+		23E3D5B11E6FA55600C51DDE /* file-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5B01E6FA55600C51DDE /* file-input-stream.cc */; };
+		23E3D5B21E6FA55600C51DDE /* file-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5B01E6FA55600C51DDE /* file-input-stream.cc */; };
+		23E3D5B41E6FFF5900C51DDE /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5B31E6FFF5900C51DDE /* compiler.cc */; };
+		23E3D5B51E6FFF5900C51DDE /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5B31E6FFF5900C51DDE /* compiler.cc */; };
+		23E3D5B81E700A7000C51DDE /* simple-file-system.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5B71E700A7000C51DDE /* simple-file-system.cc */; };
+		23E3D5B91E700A7000C51DDE /* simple-file-system.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5B71E700A7000C51DDE /* simple-file-system.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -128,6 +134,11 @@
 		23E3D5A71E65075C00C51DDE /* checker.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = checker.cc; sourceTree = "<group>"; };
 		23E3D5AA1E6CF20700C51DDE /* checker-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "checker-test.cc"; sourceTree = "<group>"; };
 		23E3D5AD1E6D004C00C51DDE /* scopes-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "scopes-test.cc"; sourceTree = "<group>"; };
+		23E3D5AF1E6FA4FF00C51DDE /* file-input-stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "file-input-stream.h"; sourceTree = "<group>"; };
+		23E3D5B01E6FA55600C51DDE /* file-input-stream.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "file-input-stream.cc"; sourceTree = "<group>"; };
+		23E3D5B31E6FFF5900C51DDE /* compiler.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = compiler.cc; sourceTree = "<group>"; };
+		23E3D5B61E7007E000C51DDE /* simple-file-system.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "simple-file-system.h"; sourceTree = "<group>"; };
+		23E3D5B71E700A7000C51DDE /* simple-file-system.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "simple-file-system.cc"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -181,6 +192,7 @@
 				236202581E45C58800B6B949 /* token.cc */,
 				2362025F1E48221700B6B949 /* text-input-stream.cc */,
 				235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */,
+				23E3D5B01E6FA55600C51DDE /* file-input-stream.cc */,
 				2349E56B1E4AA77F002883BC /* number-parser.cc */,
 				2349E5751E4C5310002883BC /* zone.cc */,
 				2349E5891E56F3DB002883BC /* raw-string.cc */,
@@ -190,6 +202,8 @@
 				2349E5901E56FF02002883BC /* parser.cc */,
 				23E3D5A21E63C6DD00C51DDE /* scopes.cc */,
 				23E3D5A71E65075C00C51DDE /* checker.cc */,
+				23E3D5B31E6FFF5900C51DDE /* compiler.cc */,
+				23E3D5B71E700A7000C51DDE /* simple-file-system.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -201,9 +215,10 @@
 				2349E5781E4DC5AF002883BC /* list.h */,
 				2362023B1E45B9A700B6B949 /* base.h */,
 				236202531E45BD0D00B6B949 /* lexer.h */,
-				2362025E1E48214500B6B949 /* text-input-stream.h */,
 				236202621E486C9300B6B949 /* token-inl.h */,
 				236202571E45C34A00B6B949 /* token.h */,
+				2362025E1E48214500B6B949 /* text-input-stream.h */,
+				23E3D5AF1E6FA4FF00C51DDE /* file-input-stream.h */,
 				235808111E487D9400C8C567 /* fixed-memory-input-stream.h */,
 				2349E56A1E4AA70B002883BC /* number-parser.h */,
 				2349E5741E4C51C1002883BC /* zone.h */,
@@ -217,6 +232,7 @@
 				23E3D5A11E63C6B100C51DDE /* scopes.h */,
 				23E3D5A61E6506F200C51DDE /* compiler.h */,
 				23E3D5A51E6506AB00C51DDE /* checker.h */,
+				23E3D5B61E7007E000C51DDE /* simple-file-system.h */,
 			);
 			name = Include;
 			path = ../src;
@@ -341,10 +357,13 @@
 				2362023D1E45B9EB00B6B949 /* base.cc in Sources */,
 				2349E58A1E56F3DB002883BC /* raw-string.cc in Sources */,
 				2349E56C1E4AA77F002883BC /* number-parser.cc in Sources */,
+				23E3D5B81E700A7000C51DDE /* simple-file-system.cc in Sources */,
 				23E3D59F1E600DCE00C51DDE /* types.cc in Sources */,
 				236202591E45C58800B6B949 /* token.cc in Sources */,
 				236202601E48221700B6B949 /* text-input-stream.cc in Sources */,
 				2349E5911E56FF02002883BC /* parser.cc in Sources */,
+				23E3D5B41E6FFF5900C51DDE /* compiler.cc in Sources */,
+				23E3D5B11E6FA55600C51DDE /* file-input-stream.cc in Sources */,
 				2349E5761E4C5310002883BC /* zone.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -359,6 +378,7 @@
 				235808151E495CE200C8C567 /* lexer-test.cc in Sources */,
 				2349E5771E4C5310002883BC /* zone.cc in Sources */,
 				23E3D5AC1E6CF20700C51DDE /* checker-test.cc in Sources */,
+				23E3D5B21E6FA55600C51DDE /* file-input-stream.cc in Sources */,
 				23E3D5AE1E6D004C00C51DDE /* scopes-test.cc in Sources */,
 				2349E5831E56E378002883BC /* ast-test.cc in Sources */,
 				235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
@@ -367,6 +387,7 @@
 				2362025D1E45CC5F00B6B949 /* token-test.cc in Sources */,
 				23E3D5A41E63C6DD00C51DDE /* scopes.cc in Sources */,
 				2349E5941E56FF12002883BC /* parser-test.cc in Sources */,
+				23E3D5B51E6FFF5900C51DDE /* compiler.cc in Sources */,
 				2362025A1E45C58800B6B949 /* token.cc in Sources */,
 				23E3D5A01E600DCE00C51DDE /* types.cc in Sources */,
 				2349E58E1E56FCC9002883BC /* ast.cc in Sources */,
@@ -379,6 +400,7 @@
 				236202521E45BC7E00B6B949 /* base-test.cc in Sources */,
 				2349E57D1E55DD3C002883BC /* zone-hash-map-test.cc in Sources */,
 				236202491E45BC0E00B6B949 /* base.cc in Sources */,
+				23E3D5B91E700A7000C51DDE /* simple-file-system.cc in Sources */,
 				2349E5801E56A71E002883BC /* zone-vector-test.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

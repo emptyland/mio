@@ -38,7 +38,8 @@ public:
             DCHECK_NOTNULL(node->initializer());
             node->set_type(AnalysisType());
         } else {
-            if (!node->type()->CanAcceptFrom(AnalysisType())) {
+            if (node->has_initializer() &&
+                !node->type()->CanAcceptFrom(AnalysisType())) {
                 ThrowError(node, "val %s can not accept initializer type",
                            node->name()->c_str());
             }
@@ -93,7 +94,7 @@ public:
             default:
                 break;
         }
-        // keep type
+        // keep type, DO NOT POP EVAL TYPE
     }
 
     virtual void VisitBinaryOperation(BinaryOperation *node) override {
@@ -172,8 +173,12 @@ public:
                 PushEvalType(lhs_ty);
                 break;
 
+            case OP_STRCAT:
+                PushEvalType(types_->GetString());
+                break;
+
             default:
-                DCHECK(0) << "noreached";
+                DLOG(FATAL) << "noreached";
                 break;
         }
     }
@@ -210,6 +215,56 @@ public:
         PushEvalType(var->type());
     }
 
+    virtual void VisitSmiLiteral(SmiLiteral *node) override {
+        switch (node->bitwide()) {
+            case 1:
+                PushEvalType(types_->GetI1());
+                break;
+
+            case 8:
+                PushEvalType(types_->GetI8());
+                break;
+
+            case 16:
+                PushEvalType(types_->GetI16());
+                break;
+
+            case 32:
+                PushEvalType(types_->GetI32());
+                break;
+
+            case 64:
+                PushEvalType(types_->GetI64());
+                break;
+
+            default:
+                DLOG(FATAL) << "noreached: bitwide = " << node->bitwide();
+                break;
+        }
+    }
+
+    virtual void VisitBlock(Block *node) override {
+        if (node->mutable_body()->is_empty()) {
+            PushEvalType(types_->GetVoid());
+            return;
+        }
+
+        for (int i = 0; i < node->mutable_body()->size() - 1; ++i) {
+            node->mutable_body()->At(i)->Accept(this);
+            if (has_error()) {
+                return;
+            }
+            PopEvalType();
+        }
+
+        // use the last expression type
+        node->mutable_body()->last()->Accept(this);
+    }
+
+    virtual void VisitFunctionDefine(FunctionDefine *node) override {
+        // TODO:
+        
+    }
 
     Type *AnalysisType() { return type_stack_.top(); };
 
@@ -234,7 +289,9 @@ public:
 private:
 
     void SetEvalType(Type *type) {
-        type_stack_.pop();
+        if (!type_stack_.empty()) {
+            type_stack_.pop();
+        }
         type_stack_.push(type);
     }
 
@@ -336,6 +393,8 @@ RawStringRef Checker::CheckImportList(RawStringRef module_name,
 CompiledUnitMap *Checker::CheckModule(RawStringRef name,
                                       CompiledUnitMap *all_units,
                                       bool *ok) {
+    //DLOG(INFO) << "check module: " << name->ToString();
+
     auto scope = DCHECK_NOTNULL(global_->FindInnerScopeOrNull(name));
     DCHECK_EQ(MODULE_SCOPE, scope->type());
     scope->MergeInnerScopes();

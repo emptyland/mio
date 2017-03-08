@@ -149,6 +149,8 @@ public:
 
     virtual Type *type() const = 0;
 
+    virtual RawStringRef name() const = 0;
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(Declaration)
 protected:
     Declaration(Scope *scope, int position)
@@ -161,9 +163,9 @@ protected:
 
 class ValDeclaration : public Declaration {
 public:
-    RawStringRef name() const { return name_; }
-
+    virtual RawStringRef name() const override { return name_; }
     virtual Type *type() const override { return type_; }
+
     void set_type(Type *type) { type_ = DCHECK_NOTNULL(type); }
 
     Expression *initializer() const { return initializer_; }
@@ -189,7 +191,8 @@ private:
         , is_export_(is_export)
         , type_(DCHECK_NOTNULL(type))
         , initializer_(initializer)
-        , is_argument_(is_argument) {}
+        , is_argument_(is_argument) {
+    }
 
     RawStringRef name_;
     bool is_export_;
@@ -201,9 +204,9 @@ private:
 
 class VarDeclaration : public Declaration {
 public:
-    RawStringRef name() const { return name_; }
-
+    virtual RawStringRef name() const override { return name_; }
     virtual Type *type() const override { return type_; }
+
     void set_type(Type *type) { type_ = DCHECK_NOTNULL(type); }
 
     Expression *initializer() const { return initializer_; }
@@ -237,10 +240,10 @@ private:
 
 class FunctionDefine : public Declaration {
 public:
-    RawStringRef name() const { return name_; }
     FunctionLiteral *function_literal() const { return function_literal_; }
     int start_position() const { return position(); }
 
+    virtual RawStringRef name() const override { return name_; }
     virtual Type *type() const override;
 
     DEF_GETTER(int, end_position)
@@ -386,6 +389,9 @@ private:
     M(GT, 6, 6, TOKEN_GT) \
     M(GE, 6, 6, TOKEN_GE)
 
+#define DEFINE_STRING_OPS(M) \
+    M(STRCAT, 0, 0, TOKEN_TWO_DOT)
+
 #define DEFINE_UNARY_OPS(M) \
     M(MINUS,   11, 11, TOKEN_MINUS) \
     M(NOT,     11, 11, TOKEN_NOT) \
@@ -397,6 +403,7 @@ private:
     DEFINE_LOGIC_OPS(M) \
     DEFINE_CONDITION_OPS(M) \
     DEFINE_UNARY_OPS(M) \
+    DEFINE_STRING_OPS(M) \
     M(OTHER, 11, 11, TOKEN_ERROR)
 
 enum Operator : int {
@@ -500,6 +507,8 @@ public:
     Scope *scope() const { return declaration_->scope(); }
 
     Type *type() { return declaration_->type(); }
+
+    RawStringRef name() const { return declaration_->name(); }
 
     DECLARE_AST_NODE(Variable)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Variable)
