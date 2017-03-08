@@ -5,6 +5,8 @@
 #include "zone-vector.h"
 #include "raw-string.h"
 #include "zone.h"
+#include <map>
+#include <vector>
 
 namespace mio {
 
@@ -36,9 +38,15 @@ public:
 
     Variable *Declare(RawStringRef name, Declaration *declaration);
 
+
+    typedef std::map<std::string, std::vector<Variable *>> MergingConflicts;
     // merge the low 1 layout scopes, in this layout.
     // 
-    void MergeInnerScopes();
+    bool MergeInnerScopes() {
+        MergingConflicts conflicts;
+        return MergeInnerScopes(&conflicts);
+    }
+    bool MergeInnerScopes(MergingConflicts *conflicts);
 
     RawStringRef name() const { return name_; }
     void set_name(RawStringRef name) { name_ = DCHECK_NOTNULL(name); }

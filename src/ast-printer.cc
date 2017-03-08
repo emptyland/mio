@@ -133,10 +133,14 @@ public:
     }
 
     virtual void VisitValDeclaration(ValDeclaration *node) override {
-        
+        // TODO:
     }
 
     virtual void VisitVarDeclaration(VarDeclaration *node) override {
+        // TODO:
+    }
+
+    virtual void VisitVariable(Variable *node) override {
         // TODO:
     }
 

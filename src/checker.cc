@@ -68,7 +68,7 @@ public:
 
     virtual void VisitUnaryOperation(UnaryOperation *node) override {
         node->operand()->Accept(this);
-        if (AnalysisExpression()) {
+        if (has_analysis_expression()) {
             node->set_operand(AnalysisExpression());
         }
         switch (node->op()) {
@@ -98,14 +98,14 @@ public:
 
     virtual void VisitBinaryOperation(BinaryOperation *node) override {
         node->lhs()->Accept(this);
-        if (AnalysisExpression()) {
+        if (has_analysis_expression()) {
             node->set_lhs(AnalysisExpression());
         }
         auto lhs_ty = AnalysisType();
         PopEvalType();
 
         node->rhs()->Accept(this);
-        if (AnalysisExpression()) {
+        if (has_analysis_expression()) {
             node->set_rhs(AnalysisExpression());
         }
         auto rhs_ty = AnalysisType();
@@ -213,9 +213,15 @@ public:
 
     Type *AnalysisType() { return type_stack_.top(); };
 
-    void PopEvalType() { type_stack_.pop(); }
+    void PopEvalType() {
+        if (!type_stack_.empty()) {
+            type_stack_.pop();
+        }
+    }
 
     Expression *AnalysisExpression() { return expr_stack_.top(); }
+
+    bool has_analysis_expression() const { return !expr_stack_.empty(); }
 
     void PushAnalysisExpression(Expression *expression) {
         expr_stack_.push(expression);
@@ -235,7 +241,10 @@ private:
     void PushEvalType(Type *type) { type_stack_.push(type); }
 
     void ThrowError(AstNode *node, const char *fmt, ...) {
-        // TODO:
+        va_list ap;
+        va_start(ap, fmt);
+        checker_->VThrowError(unit_name_, node, fmt, ap);
+        va_end(ap);
     }
 
     TypeFactory *types_;
@@ -327,7 +336,7 @@ RawStringRef Checker::CheckImportList(RawStringRef module_name,
 CompiledUnitMap *Checker::CheckModule(RawStringRef name,
                                       CompiledUnitMap *all_units,
                                       bool *ok) {
-    auto scope = global_->FindInnerScopeOrNull(name);
+    auto scope = DCHECK_NOTNULL(global_->FindInnerScopeOrNull(name));
     DCHECK_EQ(MODULE_SCOPE, scope->type());
     scope->MergeInnerScopes();
 
@@ -363,6 +372,7 @@ int Checker::CheckUnit(RawStringRef name,
     DCHECK_EQ(MODULE_SCOPE, module_scope->type());
 
     CheckingAstVisitor visitor(types_,
+                               name,
                                pkg_metadata->mutable_import_list(),
                                module_scope->outter_scope(),
                                module_scope,
@@ -370,9 +380,10 @@ int Checker::CheckUnit(RawStringRef name,
     for (int i = 0; i < stmts->size(); ++i) {
         stmts->At(i)->Accept(&visitor);
 
-        if (visitor.AnalysisExpression()) {
+        if (visitor.has_analysis_expression()) {
             stmts->Set(i, visitor.AnalysisExpression());
             visitor.PopAnalysisExpression();
+
         }
         visitor.PopEvalType();
     }
@@ -404,7 +415,7 @@ void Checker::VThrowError(RawStringRef unit_name, AstNode *node,
     last_error_.column    = 0;
     last_error_.line      = 0;
     last_error_.position  = node ? node->position() : 0;
-    last_error_.file_name = unit_name->ToString();
+    last_error_.file_name = unit_name ? unit_name->ToString() : "";
 
     va_list copied;
     int len = 512, rv = len;

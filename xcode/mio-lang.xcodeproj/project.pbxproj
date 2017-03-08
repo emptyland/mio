@@ -50,6 +50,8 @@
 		23E3D5A41E63C6DD00C51DDE /* scopes.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5A21E63C6DD00C51DDE /* scopes.cc */; };
 		23E3D5A81E65075C00C51DDE /* checker.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5A71E65075C00C51DDE /* checker.cc */; };
 		23E3D5A91E65075C00C51DDE /* checker.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5A71E65075C00C51DDE /* checker.cc */; };
+		23E3D5AC1E6CF20700C51DDE /* checker-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5AA1E6CF20700C51DDE /* checker-test.cc */; };
+		23E3D5AE1E6D004C00C51DDE /* scopes-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5AD1E6D004C00C51DDE /* scopes-test.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -124,6 +126,8 @@
 		23E3D5A51E6506AB00C51DDE /* checker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = checker.h; sourceTree = "<group>"; };
 		23E3D5A61E6506F200C51DDE /* compiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = compiler.h; sourceTree = "<group>"; };
 		23E3D5A71E65075C00C51DDE /* checker.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = checker.cc; sourceTree = "<group>"; };
+		23E3D5AA1E6CF20700C51DDE /* checker-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "checker-test.cc"; sourceTree = "<group>"; };
+		23E3D5AD1E6D004C00C51DDE /* scopes-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "scopes-test.cc"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -231,6 +235,8 @@
 				2349E5821E56E378002883BC /* ast-test.cc */,
 				2349E5851E56EF38002883BC /* raw-string-test.cc */,
 				2349E5931E56FF12002883BC /* parser-test.cc */,
+				23E3D5AA1E6CF20700C51DDE /* checker-test.cc */,
+				23E3D5AD1E6D004C00C51DDE /* scopes-test.cc */,
 			);
 			name = Tests;
 			path = ../src;
@@ -352,6 +358,8 @@
 				2349E56F1E4AB1BB002883BC /* number-parser-test.cc in Sources */,
 				235808151E495CE200C8C567 /* lexer-test.cc in Sources */,
 				2349E5771E4C5310002883BC /* zone.cc in Sources */,
+				23E3D5AC1E6CF20700C51DDE /* checker-test.cc in Sources */,
+				23E3D5AE1E6D004C00C51DDE /* scopes-test.cc in Sources */,
 				2349E5831E56E378002883BC /* ast-test.cc in Sources */,
 				235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
 				23E3D59B1E5C1A7900C51DDE /* ast-printer.cc in Sources */,

@@ -84,9 +84,10 @@ Variable *Scope::Declare(RawStringRef name, Declaration *declaration) {
     return var;
 }
 
-void Scope::MergeInnerScopes() {
+bool Scope::MergeInnerScopes(MergingConflicts *conflicts) {
     ZoneVector<Scope *> new_inner_scopes(zone_);
 
+    conflicts->clear();
     for (int i = 0; i < inner_scopes_.size(); ++i) {
         auto inner = inner_scopes_.At(i);
 
@@ -94,8 +95,16 @@ void Scope::MergeInnerScopes() {
         for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
             auto var = iter->value();
 
-            var->declaration()->set_scope(this);
-            declarations_.Put(iter->key(), var);
+            bool has_insert = false;
+            auto pair = declarations_.GetOrInsert(iter->key(), &has_insert);
+            if (!has_insert) {
+                auto vars = &(*conflicts)[iter->key()->ToString()];
+                if (vars->empty()) {
+                    vars->push_back(pair->value());
+                }
+                vars->push_back(var);
+            }
+            pair->set_value(var);
         }
 
         for (int j = 0; j < inner->inner_scopes_.size(); ++j) {
@@ -103,8 +112,19 @@ void Scope::MergeInnerScopes() {
             new_inner_scopes.Add(inner->inner_scopes_.At(j));
         }
     }
-    inner_scopes_.Clear();
-    inner_scopes_.Assign(std::move(new_inner_scopes));
+    if (conflicts->empty()) {
+        // adjust variables' scope
+        DeclaratedMap::Iterator iter(&declarations_);
+        for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
+            if (iter->value()->scope() != this) {
+                iter->value()->declaration()->set_scope(this);
+            }
+        }
+
+        inner_scopes_.Clear();
+        inner_scopes_.Assign(std::move(new_inner_scopes));
+    }
+    return conflicts->empty();
 }
 
 } // namespace mio
