@@ -1,0 +1,5 @@
+package main with (
+    'foo'
+)
+
+val a = foo::a + 1

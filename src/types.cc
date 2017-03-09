@@ -42,6 +42,10 @@ TypeFactory::GetFunctionPrototype(ZoneVector<Paramter *> *paramters,
     return prototype;
 }
 
+Union *TypeFactory::GetUnion(ZoneHashMap<int64_t, Type *> *types) {
+    return new (zone_) Union(types);
+}
+
 void FunctionPrototype::UpdateId() {
     TypeDigest digest;
 
@@ -50,6 +54,36 @@ void FunctionPrototype::UpdateId() {
         digest.Step(paramters_->At(i)->param_type()->id());
     }
     digest.Step(return_type()->id() << 4);
+    id_ = digest.value();
+}
+
+int Union::GetAllTypes(std::vector<Type *> *all_types) const {
+    all_types->clear();
+
+    TypeMap::Iterator iter(types_);
+    for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
+        all_types->push_back(iter->value());
+    }
+    return static_cast<int>(all_types->size());
+}
+
+/*static*/ int64_t Union::GenerateId(TypeMap *types) {
+    TypeDigest digest;
+    digest.Step(TOKEN_UNION);
+    if (types->is_empty()) {
+        return digest.value();
+    }
+
+    std::vector<int64_t> primary;
+    TypeMap::Iterator iter(types);
+    for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
+        primary.push_back(iter->key());
+    }
+    std::sort(primary.begin(), primary.end());
+    for (auto val : primary) {
+        digest.Step(val);
+    }
+    return digest.value();
 }
 
 } // namespace mio

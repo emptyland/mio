@@ -9,7 +9,59 @@ namespace mio {
 
 #define CHECK_OK ok); if (!*ok) { return 0; } ((void)0
 
-//namespace {
+class ScopeHolder {
+public:
+    ScopeHolder(Scope *new_scope, Scope **current)
+        : saved_scope_(*DCHECK_NOTNULL(current))
+        , current_(current) {
+        DCHECK_NE(new_scope, *current_);
+        *current_ = DCHECK_NOTNULL(new_scope);
+    }
+
+    ~ScopeHolder() {
+        *current_ = saved_scope_;
+    }
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(ScopeHolder)
+private:
+    Scope *saved_scope_;
+    Scope **current_;
+}; // class ScopeHolder
+
+
+class ReturnTypeHolder {
+public:
+    ReturnTypeHolder(ReturnTypeHolder **current, Zone *zone)
+        : saved_(*DCHECK_NOTNULL(current))
+        , current_(current)
+        , zone_(DCHECK_NOTNULL(zone)) {
+        DCHECK_NE(this, *current_);
+        *current_ = this;
+        types_ = new (zone_) Union::TypeMap(zone_);
+    }
+
+    ~ReturnTypeHolder() {
+        *current_ = saved_;
+        if (types_) {
+            types_->~ZoneHashMap();
+            zone_->Free(types_);
+        }
+    }
+
+    void Apply(Type *type) { types_->Put(type->id(), type); }
+
+    Union::TypeMap *ReleaseTypes() {
+        auto types = types_;
+        types_ = nullptr;
+        return types;
+    }
+
+private:
+    Union::TypeMap *types_;
+    ReturnTypeHolder *saved_;
+    ReturnTypeHolder **current_;
+    Zone *zone_;
+}; // class ReturnTypeHolder
 
 class CheckingAstVisitor : public DoNothingAstVisitor {
 public:
@@ -18,13 +70,15 @@ public:
                        PackageImporter::ImportList *import_list,
                        Scope *global,
                        Scope *scope,
-                       Checker *checker)
+                       Checker *checker,
+                       Zone *zone)
         : types_(DCHECK_NOTNULL(types))
         , unit_name_(DCHECK_NOTNULL(unit_name))
         , import_list_(DCHECK_NOTNULL(import_list))
         , global_(DCHECK_NOTNULL(global))
-        , current_scope_(DCHECK_NOTNULL(scope))
-        , checker_(DCHECK_NOTNULL(checker)) {}
+        , scope_(DCHECK_NOTNULL(scope))
+        , checker_(DCHECK_NOTNULL(checker))
+        , zone_(DCHECK_NOTNULL(zone)) {}
 
     virtual void VisitValDeclaration(ValDeclaration *node) override {
         if (node->has_initializer()) {
@@ -184,7 +238,7 @@ public:
     }
 
     virtual void VisitSymbol(Symbol *node) override {
-        Scope *scope = current_scope_;
+        Scope *scope = scope_;
 
         if (node->has_name_space()) {
             auto pair = import_list_->Get(node->name_space());
@@ -243,12 +297,17 @@ public:
         }
     }
 
+    virtual void VisitStringLiteral(StringLiteral *node) override {
+        PushEvalType(types_->GetString());
+    }
+
     virtual void VisitBlock(Block *node) override {
         if (node->mutable_body()->is_empty()) {
             PushEvalType(types_->GetVoid());
             return;
         }
 
+        ScopeHolder holder(node->scope(), &scope_);
         for (int i = 0; i < node->mutable_body()->size() - 1; ++i) {
             node->mutable_body()->At(i)->Accept(this);
             if (has_error()) {
@@ -258,12 +317,69 @@ public:
         }
 
         // use the last expression type
-        node->mutable_body()->last()->Accept(this);
+        auto last = node->mutable_body()->last();
+        last->Accept(this);
+        if (has_error()) {
+            return;
+        }
+    }
+
+    virtual void VisitReturn(Return *node) override {
+        if (node->has_return_value()) {
+            node->expression()->Accept(this);
+            if (AnalysisType()->IsVoid()) {
+                ThrowError(node, "return void type.");
+                return;
+            }
+            DCHECK_NOTNULL(return_types_)->Apply(AnalysisType());
+            PopEvalType();
+        } else {
+            DCHECK_NOTNULL(return_types_)->Apply(types_->GetVoid());
+        }
+        PushEvalType(types_->GetVoid());
     }
 
     virtual void VisitFunctionDefine(FunctionDefine *node) override {
-        // TODO:
-        
+        auto proto = node->function_literal()->prototype();
+        if (node->is_native()) {
+            if (node->function_literal()->has_body()) {
+                ThrowError(node, "function: %s, native function don't need body",
+                           node->name()->c_str());
+                return;
+            }
+
+            if (proto->return_type()->IsUnknown()) {
+                ThrowError(node, "function: %s, native function has unknown "
+                           "return type",
+                           node->name()->c_str());
+                return;
+            }
+
+            return;
+        }
+        if (!node->function_literal()->has_body()) {
+            ThrowError(node, "function: %s, non native function need body",
+                       node->name()->c_str());
+            return;
+        }
+
+        ScopeHolder holder(node->function_literal()->scope(), &scope_);
+        ReturnTypeHolder ret(&return_types_, zone_);
+
+        node->function_literal()->body()->Accept(this);
+        auto return_type = AnalysisType();
+        PopEvalType();
+
+        if (proto->return_type()->IsUnknown()) {
+            proto->set_return_type(return_type);
+        } else {
+            if (!proto->return_type()->CanAcceptFrom(return_type)) {
+                ThrowError(node, "function: %s, can not accept return type",
+                           node->name()->c_str());
+                return;
+            }
+        }
+        PushEvalType(types_->GetVoid());
     }
 
     Type *AnalysisType() { return type_stack_.top(); };
@@ -308,10 +424,12 @@ private:
     RawStringRef unit_name_;
     PackageImporter::ImportList *import_list_;
     Scope *global_;
-    Scope *current_scope_;
+    Scope *scope_;
     Checker *checker_;
     std::stack<Type *> type_stack_;
     std::stack<Expression *> expr_stack_;
+    ReturnTypeHolder *return_types_ = nullptr;
+    Zone *zone_;
 };
 
 //} // namespace
@@ -435,7 +553,8 @@ int Checker::CheckUnit(RawStringRef name,
                                pkg_metadata->mutable_import_list(),
                                module_scope->outter_scope(),
                                module_scope,
-                               this);
+                               this,
+                               zone_);
     for (int i = 0; i < stmts->size(); ++i) {
         stmts->At(i)->Accept(&visitor);
 

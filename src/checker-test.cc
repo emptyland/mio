@@ -3,6 +3,7 @@
 #include "zone.h"
 #include "types.h"
 #include "scopes.h"
+#include "simple-file-system.h"
 #include "gtest/gtest.h"
 
 namespace mio {
@@ -35,6 +36,18 @@ public:
                                                           false,
                                                           0);
         return scope->Declare(raw_name, declaration);
+    }
+
+    CompiledUnitMap *ParseProject(const char *project_dir, ParsingError *error) {
+        std::unique_ptr<SimpleFileSystem> sfs(CreatePlatformSimpleFileSystem());
+        std::string dir("test/");
+        dir.append(project_dir);
+        return Compiler::ParseProject(dir.c_str(),
+                                      sfs.get(),
+                                      types_,
+                                      global_,
+                                      zone_,
+                                      error);
     }
 
 protected:
@@ -157,6 +170,41 @@ TEST_F(CheckerTest, SymbolBetweenModuleDiscovery) {
     ASSERT_TRUE(node->IsVariable());
     var = node->AsVariable();
     EXPECT_TRUE(var->is_read_only());
+}
+
+TEST_F(CheckerTest, P001_ModuleReferences) {
+    ParsingError error;
+    auto all_units = ParseProject("001", &error);
+    ASSERT_TRUE(all_units != nullptr) << error.ToString();
+    ASSERT_TRUE(all_units->Exist(L("test/001/src/main/init.mio")));
+
+    Checker checker(types_, all_units, global_, zone_);
+    ASSERT_TRUE(checker.Run()) << checker.last_error().message;
+
+    auto module = global_->FindInnerScopeOrNull("main");
+    ASSERT_TRUE(module != nullptr);
+    auto var = module->FindOrNullLocal("a");
+    ASSERT_TRUE(var != nullptr);
+
+    EXPECT_EQ(types_->GetI64(), var->type());
+}
+
+TEST_F(CheckerTest, P002_InnerModuleReferences) {
+    ParsingError error;
+    auto all_units = ParseProject("002", &error);
+    ASSERT_TRUE(all_units != nullptr) << error.ToString();
+    ASSERT_TRUE(all_units->Exist(L("test/002/src/main/1.mio")));
+    ASSERT_TRUE(all_units->Exist(L("test/002/src/main/2.mio")));
+
+    Checker checker(types_, all_units, global_, zone_);
+    ASSERT_TRUE(checker.Run()) << checker.last_error().message;
+
+    auto module = global_->FindInnerScopeOrNull("main");
+    ASSERT_TRUE(module != nullptr);
+    auto var = module->FindOrNullLocal("a");
+    ASSERT_TRUE(var != nullptr);
+
+    EXPECT_EQ(types_->GetString(), var->type());
 }
 
 

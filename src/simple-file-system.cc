@@ -42,7 +42,7 @@ public:
                 names->push_back(dp->d_name);
             }
         }
-        return 0;
+        return static_cast<int>(names->size());
     }
 };
 

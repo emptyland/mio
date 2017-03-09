@@ -135,7 +135,7 @@ bool Scope::MergeInnerScopes(MergingConflicts *conflicts) {
 
     DeclaratedMap::Iterator iter(&scope->declarations_);
     for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
-        printf("%s%s", indent.c_str(), iter->key()->c_str());
+        printf("%s%s\n", indent.c_str(), iter->key()->c_str());
     }
     for (int i = 0; i < scope->inner_scopes_.size(); ++i) {
         TEST_PrintAllVariables(level + 1, scope->inner_scopes_.At(i));

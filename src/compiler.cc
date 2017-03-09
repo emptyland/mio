@@ -8,6 +8,32 @@
 
 namespace mio {
 
+ParsingError::ParsingError()
+    : line(0)
+    , column(0)
+    , position(0)
+    , message("ok") {
+}
+
+/*static*/ ParsingError ParsingError::NoError() {
+    return ParsingError();
+}
+
+std::string ParsingError::ToString() {
+    std::unique_ptr<char[]> buf(new char[1024]);
+
+    if (!file_name.empty()) {
+        snprintf(buf.get(), 1024, "%s[%d:%d] %s",
+                 file_name.c_str(),
+                 line, column,
+                 message.c_str());
+    } else {
+        snprintf(buf.get(), 1024, "%s", message.c_str());
+    }
+    
+    return std::string(buf.get());
+}
+
 // Source File Structure:
 //
 // project_dir/
@@ -79,6 +105,7 @@ Compiler::ParseProject(const char *project_dir,
             auto module = global->FindInnerScopeOrNull(pkg->package_name());
             if (!module) {
                 module = new (zone) Scope(global, MODULE_SCOPE, zone);
+                module->set_name(pkg->package_name());
             }
             parser.EnterScope(module);
             parser.EnterScope(unit_path, UNIT_SCOPE);
@@ -101,8 +128,6 @@ Compiler::ParseProject(const char *project_dir,
 
             all_units->Put(RawString::Create(unit_path, zone), stmts);
         }
-
-
     }
     return all_units;
 }

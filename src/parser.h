@@ -13,6 +13,7 @@ class Statement;
 class ValDeclaration;
 class VarDeclaration;
 class FunctionDefine;
+class Return;
 class Expression;
 class Block;
 class IfOperation;
@@ -55,6 +56,7 @@ public:
     VarDeclaration *ParseVarDeclaration(bool is_export, bool *ok);
     FunctionDefine *ParseFunctionDefine(bool is_export, bool is_native,
                                         bool *ok);
+    Return *ParserReturn(bool *ok);
     PackageImporter *ParsePackageImporter(bool *ok);
     Expression *ParseExpression(bool *ok);
     Expression *ParseExpression(int limit, int *rop, bool *ok);

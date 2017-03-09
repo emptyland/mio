@@ -28,8 +28,14 @@ public:
 
     Scope(Scope *outter_scope, ScopeType type, Zone *zone);
 
+    Scope *FindInnerScopeOrNull(const char *name) const {
+        return FindInnerScopeOrNull(RawString::Create(name, zone_));
+    }
     Scope *FindInnerScopeOrNull(RawStringRef name) const;
 
+    Variable *FindOrNullLocal(const char *name) {
+        return FindOrNullLocal(RawString::Create(name, zone_));
+    }
     Variable *FindOrNullLocal(RawStringRef name);
     Variable *FindOrNullRecursive(RawStringRef name, Scope **owned);
     Variable *FindOrNullDownTo(const char *name, Scope **owned) {

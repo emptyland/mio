@@ -29,6 +29,16 @@ struct Hasher<int> {
 }; // struct Hasher<int>
 
 template<>
+struct Hasher<int64_t> {
+    static inline int Compute(const int64_t &input) {
+        return static_cast<int>(((input * input) >> 16) & 0xffffffff);
+    }
+    static inline bool Equal(const int64_t &lhs, const int64_t &rhs) {
+        return lhs == rhs;
+    }
+}; // struct Hasher<int>
+
+template<>
 struct Hasher<std::string> {
     static inline int Compute(const std::string &input) {
         unsigned int hash = 1315423911;
@@ -83,6 +93,9 @@ public:
 
     DEF_GETTER(int, size);
     DEF_GETTER(int, num_slots);
+
+    bool is_empty() const { return size_ == 0; }
+    bool is_not_empty() const { return !is_empty(); }
 
     typedef ZoneHashMapPair<K, V>     Pair;
     typedef ZoneHashMapIterator<K, V> Iterator;

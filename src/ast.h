@@ -28,7 +28,8 @@ namespace mio {
     M(IfOperation) \
     M(Assignment) \
     M(Block) \
-    M(FunctionLiteral)
+    M(FunctionLiteral) \
+    M(StringLiteral)
 
 #define DEFINE_AST_NODES(M)    \
     DEFINE_STATEMENT_NODES(M)  \
@@ -52,6 +53,7 @@ class AstNode;
             class FieldAccessing;
             class Literal;
                 class SmiLiteral;
+                class StringLiteral;
                 class FunctionLiteral;
             class UnaryOperation;
             class BinaryOperation;
@@ -321,7 +323,7 @@ public:
     mio_i64_t  i64() const { return data_.as_i64; }
 
     DECLARE_AST_NODE(SmiLiteral)
-    DISALLOW_IMPLICIT_CONSTRUCTORS(SmiLiteral);
+    DISALLOW_IMPLICIT_CONSTRUCTORS(SmiLiteral)
 private:
     SmiLiteral(int bitwide, int position)
         : Literal(position), bitwide_(bitwide) {}
@@ -338,11 +340,31 @@ private:
 }; // class SmiLiteral
 
 
+class StringLiteral : public Literal {
+public:
+    RawStringRef data() const { return data_; }
+
+    DECLARE_AST_NODE(StringLiteral)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(StringLiteral)
+private:
+    StringLiteral(RawStringRef data, int position)
+        : Literal(position)
+        , data_(DCHECK_NOTNULL(data)) {}
+
+    RawStringRef data_;
+}; // class StringLiteral
+
+
 class FunctionLiteral : public Literal {
 public:
     FunctionPrototype *prototype() const { return prototype_; }
     Expression *body() const { return body_; }
+
+    Scope *scope() const { return scope_; }
+
     int start_position() const { return position(); }
+
+    bool has_body() const { return body_ != nullptr; }
 
     DEF_GETTER(int, end_position)
 
@@ -350,14 +372,16 @@ public:
     DISALLOW_IMPLICIT_CONSTRUCTORS(FunctionLiteral);
 private:
     FunctionLiteral(FunctionPrototype *prototype, Expression *body,
-                    int start_position, int end_position)
+                    Scope *scope, int start_position, int end_position)
         : Literal(start_position)
         , prototype_(DCHECK_NOTNULL(prototype))
         , body_(body)
+        , scope_(DCHECK_NOTNULL(scope))
         , end_position_(end_position) {}
 
     FunctionPrototype *prototype_;
     Expression *body_;
+    Scope *scope_;
     int end_position_;
 }; // class FunctionLiteral
 
@@ -624,6 +648,8 @@ class Block : public Expression {
 public:
     ZoneVector<Statement *> *mutable_body() { return body_; }
 
+    Scope *scope() const { return scope_; }
+
     int number_of_statements() const { return body_->size(); }
     int start_position() const { return position(); }
 
@@ -632,12 +658,15 @@ public:
     DECLARE_AST_NODE(Block)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Block)
 private:
-    Block(ZoneVector<Statement *> *body, int start_position, int end_position)
+    Block(ZoneVector<Statement *> *body, Scope *scope, int start_position,
+          int end_position)
         : Expression(start_position)
         , body_(DCHECK_NOTNULL(body))
+        , scope_(DCHECK_NOTNULL(scope))
         , end_position_(end_position) {}
 
     ZoneVector<Statement *> *body_;
+    Scope *scope_;
     int end_position_;
 }; // class Block
 
@@ -722,6 +751,11 @@ public:
         return node;
     }
 
+    StringLiteral *CreateStringLiteral(std::string value, int position) {
+        return new (zone_) StringLiteral(RawString::Create(value, zone_),
+                                         position);
+    }
+
     Symbol *CreateSymbol(const std::string &name,
                          const std::string &name_space,
                          int position) {
@@ -755,9 +789,9 @@ public:
         return new (zone_) Assignment(target, rval, position);
     }
 
-    Block *CreateBlock(ZoneVector<Statement *> *body, int start_position,
-                       int end_position) {
-        return new (zone_) Block(body, start_position, end_position);
+    Block *CreateBlock(ZoneVector<Statement *> *body, Scope *scope,
+                       int start_position, int end_position) {
+        return new (zone_) Block(body, scope, start_position, end_position);
     }
 
     FunctionDefine *CreateFunctionDefine(const std::string &name,
@@ -778,10 +812,11 @@ public:
 
     FunctionLiteral *CreateFunctionLiteral(FunctionPrototype *prototype,
                                            Expression *body,
+                                           Scope *scope,
                                            int start_position,
                                            int end_position) {
-        return new (zone_) FunctionLiteral(prototype, body, start_position,
-                                           end_position);
+        return new (zone_) FunctionLiteral(prototype, body, scope,
+                                           start_position, end_position);
     }
 
     ValDeclaration *CreateValDeclaration(const std::string &name,

@@ -74,6 +74,10 @@ public:
         }
     }
 
+    virtual void VisitStringLiteral(StringLiteral *node) override {
+        // TODO:
+    }
+
     // symbol: name
     // symbol: ns::name
     virtual void VisitSymbol(Symbol *node) override {

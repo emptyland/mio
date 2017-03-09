@@ -1,0 +1,3 @@
+package main
+
+val a = 100

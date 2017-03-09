@@ -11,6 +11,7 @@ namespace mio {
 
 #define DEFINE_TYPE_NODES(M) \
     M(FunctionPrototype) \
+    M(Union) \
     M(Integral) \
     M(String) \
     M(Void) \
@@ -82,12 +83,32 @@ public:
     DECLARE_TYPE(Integral)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Integral);
 private:
-    Integral(int bitwide, int id)
-        : Type(bitwide)
+    Integral(int bitwide, int64_t id)
+        : Type(id)
         , bitwide_(bitwide) {}
 
     int bitwide_;
 }; // class Integral
+
+
+class Unknown : public Type {
+public:
+    DECLARE_TYPE(Unknown)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Unknown);
+
+private:
+    Unknown(int64_t id) : Type(id) {}
+}; // class Unknown
+
+
+class String : public Type {
+public:
+    DECLARE_TYPE(String)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(String)
+
+private:
+    String(int64_t id) : Type(id) {}
+}; // class String
 
 
 class Paramter : public ManagedObject {
@@ -120,7 +141,7 @@ public:
     void UpdateId();
 
     DECLARE_TYPE(FunctionPrototype)
-    DISALLOW_IMPLICIT_CONSTRUCTORS(FunctionPrototype);
+    DISALLOW_IMPLICIT_CONSTRUCTORS(FunctionPrototype)
 private:
     FunctionPrototype(ZoneVector<Paramter *> *paramters, Type *return_type,
                       int id)
@@ -133,24 +154,27 @@ private:
 }; // class FunctionPrototype
 
 
-class Unknown : public Type {
+class Union : public Type {
 public:
-    DECLARE_TYPE(Unknown)
-    DISALLOW_IMPLICIT_CONSTRUCTORS(Unknown);
+    typedef ZoneHashMap<int64_t, Type *> TypeMap;
 
+    TypeMap *mutable_types() { return types_; }
+
+    int GetAllTypes(std::vector<Type *> *all_types) const;
+
+    static int64_t GenerateId(TypeMap *types);
+
+    DECLARE_TYPE(Union)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Union)
 private:
-    Unknown(int id) : Type(id) {}
-}; // class Unknown
+    Union(TypeMap *types)
+        : Type(GenerateId(DCHECK_NOTNULL(types)))
+        , types_(types) {
+    }
 
-
-class String : public Type {
-public:
-    DECLARE_TYPE(String)
-    DISALLOW_IMPLICIT_CONSTRUCTORS(String)
-
-private:
-    String(int id) : Type(id) {}
-}; // class String
+    // [type_id: type]
+    TypeMap *types_;
+}; // class Union
 
 
 class TypeFactory {
@@ -171,6 +195,8 @@ public:
 
     FunctionPrototype *GetFunctionPrototype(ZoneVector<Paramter *> *paramters,
                                             Type *return_type);
+
+    Union *GetUnion(ZoneHashMap<int64_t, Type *> *types);
 
     Paramter *CreateParamter(const std::string &name, Type *type) {
         return new (zone_) Paramter(RawString::Create(name, zone_), type);

@@ -11,17 +11,6 @@ namespace mio {
 #define CHECK_OK ok); if (!*ok) { return 0; } ((void)0
 #define T(str) RawString::Create((str), zone_)
 
-ParsingError::ParsingError()
-    : line(0)
-    , column(0)
-    , position(0)
-    , message("ok") {
-}
-
-/*static*/ ParsingError ParsingError::NoError() {
-    return ParsingError();
-}
-
 Parser::Parser(TypeFactory *types,
                TextStreamFactory *text_streams,
                Scope *scope,
@@ -84,9 +73,6 @@ Statement *Parser::ParseStatement(bool *ok) {
 
     switch (Peek()) {
 
-//        case TOKEN_PACKAGE:
-//            return ParsePackageImporter(ok);
-
         case TOKEN_VAL:
             return ParseValDeclaration(false, ok);
     
@@ -110,6 +96,9 @@ Statement *Parser::ParseStatement(bool *ok) {
 
         case TOKEN_FUNCTION:
             return ParseFunctionDefine(false, false, ok);
+
+        case TOKEN_RETURN:
+            return ParserReturn(ok);
 
         case TOKEN_EOF:
             break;
@@ -175,8 +164,8 @@ FunctionDefine *Parser::ParseFunctionDefine(bool is_export, bool is_native,
         Test(TOKEN_ASSIGN); // =
         body = ParseExpression(CHECK_OK);
     }
-    auto literal = factory_->CreateFunctionLiteral(prototype, body, position,
-                                                   ahead_.position());
+    auto literal = factory_->CreateFunctionLiteral(prototype, body, scope,
+                                                   position, ahead_.position());
     auto function = factory_->CreateFunctionDefine(name, is_export, is_native,
                                                    literal, scope, position,
                                                    ahead_.position());
@@ -187,6 +176,33 @@ FunctionDefine *Parser::ParseFunctionDefine(bool is_export, bool is_native,
     LeaveScope();
     return function;
 }
+
+
+Return *Parser::ParserReturn(bool *ok) {
+    auto scope = scope_;
+    bool inner_func = false;
+    while (scope) {
+        if (scope->type() == FUNCTION_SCOPE) {
+            inner_func = true;
+            break;
+        }
+        scope = scope->outter_scope();
+    }
+
+    if (!inner_func) {
+        *ok = false;
+        ThrowError("return statement is not in function scope.");
+        return nullptr;
+    }
+
+    auto position = ahead_.position();
+    Match(TOKEN_RETURN, CHECK_OK);
+
+    auto expr = ParseExpression(CHECK_OK);
+
+    return factory_->CreateReturn(expr, position);
+}
+
 
 // val name: type [ = expression ]
 // val name = expression
@@ -272,21 +288,6 @@ PackageImporter *Parser::ParsePackageImporter(bool *ok) {
     std::string txt;
     Match(TOKEN_ID, &txt, CHECK_OK);
     auto node = factory_->CreatePackageImporter(txt, position);
-//    auto module_scope = scope_->FindInnerScopeOrNull(node->package_name());
-//    if (!module_scope) {
-//        module_scope = new (zone_) Scope(scope_, MODULE_SCOPE, zone_);
-//        DCHECK_NOTNULL(module_scope)->set_name(node->package_name());
-//    }
-//    DCHECK(module_scope->is_module_scope());
-//    //scope_ = module_scope;
-//
-//    // src/
-//    // src/main/1.mio
-//    // src/foo/2.mio
-//    // src/bar/3.mio
-//    auto unit_scope = new (zone_) Scope(module_scope, UNIT_SCOPE, zone_);
-//    unit_scope->set_name(T(lexer_->current()->input_stream->file_name()));
-//    scope_ = unit_scope;
 
     if (!Test(TOKEN_WITH)) {
         return node;
@@ -359,7 +360,7 @@ Expression *Parser::ParseExpression(int limit, int *rop, bool *ok) {
 Block *Parser::ParseBlock(bool *ok) {
     int position = ahead_.position();
 
-    auto scope = new (zone_) Scope(scope_, BLOCK_SCOPE, zone_);
+    auto scope = EnterScope("", BLOCK_SCOPE);
     scope_ = scope;
 
     Match(TOKEN_LBRACE, CHECK_OK);
@@ -370,8 +371,8 @@ Block *Parser::ParseBlock(bool *ok) {
         body->Add(stmt);
     }
 
-    scope_ = scope->outter_scope();
-    return factory_->CreateBlock(body, position, ahead_.position());
+    LeaveScope();
+    return factory_->CreateBlock(body, scope, position, ahead_.position());
 }
 
 // if ( condition) then_statement else else_statement
@@ -462,6 +463,12 @@ Expression *Parser::ParseSimpleExpression(bool *ok) {
         case TOKEN_INT_LITERAL:
             lexer_->Next(&ahead_);
             return factory_->CreateI64SmiLiteral(ahead_.int_data(), position);
+
+        case TOKEN_STRING_LITERAL: {
+            std::string literal;
+            Match(TOKEN_STRING_LITERAL, &literal, CHECK_OK);
+            return factory_->CreateStringLiteral(literal, position);
+        } break;
 
         default:
             return ParseSuffixed(ok);
@@ -567,6 +574,10 @@ Type *Parser::ParseType(bool *ok) {
         case TOKEN_I64:
             lexer_->Next(&ahead_);
             return types_->GetI64();
+
+        case TOKEN_STRING:
+            lexer_->Next(&ahead_);
+            return types_->GetString();
 
         case TOKEN_FUNCTION:
             return ParseFunctionPrototype(true, nullptr, ok);
