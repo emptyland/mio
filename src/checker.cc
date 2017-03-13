@@ -56,6 +56,20 @@ public:
         return types;
     }
 
+    Type *GenerateType(TypeFactory *factory) {
+        if (types_->is_empty()) {
+            return factory->GetVoid();
+        }
+        if (types_->size() == 1) {
+            Union::TypeMap::Iterator iter(types_);
+            iter.Init();
+            DCHECK(iter.HasNext());
+            return iter->value();
+        }
+
+        return factory->GetUnion(ReleaseTypes());
+    }
+
 private:
     Union::TypeMap *types_;
     ReturnTypeHolder *saved_;
@@ -63,6 +77,51 @@ private:
     Zone *zone_;
 }; // class ReturnTypeHolder
 
+#define ACCEPT_REPLACE_EXPRESSION(field) \
+    node->field()->Accept(this); \
+    if (has_error()) { \
+        return; \
+    } \
+    if (has_analysis_expression()) { \
+        auto expr = AnalysisExpression(); \
+        if (expr->IsVariable()) { \
+            auto var = expr->AsVariable(); \
+            if (var->scope()->type() != MODULE_SCOPE && \
+                var->scope()->type() != UNIT_SCOPE && \
+                var->declaration()->position() > node->position()) { \
+                ThrowError(node, "symbol \'%s\' is not found.", \
+                var->declaration()->name()->c_str()); \
+                return; \
+            } \
+        } \
+        node->set_##field(AnalysisExpression()); \
+        PopAnalysisExpression(); \
+    } (void)0
+
+#define ACCEPT_REPLACE_EXPRESSION_I(field, idx) \
+    node->field()->At(idx)->Accept(this); \
+    if (has_error()) { \
+        return; \
+    } \
+    if (has_analysis_expression()) { \
+        auto expr = AnalysisExpression(); \
+        if (expr->IsVariable()) { \
+            auto var = expr->AsVariable(); \
+            if (var->scope()->type() != MODULE_SCOPE && \
+                var->scope()->type() != UNIT_SCOPE && \
+                var->declaration()->position() > node->position()) { \
+                ThrowError(node, "symbol \'%s\' is not found.", \
+                var->declaration()->name()->c_str()); \
+                return; \
+            } \
+        } \
+        node->field()->Set(idx, AnalysisExpression()); \
+        PopAnalysisExpression(); \
+    } (void)0
+
+////////////////////////////////////////////////////////////////////////////////
+//// class CheckingAstVisitor
+////////////////////////////////////////////////////////////////////////////////
 class CheckingAstVisitor : public DoNothingAstVisitor {
 public:
     CheckingAstVisitor(TypeFactory *types,
@@ -80,307 +139,19 @@ public:
         , checker_(DCHECK_NOTNULL(checker))
         , zone_(DCHECK_NOTNULL(zone)) {}
 
-    virtual void VisitValDeclaration(ValDeclaration *node) override {
-        if (node->has_initializer()) {
-            node->initializer()->Accept(this);
-        }
-        if (has_error()) {
-            return;
-        }
-
-        if (node->type() == types_->GetUnknown()) {
-            DCHECK_NOTNULL(node->initializer());
-            node->set_type(AnalysisType());
-        } else {
-            if (node->has_initializer() &&
-                !node->type()->CanAcceptFrom(AnalysisType())) {
-                ThrowError(node, "val %s can not accept initializer type",
-                           node->name()->c_str());
-            }
-        }
-        SetEvalType(types_->GetVoid());
-    }
-
-    virtual void VisitVarDeclaration(VarDeclaration *node) override {
-        if (node->has_initializer()) {
-            node->initializer()->Accept(this);
-        }
-        if (has_error()) {
-            return;
-        }
-
-        if (node->type() == types_->GetUnknown()) {
-            DCHECK_NOTNULL(node->initializer());
-            node->set_type(AnalysisType());
-        } else {
-            if (!node->type()->CanAcceptFrom(AnalysisType())) {
-                ThrowError(node, "var %s can not accept initializer type",
-                           node->name()->c_str());
-            }
-        }
-        SetEvalType(types_->GetVoid());
-    }
-
-    virtual void VisitUnaryOperation(UnaryOperation *node) override {
-        node->operand()->Accept(this);
-        if (has_analysis_expression()) {
-            node->set_operand(AnalysisExpression());
-        }
-        switch (node->op()) {
-            case OP_MINUS:
-                if (!AnalysisType()->is_numeric()) {
-                    ThrowError(node, "`-' operator only accept numeric type.");
-                }
-                break;
-
-            case OP_BIT_INV:
-                if (!AnalysisType()->IsIntegral()) {
-                    ThrowError(node, "`~' operator only accept interal type.");
-                }
-                break;
-
-            case OP_NOT:
-                if (!AnalysisType()->IsIntegral()) {
-                    ThrowError(node, "`not' operator only accept bool type.");
-                }
-                break;
-
-            default:
-                break;
-        }
-        // keep type, DO NOT POP EVAL TYPE
-    }
-
-    virtual void VisitBinaryOperation(BinaryOperation *node) override {
-        node->lhs()->Accept(this);
-        if (has_analysis_expression()) {
-            node->set_lhs(AnalysisExpression());
-        }
-        auto lhs_ty = AnalysisType();
-        PopEvalType();
-
-        node->rhs()->Accept(this);
-        if (has_analysis_expression()) {
-            node->set_rhs(AnalysisExpression());
-        }
-        auto rhs_ty = AnalysisType();
-        PopEvalType();
-
-        switch(node->op()) {
-            case OP_ADD:
-            case OP_SUB:
-            case OP_MUL:
-            case OP_DIV:
-            case OP_MOD:
-                if (lhs_ty->id() != rhs_ty->id()) {
-                    ThrowError(node, "operator: `%s' has different type of operands.",
-                               GetOperatorText(node->op()));
-                }
-                if (!lhs_ty->is_numeric()) {
-                    ThrowError(node, "operator: `%s' only accept numeric type.",
-                               GetOperatorText(node->op()));
-                }
-                PushEvalType(lhs_ty);
-                break;
-
-            case OP_BIT_OR:
-            case OP_BIT_AND:
-            case OP_BIT_XOR:
-            case OP_LSHIFT:
-            case OP_RSHIFT_A:
-            case OP_RSHIFT_L:
-                if (!lhs_ty->IsIntegral() || !rhs_ty->IsIntegral()) {
-                    ThrowError(node, "operator: `%s' only accept integral type.",
-                               GetOperatorText(node->op()));
-                }
-                PushEvalType(lhs_ty);
-                break;
-
-            case OP_EQ:
-            case OP_NE:
-            case OP_LT:
-            case OP_LE:
-            case OP_GT:
-            case OP_GE:
-                if (lhs_ty->id() != rhs_ty->id()) {
-                    ThrowError(node, "operator: `%s' has different type of operands.",
-                               GetOperatorText(node->op()));
-                }
-                // TODO: string type
-                if (!lhs_ty->is_numeric()) {
-                    ThrowError(node, "operator: `%s' only accept numeric type.",
-                               GetOperatorText(node->op()));
-                }
-                PushEvalType(lhs_ty);
-                break;
-
-            case OP_OR:
-            case OP_AND:
-                if (lhs_ty->id() != rhs_ty->id()) {
-                    ThrowError(node, "operator: `%s' has different type of operands.",
-                               GetOperatorText(node->op()));
-                }
-                if (!lhs_ty->IsIntegral()) {
-                    ThrowError(node, "operator: `%s' only accept integral type.",
-                               GetOperatorText(node->op()));
-                }
-                PushEvalType(lhs_ty);
-                break;
-
-            case OP_STRCAT:
-                PushEvalType(types_->GetString());
-                break;
-
-            default:
-                DLOG(FATAL) << "noreached";
-                break;
-        }
-    }
-
-    virtual void VisitSymbol(Symbol *node) override {
-        Scope *scope = scope_;
-
-        if (node->has_name_space()) {
-            auto pair = import_list_->Get(node->name_space());
-            if (!pair) {
-                ThrowError(node, "pacakge: %s has not import yet.",
-                           node->name_space()->c_str());
-                return;
-            }
-            scope = global_->FindInnerScopeOrNull(node->name_space());
-        }
-
-        Scope *owned;
-        auto var = scope->FindOrNullRecursive(node->name(), &owned);
-        if (!var) {
-            ThrowError(node, "symbol %s not found", node->name()->c_str());
-            return;
-        }
-        DCHECK_EQ(var->scope(), owned);
-
-        if (var->type() == types_->GetUnknown()) {
-            if (!var->is_function()) {
-                ThrowError(node, "symbol %s not found", node->name()->c_str());
-                return;
-            }
-        }
-
-        PushAnalysisExpression(var);
-        PushEvalType(var->type());
-    }
-
-    virtual void VisitSmiLiteral(SmiLiteral *node) override {
-        switch (node->bitwide()) {
-            case 1:
-                PushEvalType(types_->GetI1());
-                break;
-
-            case 8:
-                PushEvalType(types_->GetI8());
-                break;
-
-            case 16:
-                PushEvalType(types_->GetI16());
-                break;
-
-            case 32:
-                PushEvalType(types_->GetI32());
-                break;
-
-            case 64:
-                PushEvalType(types_->GetI64());
-                break;
-
-            default:
-                DLOG(FATAL) << "noreached: bitwide = " << node->bitwide();
-                break;
-        }
-    }
-
-    virtual void VisitStringLiteral(StringLiteral *node) override {
-        PushEvalType(types_->GetString());
-    }
-
-    virtual void VisitBlock(Block *node) override {
-        if (node->mutable_body()->is_empty()) {
-            PushEvalType(types_->GetVoid());
-            return;
-        }
-
-        ScopeHolder holder(node->scope(), &scope_);
-        for (int i = 0; i < node->mutable_body()->size() - 1; ++i) {
-            node->mutable_body()->At(i)->Accept(this);
-            if (has_error()) {
-                return;
-            }
-            PopEvalType();
-        }
-
-        // use the last expression type
-        auto last = node->mutable_body()->last();
-        last->Accept(this);
-        if (has_error()) {
-            return;
-        }
-    }
-
-    virtual void VisitReturn(Return *node) override {
-        if (node->has_return_value()) {
-            node->expression()->Accept(this);
-            if (AnalysisType()->IsVoid()) {
-                ThrowError(node, "return void type.");
-                return;
-            }
-            DCHECK_NOTNULL(return_types_)->Apply(AnalysisType());
-            PopEvalType();
-        } else {
-            DCHECK_NOTNULL(return_types_)->Apply(types_->GetVoid());
-        }
-        PushEvalType(types_->GetVoid());
-    }
-
-    virtual void VisitFunctionDefine(FunctionDefine *node) override {
-        auto proto = node->function_literal()->prototype();
-        if (node->is_native()) {
-            if (node->function_literal()->has_body()) {
-                ThrowError(node, "function: %s, native function don't need body",
-                           node->name()->c_str());
-                return;
-            }
-
-            if (proto->return_type()->IsUnknown()) {
-                ThrowError(node, "function: %s, native function has unknown "
-                           "return type",
-                           node->name()->c_str());
-                return;
-            }
-
-            return;
-        }
-        if (!node->function_literal()->has_body()) {
-            ThrowError(node, "function: %s, non native function need body",
-                       node->name()->c_str());
-            return;
-        }
-
-        ScopeHolder holder(node->function_literal()->scope(), &scope_);
-        ReturnTypeHolder ret(&return_types_, zone_);
-
-        node->function_literal()->body()->Accept(this);
-        auto return_type = AnalysisType();
-        PopEvalType();
-
-        if (proto->return_type()->IsUnknown()) {
-            proto->set_return_type(return_type);
-        } else {
-            if (!proto->return_type()->CanAcceptFrom(return_type)) {
-                ThrowError(node, "function: %s, can not accept return type",
-                           node->name()->c_str());
-                return;
-            }
-        }
-        PushEvalType(types_->GetVoid());
-    }
+    virtual void VisitValDeclaration(ValDeclaration *node) override;
+    virtual void VisitVarDeclaration(VarDeclaration *node) override;
+    virtual void VisitCall(Call *node) override;
+    virtual void VisitUnaryOperation(UnaryOperation *node) override;
+    virtual void VisitAssignment(Assignment *node) override;
+    virtual void VisitBinaryOperation(BinaryOperation *node) override;
+    virtual void VisitSymbol(Symbol *node) override;
+    virtual void VisitSmiLiteral(SmiLiteral *node) override;
+    virtual void VisitStringLiteral(StringLiteral *node) override;
+    virtual void VisitIfOperation(IfOperation *node) override;
+    virtual void VisitBlock(Block *node) override;
+    virtual void VisitReturn(Return *node) override;
+    virtual void VisitFunctionDefine(FunctionDefine *node) override;
 
     Type *AnalysisType() { return type_stack_.top(); };
 
@@ -432,8 +203,384 @@ private:
     Zone *zone_;
 };
 
-//} // namespace
 
+/*virtual*/ void CheckingAstVisitor::VisitValDeclaration(ValDeclaration *node) {
+    if (node->has_initializer()) {
+        ACCEPT_REPLACE_EXPRESSION(initializer);
+    }
+
+    if (node->type() == types_->GetUnknown()) {
+        DCHECK_NOTNULL(node->initializer());
+        node->set_type(AnalysisType());
+    } else {
+        if (node->has_initializer() &&
+            !node->type()->CanAcceptFrom(AnalysisType())) {
+            ThrowError(node, "val %s can not accept initializer type",
+                       node->name()->c_str());
+        }
+    }
+    SetEvalType(types_->GetVoid());
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitVarDeclaration(VarDeclaration *node) {
+    if (node->has_initializer()) {
+        ACCEPT_REPLACE_EXPRESSION(initializer);
+    }
+
+    if (node->type() == types_->GetUnknown()) {
+        DCHECK_NOTNULL(node->initializer());
+        node->set_type(AnalysisType());
+    } else {
+        if (!node->type()->CanAcceptFrom(AnalysisType())) {
+            ThrowError(node, "var %s can not accept initializer type",
+                       node->name()->c_str());
+        }
+    }
+    SetEvalType(types_->GetVoid());
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitCall(Call *node) {
+    ACCEPT_REPLACE_EXPRESSION(expression);
+    auto callee_ty = AnalysisType();
+    PopEvalType();
+    if (!callee_ty->IsFunctionPrototype()) {
+        ThrowError(node, "this type can not be call.");
+        return;
+    }
+
+    auto proto = callee_ty->AsFunctionPrototype();
+    if (proto->mutable_paramters()->size() !=
+        node->mutable_arguments()->size()) {
+        ThrowError(node, "call argument number is not be accept (%d vs %d).",
+                   node->mutable_arguments()->size(),
+                   proto->mutable_paramters()->size());
+        return;
+    }
+    for (int i = 0; i < node->mutable_arguments()->size(); ++i) {
+        ACCEPT_REPLACE_EXPRESSION_I(mutable_arguments, i);
+        auto arg_ty = AnalysisType();
+        PopEvalType();
+
+        auto param = proto->mutable_paramters()->At(i);
+        if (!param->param_type()->CanAcceptFrom(arg_ty)) {
+            if (param->has_name()) {
+                ThrowError(node, "call paramter: %s(%d) can not accpet this type",
+                           param->param_name()->c_str(), i);
+            } else {
+                ThrowError(node, "call paramter: (%d) can not accpet this type",
+                           i);
+            }
+            return;
+        }
+    }
+    DCHECK_NE(types_->GetUnknown(), proto->return_type());
+    PushEvalType(proto->return_type());
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitUnaryOperation(UnaryOperation *node) {
+    ACCEPT_REPLACE_EXPRESSION(operand);
+    switch (node->op()) {
+        case OP_MINUS:
+            if (!AnalysisType()->is_numeric()) {
+                ThrowError(node, "`-' operator only accept numeric type.");
+            }
+            break;
+
+        case OP_BIT_INV:
+            if (!AnalysisType()->IsIntegral()) {
+                ThrowError(node, "`~' operator only accept interal type.");
+            }
+            break;
+
+        case OP_NOT:
+            if (!AnalysisType()->IsIntegral()) {
+                ThrowError(node, "`not' operator only accept bool type.");
+            }
+            break;
+
+        default:
+            break;
+    }
+    // keep type, DO NOT POP EVAL TYPE
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitAssignment(Assignment *node) {
+    ACCEPT_REPLACE_EXPRESSION(target);
+    auto target_ty = AnalysisType();
+    PopEvalType();
+
+    if (node->target()->is_lval()) {
+        ThrowError(node, "assignment target is not a lval.");
+        return;
+    }
+
+    ACCEPT_REPLACE_EXPRESSION(rval);
+    if (!target_ty->CanAcceptFrom(AnalysisType())) {
+        ThrowError(node, "assignment taget can not accept rval type.");
+        return;
+    }
+    PopEvalType();
+    PushEvalType(types_->GetVoid());
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
+    ACCEPT_REPLACE_EXPRESSION(lhs);
+    auto lhs_ty = AnalysisType();
+    PopEvalType();
+
+    ACCEPT_REPLACE_EXPRESSION(rhs);
+    auto rhs_ty = AnalysisType();
+    PopEvalType();
+
+    switch(node->op()) {
+        case OP_ADD:
+        case OP_SUB:
+        case OP_MUL:
+        case OP_DIV:
+        case OP_MOD:
+            if (lhs_ty->id() != rhs_ty->id()) {
+                ThrowError(node, "operator: `%s' has different type of operands.",
+                           GetOperatorText(node->op()));
+            }
+            if (!lhs_ty->is_numeric()) {
+                ThrowError(node, "operator: `%s' only accept numeric type.",
+                           GetOperatorText(node->op()));
+            }
+            PushEvalType(lhs_ty);
+            break;
+
+        case OP_BIT_OR:
+        case OP_BIT_AND:
+        case OP_BIT_XOR:
+        case OP_LSHIFT:
+        case OP_RSHIFT_A:
+        case OP_RSHIFT_L:
+            if (!lhs_ty->IsIntegral() || !rhs_ty->IsIntegral()) {
+                ThrowError(node, "operator: `%s' only accept integral type.",
+                           GetOperatorText(node->op()));
+            }
+            PushEvalType(lhs_ty);
+            break;
+
+        case OP_EQ:
+        case OP_NE:
+        case OP_LT:
+        case OP_LE:
+        case OP_GT:
+        case OP_GE:
+            if (lhs_ty->id() != rhs_ty->id()) {
+                ThrowError(node, "operator: `%s' has different type of operands.",
+                           GetOperatorText(node->op()));
+            }
+            // TODO: string type
+            if (!lhs_ty->is_numeric()) {
+                ThrowError(node, "operator: `%s' only accept numeric type.",
+                           GetOperatorText(node->op()));
+            }
+            PushEvalType(lhs_ty);
+            break;
+
+        case OP_OR:
+        case OP_AND:
+            if (lhs_ty->id() != rhs_ty->id()) {
+                ThrowError(node, "operator: `%s' has different type of operands.",
+                           GetOperatorText(node->op()));
+            }
+            if (!lhs_ty->IsIntegral()) {
+                ThrowError(node, "operator: `%s' only accept integral type.",
+                           GetOperatorText(node->op()));
+            }
+            PushEvalType(lhs_ty);
+            break;
+
+        case OP_STRCAT:
+            PushEvalType(types_->GetString());
+            break;
+
+        default:
+            DLOG(FATAL) << "noreached";
+            break;
+    }
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitSymbol(Symbol *node) {
+    Scope *scope = scope_;
+
+    if (node->has_name_space()) {
+        auto pair = import_list_->Get(node->name_space());
+        if (!pair) {
+            ThrowError(node, "pacakge: \'%s\' has not import yet.",
+                       node->name_space()->c_str());
+            return;
+        }
+        scope = global_->FindInnerScopeOrNull(node->name_space());
+    }
+
+    Scope *owned;
+    auto var = scope->FindOrNullRecursive(node->name(), &owned);
+    if (!var) {
+        ThrowError(node, "symbol \'%s\' is not found", node->name()->c_str());
+        return;
+    }
+    DCHECK_EQ(var->scope(), owned);
+
+    if (var->type() == types_->GetUnknown()) {
+        if (!var->is_function()) {
+            ThrowError(node, "symbol \'%s\', it's type unknown.", node->name()->c_str());
+            return;
+        }
+    }
+
+    PushAnalysisExpression(var);
+    PushEvalType(var->type());
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitSmiLiteral(SmiLiteral *node) {
+    switch (node->bitwide()) {
+        case 1:
+            PushEvalType(types_->GetI1());
+            break;
+
+        case 8:
+            PushEvalType(types_->GetI8());
+            break;
+
+        case 16:
+            PushEvalType(types_->GetI16());
+            break;
+
+        case 32:
+            PushEvalType(types_->GetI32());
+            break;
+
+        case 64:
+            PushEvalType(types_->GetI64());
+            break;
+
+        default:
+            DLOG(FATAL) << "noreached: bitwide = " << node->bitwide();
+            break;
+    }
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitStringLiteral(StringLiteral *node) {
+    PushEvalType(types_->GetString());
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitIfOperation(IfOperation *node) {
+    ACCEPT_REPLACE_EXPRESSION(condition);
+    PopEvalType();
+
+    ACCEPT_REPLACE_EXPRESSION(then_statement);
+    Type *eval_types[2];
+    eval_types[0] = AnalysisType();
+    PopEvalType();
+
+    eval_types[1] = types_->GetVoid();
+    if (node->has_else()) {
+        ACCEPT_REPLACE_EXPRESSION(else_statement);
+        eval_types[1] = AnalysisType();
+        PopEvalType();
+    }
+
+    if (eval_types[0]->id() != eval_types[1]->id()) {
+        PushEvalType(types_->MergeToFlatUnion(eval_types, 2));
+    } else {
+        PushEvalType(eval_types[0]);
+    }
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitBlock(Block *node) {
+    if (node->mutable_body()->is_empty()) {
+        PushEvalType(types_->GetVoid());
+        return;
+    }
+
+    ScopeHolder holder(node->scope(), &scope_);
+    for (int i = 0; i < node->mutable_body()->size(); ++i) {
+        ACCEPT_REPLACE_EXPRESSION_I(mutable_body, i);
+        if (i < node->mutable_body()->size() - 1) {
+            PopEvalType();
+        }
+    }
+    // keep the last expression type for assignment type.
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitReturn(Return *node) {
+    auto func_scope = DCHECK_NOTNULL(scope_->FindOuterScopeOrNull(FUNCTION_SCOPE));
+    if (func_scope->function()->function_literal()->is_assignment()) {
+        ThrowError(node, "assignment function don not need return.");
+        return;
+    }
+
+    if (node->has_return_value()) {
+        ACCEPT_REPLACE_EXPRESSION(expression);
+        if (AnalysisType()->IsVoid()) {
+            ThrowError(node, "return void type.");
+            return;
+        }
+        DCHECK_NOTNULL(return_types_)->Apply(AnalysisType());
+        PopEvalType();
+    } else {
+        DCHECK_NOTNULL(return_types_)->Apply(types_->GetVoid());
+    }
+    PushEvalType(types_->GetVoid());
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitFunctionDefine(FunctionDefine *node) {
+    auto proto = node->function_literal()->prototype();
+    if (node->is_native()) {
+        if (node->function_literal()->has_body()) {
+            ThrowError(node, "function: %s, native function don't need body",
+                       node->name()->c_str());
+            return;
+        }
+
+        if (proto->return_type()->IsUnknown()) {
+            ThrowError(node, "function: %s, native function has unknown "
+                       "return type",
+                       node->name()->c_str());
+            return;
+        }
+
+        return;
+    }
+    if (!node->function_literal()->has_body()) {
+        ThrowError(node, "function: %s, non native function need body",
+                   node->name()->c_str());
+        return;
+    }
+
+    ScopeHolder holder(node->function_literal()->scope(), &scope_);
+    ReturnTypeHolder ret(&return_types_, zone_);
+
+    node->function_literal()->body()->Accept(this);
+
+    Type *return_type = nullptr;
+    if (node->function_literal()->is_assignment()) {
+        return_type = AnalysisType();
+    } else {
+        return_type = ret.GenerateType(types_);
+    }
+    PopEvalType();
+    
+    if (proto->return_type()->IsUnknown()) {
+        proto->set_return_type(return_type);
+        proto->UpdateId();
+    } else {
+        if (!proto->return_type()->CanAcceptFrom(return_type)) {
+            ThrowError(node, "function: %s, can not accept return type.",
+                       node->name()->c_str());
+            return;
+        }
+    }
+    PushEvalType(types_->GetVoid());
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//// class Checker
+////////////////////////////////////////////////////////////////////////////////
 Checker::Checker(TypeFactory *types, CompiledUnitMap *all_units, Scope *global,
                  Zone *zone)
     : types_(DCHECK_NOTNULL(types))
@@ -557,6 +704,10 @@ int Checker::CheckUnit(RawStringRef name,
                                zone_);
     for (int i = 0; i < stmts->size(); ++i) {
         stmts->At(i)->Accept(&visitor);
+        if (has_error()) {
+            *ok = false;
+            break;
+        }
 
         if (visitor.has_analysis_expression()) {
             stmts->Set(i, visitor.AnalysisExpression());

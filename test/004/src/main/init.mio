@@ -1,0 +1,7 @@
+package main
+
+function main(): void {
+    a + b
+    val b:int = 1
+    val a:int = 0
+}

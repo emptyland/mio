@@ -29,6 +29,17 @@ Scope *Scope::FindInnerScopeOrNull(RawStringRef name) const {
     return nullptr;
 }
 
+Scope *Scope::FindOuterScopeOrNull(ScopeType type) {
+    auto scope = this;
+    while (scope) {
+        if (scope->type() == type) {
+            break;
+        }
+        scope = scope->outter_scope_;
+    }
+    return scope;
+}
+
 Variable *Scope::FindOrNullLocal(RawStringRef name) {
     auto pair = declarations_.Get(name);
     return pair ? pair->value() : nullptr;

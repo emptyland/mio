@@ -104,7 +104,7 @@ Statement *Parser::ParseStatement(bool *ok) {
             break;
 
         default:
-            return ParseExpression(ok);
+            return ParseExpression(false, ok);
     }
 
     return nullptr;
@@ -139,6 +139,7 @@ FunctionDefine *Parser::ParseFunctionDefine(bool is_export, bool is_native,
     auto prototype = ParseFunctionPrototype(false, &name, CHECK_OK);
 
     Expression *body = nullptr;
+    bool is_assignment = false;
     if (!is_native) {
         for (int i = 0; i < prototype->mutable_paramters()->size(); ++i) {
             auto param = prototype->mutable_paramters()->At(i);
@@ -161,19 +162,27 @@ FunctionDefine *Parser::ParseFunctionDefine(bool is_export, bool is_native,
             scope->Declare(param->param_name(), declaration);
         }
 
-        Test(TOKEN_ASSIGN); // =
-        body = ParseExpression(CHECK_OK);
+        is_assignment = Test(TOKEN_ASSIGN); // =
+        body = ParseExpression(false, CHECK_OK);
     }
     auto literal = factory_->CreateFunctionLiteral(prototype, body, scope,
-                                                   position, ahead_.position());
+                                                   is_assignment,
+                                                   position,
+                                                   ahead_.position());
     auto function = factory_->CreateFunctionDefine(name, is_export, is_native,
                                                    literal, scope, position,
                                                    ahead_.position());
+
     scope->set_name(function->name());
     scope->Declare(function->name(), function);
     scope->set_function(function);
-
     LeaveScope();
+
+    if (!scope_->Declare(function->name(), function)) {
+        *ok = false;
+        ThrowError("duplicated function name: %s", function->name()->c_str());
+        return nullptr;
+    }
     return function;
 }
 
@@ -198,8 +207,7 @@ Return *Parser::ParserReturn(bool *ok) {
     auto position = ahead_.position();
     Match(TOKEN_RETURN, CHECK_OK);
 
-    auto expr = ParseExpression(CHECK_OK);
-
+    auto expr = ParseExpression(true, CHECK_OK);
     return factory_->CreateReturn(expr, position);
 }
 
@@ -220,7 +228,7 @@ ValDeclaration *Parser::ParseValDeclaration(bool is_export, bool *ok) {
 
     Expression *initializer = nullptr;
     if (Test(TOKEN_ASSIGN)) {
-        initializer = ParseExpression(CHECK_OK);
+        initializer = ParseExpression(false, CHECK_OK);
     }
 
     auto val_decl = factory_->CreateValDeclaration(name, is_export, val_type,
@@ -251,7 +259,7 @@ VarDeclaration *Parser::ParseVarDeclaration(bool is_export, bool *ok) {
 
     Expression *initializer = nullptr;
     if (Test(TOKEN_ASSIGN)) {
-        initializer = ParseExpression(CHECK_OK);
+        initializer = ParseExpression(false, CHECK_OK);
     }
 
     auto var_decl = factory_->CreateVarDeclaration(name, is_export, var_type,
@@ -314,12 +322,12 @@ PackageImporter *Parser::ParsePackageImporter(bool *ok) {
     return node;
 }
 
-Expression *Parser::ParseExpression(bool *ok) {
+Expression *Parser::ParseExpression(bool ignore, bool *ok) {
     int rop = 0;
-    return ParseExpression(0, &rop, ok);
+    return ParseExpression(ignore, 0, &rop, ok);
 }
 
-Expression *Parser::ParseExpression(int limit, int *rop, bool *ok) {
+Expression *Parser::ParseExpression(bool ignore, int limit, int *rop, bool *ok) {
     switch (Peek()) {
         case TOKEN_LBRACE: // {
             *rop = OP_OTHER;
@@ -335,6 +343,8 @@ Expression *Parser::ParseExpression(int limit, int *rop, bool *ok) {
         case TOKEN_STRING_LITERAL:
         case TOKEN_MINUS:
         case TOKEN_WAVE:
+        case TOKEN_TRUE:
+        case TOKEN_FALSE:
             return ParseOperation(limit, rop, ok);
 
         case TOKEN_IF:
@@ -344,6 +354,9 @@ Expression *Parser::ParseExpression(int limit, int *rop, bool *ok) {
         // TODO:
 
         default:
+            if (ignore) {
+                break;
+            }
             *ok = false;
             if (Peek() == TOKEN_ERROR) {
                 ThrowError("unexpected expression, lexer error: %s",
@@ -376,12 +389,20 @@ Block *Parser::ParseBlock(bool *ok) {
 }
 
 // if ( condition) then_statement else else_statement
+//
+// if (val a = foo(); a == 100) {
+//    println(a)
+// }
+//
+// if (val a:int be u) {
+//     println(a)
+// }
 IfOperation *Parser::ParseIfOperation(bool *ok) {
     auto position = ahead_.position();
     Match(TOKEN_IF, CHECK_OK);
 
     Match(TOKEN_LPAREN, CHECK_OK);
-    auto expr = ParseExpression(CHECK_OK);
+    auto expr = ParseExpression(false, CHECK_OK);
     Match(TOKEN_RPAREN, CHECK_OK);
 
     auto then_stmt = ParseStatement(CHECK_OK);
@@ -415,7 +436,7 @@ Expression *Parser::ParseOperation(int limit, int *rop, bool *ok) {
     if (op != OP_NOT_UNARY) {
         lexer_->Next(&ahead_);
 
-        auto operand = ParseExpression(limit, rop, CHECK_OK);
+        auto operand = ParseExpression(false, limit, rop, CHECK_OK);
         *rop = op;
         return factory_->CreateUnaryOperation(op, operand, position);
     }
@@ -427,7 +448,7 @@ Expression *Parser::ParseOperation(int limit, int *rop, bool *ok) {
             *ok = false;
             return nullptr;
         }
-        auto rval = ParseExpression(0, rop, CHECK_OK);
+        auto rval = ParseExpression(false, 0, rop, CHECK_OK);
         *rop = OP_OTHER;
 
         return factory_->CreateAssignment(node, rval, position);
@@ -439,7 +460,9 @@ Expression *Parser::ParseOperation(int limit, int *rop, bool *ok) {
         position = ahead_.position();
 
         int next_op;
-        auto rhs = ParseExpression(GetOperatorPriority(op)->right, &next_op,
+        auto rhs = ParseExpression(false,
+                                   GetOperatorPriority(op)->right,
+                                   &next_op,
                                    CHECK_OK);
         node = factory_->CreateBinaryOperation(op, node, rhs, position);
 
@@ -486,10 +509,10 @@ Expression *Parser::ParseSuffixed(bool *ok) {
                 auto args = new (zone_) ZoneVector<Expression *>(zone_);
                 Match(TOKEN_LPAREN, CHECK_OK);
                 if (!Test(TOKEN_RPAREN)) {
-                    auto arg = ParseExpression(CHECK_OK);
+                    auto arg = ParseExpression(false, CHECK_OK);
                     args->Add(arg);
                     while (Test(TOKEN_COMMA)) {
-                        arg = ParseExpression(CHECK_OK);
+                        arg = ParseExpression(false, CHECK_OK);
                         args->Add(arg);
                     }
                     Match(TOKEN_RPAREN, CHECK_OK);
@@ -519,7 +542,7 @@ Expression *Parser::ParsePrimary(bool *ok) {
          // ( expression )
         case TOKEN_LPAREN: {
             Match(TOKEN_LPAREN, CHECK_OK);
-            auto node = ParseExpression(CHECK_OK);
+            auto node = ParseExpression(false, CHECK_OK);
             Match(TOKEN_RPAREN, CHECK_OK);
             return node;
         } break;
@@ -555,6 +578,10 @@ Expression *Parser::ParseClosure(bool *ok) {
 
 Type *Parser::ParseType(bool *ok) {
     switch (Peek()) {
+        case TOKEN_VOID:
+            lexer_->Next(&ahead_);
+            return types_->GetVoid();
+
         case TOKEN_I8:
             lexer_->Next(&ahead_);
             return types_->GetI8();
@@ -582,6 +609,8 @@ Type *Parser::ParseType(bool *ok) {
         case TOKEN_FUNCTION:
             return ParseFunctionPrototype(true, nullptr, ok);
 
+        case TOKEN_LBRACK:
+            return ParseUnionType(ok);
             // TODO:
         default:
             *ok = false;
@@ -591,6 +620,20 @@ Type *Parser::ParseType(bool *ok) {
     }
     return nullptr;
 }
+
+Union *Parser::ParseUnionType(bool *ok) {
+    auto types = new (zone_) Union::TypeMap(zone_);
+
+    Match(TOKEN_LBRACK, CHECK_OK);
+    while (Test(TOKEN_COMMA)) {
+        auto type = ParseType(CHECK_OK);
+        types->Put(type->id(), type);
+    }
+    Match(TOKEN_RBRACK, CHECK_OK);
+
+    return types_->GetUnion(types);
+}
+
 
 // function (a:int, b:int): void
 // function name: void

@@ -299,6 +299,7 @@ int Lexer::Move() {
     current_->ahead = current_->input_stream->ReadOne();
     if (current_->ahead == '\n') {
         ++current_->line;
+        current_->column = 0;
     }
     ++current_->column;
     ++current_->position;

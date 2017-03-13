@@ -27,6 +27,7 @@ class Zone;
 class AstNodeFactory;
 class TypeFactory;
 class Type;
+class Union;
 class FunctionPrototype;
 
 
@@ -58,8 +59,8 @@ public:
                                         bool *ok);
     Return *ParserReturn(bool *ok);
     PackageImporter *ParsePackageImporter(bool *ok);
-    Expression *ParseExpression(bool *ok);
-    Expression *ParseExpression(int limit, int *rop, bool *ok);
+    Expression *ParseExpression(bool ignore, bool *ok);
+    Expression *ParseExpression(bool ignore, int limit, int *rop, bool *ok);
     Block *ParseBlock(bool *ok);
     IfOperation *ParseIfOperation(bool *ok);
     Expression *ParseOperation(int limit, int *rop, bool *ok);
@@ -68,6 +69,7 @@ public:
     Expression *ParsePrimary(bool *ok);
     Expression *ParseClosure(bool *ok);
     Type *ParseType(bool *ok);
+    Union *ParseUnionType(bool *ok);
     FunctionPrototype *ParseFunctionPrototype(bool strict, std::string *name,
                                               bool *ok);
 

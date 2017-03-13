@@ -171,6 +171,9 @@ public:
     void set_type(Type *type) { type_ = DCHECK_NOTNULL(type); }
 
     Expression *initializer() const { return initializer_; }
+    void set_initializer(Expression *initializer) {
+        initializer_ = DCHECK_NOTNULL(initializer);
+    }
 
     bool is_argument() const { return is_argument_; }
 
@@ -212,6 +215,9 @@ public:
     void set_type(Type *type) { type_ = DCHECK_NOTNULL(type); }
 
     Expression *initializer() const { return initializer_; }
+    void set_initializer(Expression *initializer) {
+        initializer_ = DCHECK_NOTNULL(initializer);
+    }
 
     DEF_GETTER(bool, is_export)
 
@@ -280,6 +286,9 @@ private:
 class Return : public Statement {
 public:
     Expression *expression() const { return expression_; }
+    void set_expression(Expression *expression) {
+        expression_ = DCHECK_NOTNULL(expression);
+    }
 
     bool has_return_value() const { return expression_ != nullptr; }
 
@@ -367,21 +376,28 @@ public:
     bool has_body() const { return body_ != nullptr; }
 
     DEF_GETTER(int, end_position)
+    DEF_GETTER(bool, is_assignment)
 
     DECLARE_AST_NODE(FunctionLiteral)
     DISALLOW_IMPLICIT_CONSTRUCTORS(FunctionLiteral);
 private:
-    FunctionLiteral(FunctionPrototype *prototype, Expression *body,
-                    Scope *scope, int start_position, int end_position)
+    FunctionLiteral(FunctionPrototype *prototype,
+                    Expression *body,
+                    Scope *scope,
+                    bool is_assignment,
+                    int start_position,
+                    int end_position)
         : Literal(start_position)
         , prototype_(DCHECK_NOTNULL(prototype))
         , body_(body)
         , scope_(DCHECK_NOTNULL(scope))
+        , is_assignment_(is_assignment)
         , end_position_(end_position) {}
 
     FunctionPrototype *prototype_;
     Expression *body_;
     Scope *scope_;
+    bool is_assignment_;
     int end_position_;
 }; // class FunctionLiteral
 
@@ -519,7 +535,7 @@ public:
 
     bool is_read_only() const {
         return declaration_->IsValDeclaration() ||
-               declaration_->IsVarDeclaration();
+               declaration_->IsFunctionDefine();
     }
 
     bool is_readwrite() const { return !is_read_only(); }
@@ -565,6 +581,10 @@ private:
 class Call : public Expression {
 public:
     Expression *expression() const { return expression_; }
+    void set_expression(Expression *expression) {
+        expression_ = DCHECK_NOTNULL(expression);
+    }
+
     ZoneVector<Expression *> *mutable_arguments() { return arguments_; }
 
     DECLARE_AST_NODE(Call)
@@ -604,8 +624,18 @@ private:
 class IfOperation : public Expression {
 public:
     Expression *condition() const { return condition_; }
-    Statement  *then_statement() const { return then_statement_; }
-    Statement  *else_statement() const { return else_statement_; }
+    void set_condition(Expression *condition) {
+        condition_ = DCHECK_NOTNULL(condition);
+    }
+
+    Statement *then_statement() const { return then_statement_; }
+    void set_then_statement(Statement *stmt) {
+        then_statement_ = DCHECK_NOTNULL(stmt);
+    }
+    Statement *else_statement() const { return else_statement_; }
+    void set_else_statement(Statement *stmt) {
+        else_statement_ = DCHECK_NOTNULL(stmt);
+    }
 
     bool has_else() const { return else_statement_ != nullptr; }
 
@@ -629,7 +659,10 @@ private:
 class Assignment : public Expression {
 public:
     Expression *target() const { return target_; }
+    void set_target(Expression *target) { target_ = DCHECK_NOTNULL(target); }
+
     Expression *rval() const { return rval_; }
+    void set_rval(Expression *rval) { rval_ = DCHECK_NOTNULL(rval); }
 
     DECLARE_AST_NODE(Assignment)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Assignment)
@@ -813,10 +846,15 @@ public:
     FunctionLiteral *CreateFunctionLiteral(FunctionPrototype *prototype,
                                            Expression *body,
                                            Scope *scope,
+                                           bool is_assignment,
                                            int start_position,
                                            int end_position) {
-        return new (zone_) FunctionLiteral(prototype, body, scope,
-                                           start_position, end_position);
+        return new (zone_) FunctionLiteral(prototype,
+                                           body,
+                                           scope,
+                                           is_assignment,
+                                           start_position,
+                                           end_position);
     }
 
     ValDeclaration *CreateValDeclaration(const std::string &name,

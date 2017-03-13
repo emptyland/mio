@@ -22,6 +22,10 @@ private:
 
 }
 
+/*virtual*/ bool Type::CanAcceptFrom(mio::Type *type) const {
+     return id() == DCHECK_NOTNULL(type)->id();
+}
+
 TypeFactory::TypeFactory(Zone *zone)
     : zone_(DCHECK_NOTNULL(zone))
     , void_type_(new (zone) Void(TOKEN_VOID))
@@ -46,6 +50,24 @@ Union *TypeFactory::GetUnion(ZoneHashMap<int64_t, Type *> *types) {
     return new (zone_) Union(types);
 }
 
+Union *TypeFactory::MergeToFlatUnion(Type **types, int n) {
+    auto *ut = new (zone_) Union::TypeMap(zone_);
+    for (int i = 0; i < n; ++i) {
+
+        if (types[i]->IsUnion()) {
+            auto u = types[i]->AsUnion();
+
+            Union::TypeMap::Iterator iter(u->mutable_types());
+            for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
+                ut->Put(iter->key(), iter->value());
+            }
+        } else {
+            ut->Put(types[i]->id(), types[i]);
+        }
+    }
+    return GetUnion(ut);
+}
+
 void FunctionPrototype::UpdateId() {
     TypeDigest digest;
 
@@ -65,6 +87,13 @@ int Union::GetAllTypes(std::vector<Type *> *all_types) const {
         all_types->push_back(iter->value());
     }
     return static_cast<int>(all_types->size());
+}
+
+/*virtual*/ bool Union::CanAcceptFrom(Type *type) const {
+    if (id() == type->id()) {
+        return true;
+    }
+    return types_->Exist(type->id());
 }
 
 /*static*/ int64_t Union::GenerateId(TypeMap *types) {

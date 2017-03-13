@@ -207,5 +207,46 @@ TEST_F(CheckerTest, P002_InnerModuleReferences) {
     EXPECT_EQ(types_->GetString(), var->type());
 }
 
+TEST_F(CheckerTest, P003_FunctionDefineReduce) {
+    ParsingError error;
+    auto all_units = ParseProject("003", &error);
+    ASSERT_TRUE(all_units != nullptr) << error.ToString();
+
+    Checker checker(types_, all_units, global_, zone_);
+    ASSERT_TRUE(checker.Run()) << checker.last_error().message;
+
+    auto module = global_->FindInnerScopeOrNull("main");
+    ASSERT_TRUE(module != nullptr);
+    auto var = module->FindOrNullLocal("foo");
+    ASSERT_TRUE(var != nullptr);
+    ASSERT_TRUE(var->declaration()->IsFunctionDefine());
+
+    auto func = var->declaration()->AsFunctionDefine();
+    EXPECT_EQ(types_->GetI64(), func->function_literal()->prototype()->return_type());
+
+    var = module->FindOrNullLocal("bar");
+    func = var->declaration()->AsFunctionDefine();
+    auto ret_ty = func->function_literal()->prototype()->return_type();
+    ASSERT_TRUE(ret_ty->IsUnion());
+
+    auto uni_ty = ret_ty->AsUnion();
+    EXPECT_EQ(3, uni_ty->mutable_types()->size());
+    EXPECT_TRUE(uni_ty->CanBe(types_->GetVoid()));
+    EXPECT_TRUE(uni_ty->CanBe(types_->GetI64()));
+    EXPECT_TRUE(uni_ty->CanBe(types_->GetString()));
+}
+
+TEST_F(CheckerTest, P004_UserVariableBeforeDeclare) {
+    ParsingError error;
+    auto all_units = ParseProject("004", &error);
+    ASSERT_TRUE(all_units != nullptr) << error.ToString();
+
+    Checker checker(types_, all_units, global_, zone_);
+    ASSERT_FALSE(checker.Run());
+
+    error = checker.last_error();
+    EXPECT_NE(nullptr, strstr(error.message.c_str(), "not found")) << error.ToString();
+}
+
 
 } // namespace mio

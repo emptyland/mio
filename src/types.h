@@ -49,12 +49,12 @@ public:
 
 #undef Type_TYPE_ASSERT
 
+    virtual bool CanAcceptFrom(Type *type) const;
+
     // TODO: floating
     bool is_numeric() const { return IsIntegral(); }
 
     int64_t id() const { return id_; }
-
-    bool CanAcceptFrom(Type *type) { return id() == DCHECK_NOTNULL(type)->id(); }
 
     friend class TypeFactory;
     DISALLOW_IMPLICIT_CONSTRUCTORS(Type);
@@ -162,6 +162,10 @@ public:
 
     int GetAllTypes(std::vector<Type *> *all_types) const;
 
+    bool CanBe(Type *type) { return types_->Exist(type->id()); }
+
+    virtual bool CanAcceptFrom(Type *type) const override;
+
     static int64_t GenerateId(TypeMap *types);
 
     DECLARE_TYPE(Union)
@@ -197,6 +201,10 @@ public:
                                             Type *return_type);
 
     Union *GetUnion(ZoneHashMap<int64_t, Type *> *types);
+
+    // [t1, t2] and [t2, t3, t4] merge to
+    // [t1, t2, t3, t4]
+    Union *MergeToFlatUnion(Type **types, int n);
 
     Paramter *CreateParamter(const std::string &name, Type *type) {
         return new (zone_) Paramter(RawString::Create(name, zone_), type);

@@ -103,7 +103,7 @@ TEST_F(ParserTest, Operation) {
 
     bool ok = true;
     int rop = 0;
-    auto node = p->ParseExpression(0, &rop, &ok);
+    auto node = p->ParseExpression(false, 0, &rop, &ok);
     ASSERT_TRUE(ok) << p->last_error().message;
     ASSERT_TRUE(node != nullptr);
 
@@ -124,7 +124,7 @@ TEST_F(ParserTest, OperationProi) {
 
     bool ok = true;
     int rop = 0;
-    auto node = p->ParseExpression(0, &rop, &ok);
+    auto node = p->ParseExpression(false, 0, &rop, &ok);
     ASSERT_TRUE(ok) << p->last_error().message;
     ASSERT_TRUE(node != nullptr);
 
@@ -141,7 +141,7 @@ TEST_F(ParserTest, FieldAccessing) {
 
     bool ok = true;
     int rop = 0;
-    auto node = p->ParseExpression(0, &rop, &ok);
+    auto node = p->ParseExpression(false, 0, &rop, &ok);
     ASSERT_TRUE(ok) << p->last_error().message;
     ASSERT_TRUE(node != nullptr);
 
@@ -163,7 +163,7 @@ TEST_F(ParserTest, Assignment) {
 
     bool ok = true;
     int rop = 0;
-    auto node = p->ParseExpression(0, &rop, &ok);
+    auto node = p->ParseExpression(false, 0, &rop, &ok);
     ASSERT_TRUE(ok) << p->last_error().message;
     ASSERT_TRUE(node != nullptr);
 

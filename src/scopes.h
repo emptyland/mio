@@ -33,6 +33,8 @@ public:
     }
     Scope *FindInnerScopeOrNull(RawStringRef name) const;
 
+    Scope *FindOuterScopeOrNull(ScopeType type);
+
     Variable *FindOrNullLocal(const char *name) {
         return FindOrNullLocal(RawString::Create(name, zone_));
     }
