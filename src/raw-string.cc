@@ -1,4 +1,5 @@
 #include "raw-string.h"
+#include "text-output-stream.h"
 
 namespace mio {
 
@@ -29,6 +30,19 @@ RawStringRef RawString::Create(const char *z, size_t n, Zone *zone) {
     // fill tail zero
     reinterpret_cast<char *>(result + 1)[n] = '\0';
     return result;
+}
+
+/*static*/ RawStringRef RawString::sprintf(Zone *zone, const char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    auto rv = RawString::vsprintf(zone, fmt, ap);
+    va_end(ap);
+    return rv;
+}
+
+/*static*/ RawStringRef RawString::vsprintf(Zone *zone, const char *fmt,
+                                            va_list ap) {
+    return Create(TextOutputStream::vsprintf(fmt, ap), zone);
 }
 
 } // namespace mio

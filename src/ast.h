@@ -175,8 +175,7 @@ public:
         initializer_ = DCHECK_NOTNULL(initializer);
     }
 
-    bool is_argument() const { return is_argument_; }
-
+    DEF_GETTER(bool, is_argument)
     DEF_GETTER(bool, is_export)
 
     bool has_initializer() const { return initializer_ != nullptr; }
@@ -531,7 +530,6 @@ public:
         : Expression(position)
         , declaration_(DCHECK_NOTNULL(declaration)) {
     }
-
 
     bool is_read_only() const {
         return declaration_->IsValDeclaration() ||

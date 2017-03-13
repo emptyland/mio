@@ -4,6 +4,7 @@
 #include "types.h"
 #include "lexer.h"
 #include "text-input-stream.h"
+#include "text-output-stream.h"
 #include <stdarg.h>
 
 namespace mio {
@@ -345,6 +346,8 @@ Expression *Parser::ParseExpression(bool ignore, int limit, int *rop, bool *ok) 
         case TOKEN_WAVE:
         case TOKEN_TRUE:
         case TOKEN_FALSE:
+        case TOKEN_FUNCTION:
+        case TOKEN_LAMBDA:
             return ParseOperation(limit, rop, ok);
 
         case TOKEN_IF:
@@ -493,6 +496,12 @@ Expression *Parser::ParseSimpleExpression(bool *ok) {
             return factory_->CreateStringLiteral(literal, position);
         } break;
 
+        case TOKEN_LAMBDA:
+            return ParseLambda(ok);
+
+        case TOKEN_FUNCTION:
+            return ParseFunctionLiteral(ok);
+
         default:
             return ParseSuffixed(ok);
     }
@@ -569,11 +578,65 @@ Expression *Parser::ParsePrimary(bool *ok) {
     return nullptr;
 }
 
-// val a = function (a:int, b:int): int { return a + b }
-// foreach(elements, lambda (a) -> print('a='..a)))
-Expression *Parser::ParseClosure(bool *ok) {
-    // TODO:
-    return nullptr;
+Expression *Parser::ParseFunctionLiteral(bool *ok) {
+    auto position = ahead_.position();
+
+    auto scope = EnterScope("", FUNCTION_SCOPE);
+    auto proto = ParseFunctionPrototype(false, nullptr, CHECK_OK);
+
+    auto is_assignment = Test(TOKEN_ASSIGN);
+    auto body = ParseExpression(false, CHECK_OK);
+
+
+    auto literal = factory_->CreateFunctionLiteral(proto, body, scope,
+                                                   is_assignment, position,
+                                                   ahead_.position());
+    scope->set_name(RawString::sprintf(zone_, "function-%p", literal));
+    LeaveScope();
+    return literal;
+}
+
+// lambda (parameters) -> expression
+// lambda -> expression
+Expression *Parser::ParseLambda(bool *ok) {
+    auto position = ahead_.position();
+    Match(TOKEN_LAMBDA, CHECK_OK);
+
+    auto scope = EnterScope("", FUNCTION_SCOPE);
+    auto params = new (zone_) ZoneVector<Paramter *>(zone_);
+    if (Test(TOKEN_LPAREN)) {
+        std::string name;
+        do {
+            auto param_pos = ahead_.position();
+            Match(TOKEN_ID, &name, CHECK_OK);
+            auto param = types_->CreateParamter(name, types_->GetUnknown());
+            if (scope->FindOrNullLocal(param->param_name())) {
+                *ok = false;
+                ThrowError("duplicated argument name: %s",
+                           param->param_name()->c_str());
+                return nullptr;
+            }
+            auto declaration = factory_->CreateValDeclaration(name,
+                                                              false,
+                                                              param->param_type(),
+                                                              nullptr,
+                                                              scope,
+                                                              true,
+                                                              param_pos);
+            scope->Declare(param->param_name(), declaration);
+            params->Add(param);
+        } while (Test(TOKEN_COMMA));
+        Match(TOKEN_RPAREN, CHECK_OK);
+    }
+    Match(TOKEN_THIN_RARROW, CHECK_OK);
+    auto proto = types_->GetFunctionPrototype(params, types_->GetUnknown());
+
+    auto body = ParseExpression(false, CHECK_OK);
+    auto lambda = factory_->CreateFunctionLiteral(proto, body, scope, true,
+                                                  position, ahead_.position());
+    scope->set_name(RawString::sprintf(zone_, "lambda-%p", lambda));
+    LeaveScope();
+    return lambda;
 }
 
 Type *Parser::ParseType(bool *ok) {
@@ -625,10 +688,10 @@ Union *Parser::ParseUnionType(bool *ok) {
     auto types = new (zone_) Union::TypeMap(zone_);
 
     Match(TOKEN_LBRACK, CHECK_OK);
-    while (Test(TOKEN_COMMA)) {
+    do {
         auto type = ParseType(CHECK_OK);
         types->Put(type->id(), type);
-    }
+    }while (Test(TOKEN_COMMA));
     Match(TOKEN_RBRACK, CHECK_OK);
 
     return types_->GetUnion(types);
@@ -649,7 +712,7 @@ FunctionPrototype *Parser::ParseFunctionPrototype(bool strict,
     auto params = new (zone_) ZoneVector<Paramter *>(zone_);
     if (Test(TOKEN_LPAREN)) {
         std::string param_name;
-        while (!Test(TOKEN_RPAREN)) {
+        do {
             Match(TOKEN_ID, &param_name, CHECK_OK);
             auto param_type = static_cast<Type *>(types_->GetUnknown());
             if (strict) {
@@ -662,7 +725,8 @@ FunctionPrototype *Parser::ParseFunctionPrototype(bool strict,
             }
 
             params->Add(types_->CreateParamter(param_name, param_type));
-        }
+        } while (Test(TOKEN_COMMA));
+        Match(TOKEN_RPAREN, CHECK_OK);
     }
     auto return_type = static_cast<Type *>(types_->GetUnknown());
     if (strict) {
@@ -724,18 +788,7 @@ void Parser::VThrowError(const char *fmt, va_list ap) {
     last_error_.position  = lexer_->current()->position;
     last_error_.file_name = lexer_->input_stream()->file_name();
 
-    va_list copied;
-    int len = 512, rv = len;
-    std::string buf;
-    do {
-        len = rv + 512;
-        buf.resize(len, 0);
-        va_copy(copied, ap);
-        rv = vsnprintf(&buf[0], len, fmt, ap);
-        va_copy(ap, copied);
-    } while (rv > len);
-    buf.resize(strlen(buf.c_str()), 0);
-    last_error_.message = std::move(buf);
+    last_error_.message = TextOutputStream::vsprintf(fmt, ap);
 }
 
 } // namespace mio

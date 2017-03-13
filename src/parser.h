@@ -67,7 +67,8 @@ public:
     Expression *ParseSimpleExpression(bool *ok);
     Expression *ParseSuffixed(bool *ok);
     Expression *ParsePrimary(bool *ok);
-    Expression *ParseClosure(bool *ok);
+    Expression *ParseFunctionLiteral(bool *ok);
+    Expression *ParseLambda(bool *ok);
     Type *ParseType(bool *ok);
     Union *ParseUnionType(bool *ok);
     FunctionPrototype *ParseFunctionPrototype(bool strict, std::string *name,
@@ -83,6 +84,7 @@ private:
     bool Test(Token code) { return Test(code, nullptr); }
     bool Test(Token code, std::string *txt);
 
+    __attribute__ (( __format__ (__printf__, 2, 3)))
     void ThrowError(const char *fmt, ...);
     void VThrowError(const char *fmt, va_list ap);
 

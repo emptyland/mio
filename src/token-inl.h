@@ -32,6 +32,7 @@ namespace mio {
     M(TWO_DOT, 0, "..") \
     M(COLON, 0, ":") \
     M(NAME_BREAK, 0, "::") \
+    M(THIN_RARROW, 0, "->") \
     M(ASSIGN, 0, "=") \
     M(PLUS, 0, "+") \
     M(STAR, 0, "*") \
@@ -68,6 +69,7 @@ namespace mio {
     M(STRING, 0, "string") \
     M(VOID, 0, "void") \
     M(UNION, 0, "union") \
+    M(ERROR_TYPE, 0, "error") \
     M(ID, 0, "[$_a-zA-Z0-9]+") \
     M(I8_LITERAL, 0, "\\d+b") \
     M(I16_LITERAL, 0, "\\d+w") \
@@ -87,6 +89,7 @@ namespace mio {
     M(VAL, 0, "val") \
     M(VAR, 0, "var") \
     M(FUNCTION, 0, "function") \
+    M(LAMBDA, 0, "lambda") \
     M(NATIVE, 0, "native") \
     M(EXPORT, 0, "export") \
     M(DEF, 0, "def") \

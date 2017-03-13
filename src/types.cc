@@ -1,4 +1,5 @@
 #include "types.h"
+#include "memory-output-stream.h"
 
 namespace mio {
 
@@ -87,6 +88,67 @@ int Union::GetAllTypes(std::vector<Type *> *all_types) const {
         all_types->push_back(iter->value());
     }
     return static_cast<int>(all_types->size());
+}
+
+std::string Type::ToString() const {
+    std::string buf;
+    MemoryOutputStream stream(&buf);
+    ToString(&stream);
+    return buf;
+}
+
+/*virtual*/
+int Integral::ToString(TextOutputStream *stream) const {
+    return stream->Printf("i%d", bitwide_);
+}
+
+/*virtual*/
+int String::ToString(TextOutputStream *stream) const {
+    return stream->Write("string");
+}
+
+
+/*virtual*/
+int Void::ToString(TextOutputStream *stream) const {
+    return stream->Write("void");
+}
+
+/*virtual*/
+int Unknown::ToString(TextOutputStream *stream) const {
+    return stream->Write("unknown");
+}
+
+/*virtual*/
+int FunctionPrototype::ToString(TextOutputStream *stream) const {
+    auto rv = stream->Write("function (");
+    for (int i = 0; i < paramters_->size(); ++i) {
+        if (i != 0) {
+            rv += stream->Write(",");
+        }
+
+        auto param = paramters_->At(i);
+        rv += stream->Write(param->param_name());
+        rv += stream->Write(":");
+        rv += param->param_type()->ToString(stream);
+    }
+    rv += stream->Write("): ");
+    rv += return_type_->ToString(stream);
+    return rv;
+}
+
+/*virtual*/
+int Union::ToString(TextOutputStream *stream) const {
+    auto rv = stream->Write("[");
+
+    int i = 0;
+    Union::TypeMap::Iterator iter(types_);
+    for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
+        if (i++ != 0) {
+            rv += stream->Write(",");
+        }
+        rv += iter->value()->ToString(stream);
+    }
+    return rv + stream->Write("]");
 }
 
 /*virtual*/ bool Union::CanAcceptFrom(Type *type) const {

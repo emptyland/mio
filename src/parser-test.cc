@@ -314,4 +314,55 @@ TEST_F(ParserTest, ValDeclaration) {
     EXPECT_EQ(scope, owned);
 }
 
+TEST_F(ParserTest, UnionTypeDeclaration) {
+    std::string yaml;
+    AssertionToYamlAstTree("val u:[int,string,void]", &yaml);
+
+    const char z[] =
+    "declare_val: u\n"
+    "export: no\n"
+    "type: [void,string,i64]\n";
+    EXPECT_STREQ(z, yaml.c_str());
+}
+
+TEST_F(ParserTest, LambdaFunctionLiteral) {
+    std::string yaml;
+    AssertionToYamlAstTree("lambda (a) -> a + 1", &yaml);
+
+    const char z[] =
+    "prototype: function (a:unknown): unknown\n"
+    "assignment: yes\n"
+    "body: \n"
+    "  op: ADD\n"
+    "  lhs: \n"
+    "    symbol: a\n"
+    "  rhs: \n"
+    "    i64: 1\n";
+    EXPECT_STREQ(z, yaml.c_str());
+}
+
+TEST_F(ParserTest, AssignmentFunctionLiteral) {
+    std::string yaml;
+    AssertionToYamlAstTree("val a = function (a, b, c) = a + b * c", &yaml);
+
+    const char z[] =
+    "declare_val: a\n"
+    "export: no\n"
+    "type: unknown\n"
+    "init: \n"
+    "  prototype: function (a:unknown,b:unknown,c:unknown): unknown\n"
+    "  assignment: yes\n"
+    "  body: \n"
+    "    op: ADD\n"
+    "    lhs: \n"
+    "      symbol: a\n"
+    "    rhs: \n"
+    "      op: MUL\n"
+    "      lhs: \n"
+    "        symbol: b\n"
+    "      rhs: \n"
+    "        symbol: c\n";
+    EXPECT_STREQ(z, yaml.c_str());
+}
+
 } // namespace mio

@@ -29,9 +29,11 @@ class Type;
     class Unknown;
 
 class TypeFactory;
+class TextOutputStream;
 
 #define DECLARE_TYPE(name) \
     virtual bool Is##name() const override { return true; } \
+    virtual int ToString(TextOutputStream *stream) const override; \
     friend class TypeFactory;
 
 class Type : public ManagedObject {
@@ -50,6 +52,10 @@ public:
 #undef Type_TYPE_ASSERT
 
     virtual bool CanAcceptFrom(Type *type) const;
+
+    virtual int ToString(TextOutputStream *stream) const = 0;
+
+    std::string ToString() const;
 
     // TODO: floating
     bool is_numeric() const { return IsIntegral(); }

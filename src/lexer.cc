@@ -1,6 +1,7 @@
 #include "lexer.h"
 #include "token.h"
 #include "text-input-stream.h"
+#include "text-output-stream.h"
 #include "number-parser.h"
 //#include <memory>
 
@@ -224,12 +225,15 @@ bool Lexer::Next(TokenObject *token) {
                     token->mutable_text()->assign("-");
 
                     return ParseDecimalNumberLiteral(-1, token);
+                } else if (ahead == '>') {
+                    ahead = Move();
+                    token->set_len(2);
+                    token->set_token_code(TOKEN_THIN_RARROW);
                 } else {
                     token->set_token_code(TOKEN_MINUS);
                     token->set_len(1);
-                    return true;
                 }
-                break;
+                return true;
 
             case '=':
                 token->set_position(current()->position);
@@ -681,19 +685,7 @@ bool Lexer::ParseSymbolOrKeyword(TokenObject *token) {
 bool Lexer::VThrowError(TokenObject *token, const char *fmt, va_list ap) {
     token->set_token_code(TOKEN_ERROR);
     token->mutable_text()->clear();
-
-    va_list copied;
-    int len = 512, rv = len;
-    std::string buf;
-    do {
-        len = rv + 512;
-        buf.resize(len, 0);
-        va_copy(copied, ap);
-        rv = vsnprintf(&buf[0], len, fmt, ap);
-        va_copy(ap, copied);
-    } while (rv > len);
-
-    token->mutable_text()->assign(std::move(buf));
+    token->mutable_text()->assign(TextOutputStream::vsprintf(fmt, ap));
     return true;
 }
 

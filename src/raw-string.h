@@ -3,6 +3,7 @@
 
 #include "zone.h"
 #include "base.h"
+#include <stdarg.h>
 #include <string>
 
 namespace mio {
@@ -43,6 +44,11 @@ public:
         return Create(z, strlen(z), zone);
     }
     static RawStringRef Create(const char *z, size_t n, Zone *zone);
+
+    __attribute__ (( __format__ (__printf__, 2, 3)))
+    static RawStringRef sprintf(Zone *zone, const char *fmt, ...);
+
+    static RawStringRef vsprintf(Zone *zone, const char *fmt, va_list ap);
 
     static const RawString *const kEmpty;
 private:

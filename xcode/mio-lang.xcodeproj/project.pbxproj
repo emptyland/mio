@@ -58,6 +58,8 @@
 		23E3D5B51E6FFF5900C51DDE /* compiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5B31E6FFF5900C51DDE /* compiler.cc */; };
 		23E3D5B81E700A7000C51DDE /* simple-file-system.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5B71E700A7000C51DDE /* simple-file-system.cc */; };
 		23E3D5B91E700A7000C51DDE /* simple-file-system.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5B71E700A7000C51DDE /* simple-file-system.cc */; };
+		23E3D5BC1E767F8600C51DDE /* text-output-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5BB1E767F8600C51DDE /* text-output-stream.cc */; };
+		23E3D5BD1E767F8600C51DDE /* text-output-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5BB1E767F8600C51DDE /* text-output-stream.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -139,6 +141,9 @@
 		23E3D5B31E6FFF5900C51DDE /* compiler.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = compiler.cc; sourceTree = "<group>"; };
 		23E3D5B61E7007E000C51DDE /* simple-file-system.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "simple-file-system.h"; sourceTree = "<group>"; };
 		23E3D5B71E700A7000C51DDE /* simple-file-system.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "simple-file-system.cc"; sourceTree = "<group>"; };
+		23E3D5BA1E767F0800C51DDE /* text-output-stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "text-output-stream.h"; sourceTree = "<group>"; };
+		23E3D5BB1E767F8600C51DDE /* text-output-stream.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "text-output-stream.cc"; sourceTree = "<group>"; };
+		23E3D5BE1E76871A00C51DDE /* memory-output-stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "memory-output-stream.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -191,6 +196,7 @@
 				236202541E45BE2900B6B949 /* lexer.cc */,
 				236202581E45C58800B6B949 /* token.cc */,
 				2362025F1E48221700B6B949 /* text-input-stream.cc */,
+				23E3D5BB1E767F8600C51DDE /* text-output-stream.cc */,
 				235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */,
 				23E3D5B01E6FA55600C51DDE /* file-input-stream.cc */,
 				2349E56B1E4AA77F002883BC /* number-parser.cc */,
@@ -218,8 +224,10 @@
 				236202621E486C9300B6B949 /* token-inl.h */,
 				236202571E45C34A00B6B949 /* token.h */,
 				2362025E1E48214500B6B949 /* text-input-stream.h */,
+				23E3D5BA1E767F0800C51DDE /* text-output-stream.h */,
 				23E3D5AF1E6FA4FF00C51DDE /* file-input-stream.h */,
 				235808111E487D9400C8C567 /* fixed-memory-input-stream.h */,
+				23E3D5BE1E76871A00C51DDE /* memory-output-stream.h */,
 				2349E56A1E4AA70B002883BC /* number-parser.h */,
 				2349E5741E4C51C1002883BC /* zone.h */,
 				2349E57B1E55B3DB002883BC /* zone-hash-map.h */,
@@ -358,6 +366,7 @@
 				2349E58A1E56F3DB002883BC /* raw-string.cc in Sources */,
 				2349E56C1E4AA77F002883BC /* number-parser.cc in Sources */,
 				23E3D5B81E700A7000C51DDE /* simple-file-system.cc in Sources */,
+				23E3D5BC1E767F8600C51DDE /* text-output-stream.cc in Sources */,
 				23E3D59F1E600DCE00C51DDE /* types.cc in Sources */,
 				236202591E45C58800B6B949 /* token.cc in Sources */,
 				236202601E48221700B6B949 /* text-input-stream.cc in Sources */,
@@ -389,6 +398,7 @@
 				2349E5941E56FF12002883BC /* parser-test.cc in Sources */,
 				23E3D5B51E6FFF5900C51DDE /* compiler.cc in Sources */,
 				2362025A1E45C58800B6B949 /* token.cc in Sources */,
+				23E3D5BD1E767F8600C51DDE /* text-output-stream.cc in Sources */,
 				23E3D5A01E600DCE00C51DDE /* types.cc in Sources */,
 				2349E58E1E56FCC9002883BC /* ast.cc in Sources */,
 				23E3D5A91E65075C00C51DDE /* checker.cc in Sources */,

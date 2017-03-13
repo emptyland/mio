@@ -1,5 +1,6 @@
 #include "ast-printer.h"
 #include "ast.h"
+#include "types.h"
 #include "glog/logging.h"
 #include <stdio.h>
 #include <stdarg.h>
@@ -74,8 +75,9 @@ public:
         }
     }
 
+    // string: literal
     virtual void VisitStringLiteral(StringLiteral *node) override {
-        // TODO:
+        WriteMapPair("string", node->data()->c_str());
     }
 
     // symbol: name
@@ -137,15 +139,25 @@ public:
     }
 
     virtual void VisitValDeclaration(ValDeclaration *node) override {
-        // TODO:
+        WriteMapPair("declare_val", node->name()->c_str());
+        Indent(); WriteMapPair("export", node->is_export() ? "yes" : "no");
+        Indent(); WriteMapPair("type", node->type()->ToString().c_str());
+        if (node->has_initializer()) {
+            Indent(); WriteMapPair("init", node->initializer());
+        }
     }
 
     virtual void VisitVarDeclaration(VarDeclaration *node) override {
-        // TODO:
+        WriteMapPair("declare_var", node->name()->c_str());
+        Indent(); WriteMapPair("export", node->is_export() ? "yes" : "no");
+        Indent(); WriteMapPair("type", node->type()->ToString().c_str());
+        if (node->has_initializer()) {
+            Indent(); WriteMapPair("init", node->initializer());
+        }
     }
 
     virtual void VisitVariable(Variable *node) override {
-        // TODO:
+        WriteMapPair("var", node->declaration());
     }
 
     // block:
@@ -161,16 +173,20 @@ public:
     }
 
     virtual void VisitFunctionLiteral(FunctionLiteral *node) override {
-        // TODO:
+        WriteMapPair("prototype", node->prototype()->Type::ToString().c_str());
+        Indent(); WriteMapPair("assignment", node->is_assignment() ? "yes" : "no");
+        Indent(); WriteMapPair("body", node->body());
     }
 
     virtual void VisitFunctionDefine(FunctionDefine *node) override {
-        // TODO:
-    }
+        WriteMapPair("function_def", node->name()->c_str());
+        Indent(); WriteMapPair("export", node->is_export() ? "yes" : "no");
+        Indent(); WriteMapPair("native", node->is_native() ? "yes" : "no");
 
-//    virtual void VisitVariable(Variable *node) override {
-//        // TODO:
-//    }
+        if (!node->is_native()) {
+            Indent(); WriteMapPair("literal", node->function_literal());
+        }
+    }
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(YamlPrinterVisitor)
 private:
