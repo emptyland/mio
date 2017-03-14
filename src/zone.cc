@@ -1,6 +1,6 @@
 #include "zone.h"
 #include "glog/logging.h"
-#include "list.h"
+#include "internal-list.h"
 #include <list>
 
 #define SLAB_BITS(slab)  ((( slab ) & 0xffff0000) >> 16)

@@ -2,6 +2,7 @@
 #include "scopes.h"
 #include "types.h"
 #include "ast.h"
+#include "text-output-stream.h"
 #include <stack>
 #include <vector>
 
@@ -137,6 +138,7 @@ public:
         , global_(DCHECK_NOTNULL(global))
         , scope_(DCHECK_NOTNULL(scope))
         , checker_(DCHECK_NOTNULL(checker))
+        , factory_(new AstNodeFactory(DCHECK_NOTNULL(zone)))
         , zone_(DCHECK_NOTNULL(zone)) {}
 
     virtual void VisitValDeclaration(ValDeclaration *node) override;
@@ -152,6 +154,7 @@ public:
     virtual void VisitBlock(Block *node) override;
     virtual void VisitReturn(Return *node) override;
     virtual void VisitFunctionDefine(FunctionDefine *node) override;
+    virtual void VisitFunctionLiteral(FunctionLiteral *node) override;
 
     Type *AnalysisType() { return type_stack_.top(); };
 
@@ -174,6 +177,9 @@ public:
     bool has_error() { return checker_->has_error(); }
 
 private:
+
+    bool AcceptOrReduceFunctionLiteral(AstNode *node, Type *target_ty,
+                                       FunctionLiteral *rval);
 
     void SetEvalType(Type *type) {
         if (!type_stack_.empty()) {
@@ -200,6 +206,7 @@ private:
     std::stack<Type *> type_stack_;
     std::stack<Expression *> expr_stack_;
     ReturnTypeHolder *return_types_ = nullptr;
+    std::unique_ptr<AstNodeFactory> factory_;
     Zone *zone_;
 };
 
@@ -225,16 +232,15 @@ private:
 /*virtual*/ void CheckingAstVisitor::VisitVarDeclaration(VarDeclaration *node) {
     if (node->has_initializer()) {
         ACCEPT_REPLACE_EXPRESSION(initializer);
+        if (!node->type()->CanAcceptFrom(AnalysisType())) {
+            ThrowError(node, "var %s can not accept initializer type",
+                       node->name()->c_str());
+        }
     }
 
     if (node->type() == types_->GetUnknown()) {
         DCHECK_NOTNULL(node->initializer());
         node->set_type(AnalysisType());
-    } else {
-        if (!node->type()->CanAcceptFrom(AnalysisType())) {
-            ThrowError(node, "var %s can not accept initializer type",
-                       node->name()->c_str());
-        }
     }
     SetEvalType(types_->GetVoid());
 }
@@ -257,15 +263,25 @@ private:
         return;
     }
     for (int i = 0; i < node->mutable_arguments()->size(); ++i) {
+        auto arg   = node->mutable_arguments()->At(i);
+        auto param = proto->mutable_paramters()->At(i);
+
+        if (arg->IsFunctionLiteral() &&
+            !AcceptOrReduceFunctionLiteral(node, param->param_type(),
+                                           arg->AsFunctionLiteral())) {
+            return;
+        }
+
         ACCEPT_REPLACE_EXPRESSION_I(mutable_arguments, i);
         auto arg_ty = AnalysisType();
         PopEvalType();
 
-        auto param = proto->mutable_paramters()->At(i);
         if (!param->param_type()->CanAcceptFrom(arg_ty)) {
             if (param->has_name()) {
-                ThrowError(node, "call paramter: %s(%d) can not accpet this type",
-                           param->param_name()->c_str(), i);
+                ThrowError(node, "call paramter: %s(%d) can not accpet this type. %s vs %s",
+                           param->param_name()->c_str(), i,
+                           param->param_type()->ToString().c_str(),
+                           arg_ty->ToString().c_str());
             } else {
                 ThrowError(node, "call paramter: (%d) can not accpet this type",
                            i);
@@ -309,14 +325,21 @@ private:
     auto target_ty = AnalysisType();
     PopEvalType();
 
-    if (node->target()->is_lval()) {
+    if (!node->target()->is_lval()) {
         ThrowError(node, "assignment target is not a lval.");
         return;
     }
 
+    if (node->rval()->IsFunctionLiteral() &&
+        !AcceptOrReduceFunctionLiteral(node, target_ty,
+                                       node->rval()->AsFunctionLiteral())) {
+        return;
+    }
     ACCEPT_REPLACE_EXPRESSION(rval);
     if (!target_ty->CanAcceptFrom(AnalysisType())) {
-        ThrowError(node, "assignment taget can not accept rval type.");
+        ThrowError(node, "assignment taget can not accept rval type. %s vs %s",
+                   target_ty->ToString().c_str(),
+                   AnalysisType()->ToString().c_str());
         return;
     }
     PopEvalType();
@@ -426,7 +449,8 @@ private:
 
     if (var->type() == types_->GetUnknown()) {
         if (!var->is_function()) {
-            ThrowError(node, "symbol \'%s\', it's type unknown.", node->name()->c_str());
+            ThrowError(node, "symbol \'%s\', its' type unknown.",
+                       node->name()->c_str());
             return;
         }
     }
@@ -551,32 +575,103 @@ private:
         return;
     }
 
-    ScopeHolder holder(node->function_literal()->scope(), &scope_);
+    VisitFunctionLiteral(node->function_literal());
+    SetEvalType(types_->GetVoid());
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
+    ScopeHolder holder(node->scope(), &scope_);
     ReturnTypeHolder ret(&return_types_, zone_);
 
-    node->function_literal()->body()->Accept(this);
+    ACCEPT_REPLACE_EXPRESSION(body);
 
     Type *return_type = nullptr;
-    if (node->function_literal()->is_assignment()) {
+    if (node->is_assignment()) {
         return_type = AnalysisType();
     } else {
         return_type = ret.GenerateType(types_);
     }
     PopEvalType();
-    
+
+    auto proto = node->prototype();
     if (proto->return_type()->IsUnknown()) {
         proto->set_return_type(return_type);
         proto->UpdateId();
     } else {
         if (!proto->return_type()->CanAcceptFrom(return_type)) {
-            ThrowError(node, "function: %s, can not accept return type.",
-                       node->name()->c_str());
+            ThrowError(node, "function: %s, can not accept return type. %s vs %s",
+                       node->scope()->name()->c_str(),
+                       proto->return_type()->ToString().c_str(),
+                       return_type->ToString().c_str());
             return;
         }
     }
-    PushEvalType(types_->GetVoid());
+    PushEvalType(proto);
 }
 
+bool CheckingAstVisitor::AcceptOrReduceFunctionLiteral(AstNode *node,
+                                                       Type *target_ty,
+                                                       FunctionLiteral *func) {
+    auto rproto = func->prototype();
+
+    if (!target_ty->IsFunctionPrototype()) {
+        ThrowError(node, "target type is not function (%s)",
+                   target_ty->ToString().c_str());
+        return false;
+    }
+    auto lproto = target_ty->AsFunctionPrototype();
+    auto scope = func->scope();
+    if (rproto->mutable_paramters()->is_empty()) {
+        for (int i = 0; i < lproto->mutable_paramters()->size(); ++i) {
+            auto lparam = lproto->mutable_paramters()->At(i);
+            auto rparam = types_->CreateParamter(TextOutputStream::sprintf("_%d", i + 1),
+                                                 lparam->param_type());
+
+            auto declaration = factory_->CreateValDeclaration(
+                    rparam->param_name()->ToString(), false,
+                    rparam->param_type(), nullptr, scope, true,
+                    node->position());
+            scope->Declare(declaration->name(), declaration);
+
+            rproto->mutable_paramters()->Add(rparam);
+        }
+        return true;
+    }
+
+    if (lproto->mutable_paramters()->size() !=
+        rproto->mutable_paramters()->size()) {
+        ThrowError(node, "target type can not accept rval, %s vs %s",
+                   lproto->Type::ToString().c_str(),
+                   rproto->Type::ToString().c_str());
+        return false;
+    }
+
+    for (int i = 0; i < lproto->mutable_paramters()->size(); ++i) {
+        auto lparam = lproto->mutable_paramters()->At(i);
+        auto rparam = rproto->mutable_paramters()->At(i);
+
+        if (lparam->param_type()->IsUnknown()) {
+            ThrowError(node, "target type has unknown type");
+            return false;
+        }
+
+        if (rparam->param_type()->IsUnknown()) {
+            rproto->mutable_paramters()->At(i)->set_param_type(lparam->param_type());
+            auto param_val = DCHECK_NOTNULL(
+                    scope->FindOrNullLocal(rparam->param_name()));
+            DCHECK_NOTNULL(param_val->declaration()->AsValDeclaration())
+                    ->set_type(lparam->param_type());
+        } else {
+            if (!lparam->param_type()->CanAcceptFrom(rparam->param_type())) {
+                ThrowError(node, "target type can not accept rval, %s vs %s",
+                           lproto->Type::ToString().c_str(),
+                           rproto->Type::ToString().c_str());
+                return false;
+            }
+        }
+    }
+    return true;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 //// class Checker

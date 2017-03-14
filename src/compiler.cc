@@ -19,7 +19,7 @@ ParsingError::ParsingError()
     return ParsingError();
 }
 
-std::string ParsingError::ToString() {
+std::string ParsingError::ToString() const {
     std::unique_ptr<char[]> buf(new char[1024]);
 
     if (!file_name.empty()) {

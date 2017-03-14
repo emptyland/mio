@@ -1,0 +1,85 @@
+test/005/src/main/init.mio: 
+  - package: main
+  - function_def: foo
+    export: no
+    native: yes
+    literal: 
+      prototype: function (fn:function (a:i64,b:i64): i64): void
+      assignment: no
+  - function_def: main
+    export: no
+    native: no
+    literal: 
+      prototype: function (): void
+      assignment: no
+      body: 
+        block: 
+          - declare_var: fn
+            export: no
+            type: function (a:i64,b:i64): i64
+          - taget: 
+              var: 
+                declare_var: fn
+                export: no
+                type: function (a:i64,b:i64): i64
+            rval: 
+              prototype: function (a:i64,b:i64): i64
+              assignment: yes
+              body: 
+                op: ADD
+                lhs: 
+                  var: 
+                    declare_val: a
+                    export: no
+                    type: i64
+                rhs: 
+                  var: 
+                    declare_val: b
+                    export: no
+                    type: i64
+          - expression: 
+              var: 
+                function_def: foo
+                export: no
+                native: yes
+                literal: 
+                  prototype: function (fn:function (a:i64,b:i64): i64): void
+                  assignment: no
+            arguments: 
+              - prototype: function (a:i64,b:i64): i64
+                assignment: yes
+                body: 
+                  op: SUB
+                  lhs: 
+                    var: 
+                      declare_val: a
+                      export: no
+                      type: i64
+                  rhs: 
+                    var: 
+                      declare_val: b
+                      export: no
+                      type: i64
+          - expression: 
+              var: 
+                function_def: foo
+                export: no
+                native: yes
+                literal: 
+                  prototype: function (fn:function (a:i64,b:i64): i64): void
+                  assignment: no
+            arguments: 
+              - prototype: function (_1:i64,_2:i64): i64
+                assignment: yes
+                body: 
+                  op: MUL
+                  lhs: 
+                    var: 
+                      declare_val: _1
+                      export: no
+                      type: i64
+                  rhs: 
+                    var: 
+                      declare_val: _2
+                      export: no
+                      type: i64

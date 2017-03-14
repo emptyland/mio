@@ -34,6 +34,8 @@ public:
     DISALLOW_IMPLICIT_CONSTRUCTORS(TextOutputStream)
 };
 
+TextOutputStream *CreateFileOutputStream(const char *file_name);
+
 } // namespace mio
 
 #endif // TEXT_OUTPUT_STREAM_H_

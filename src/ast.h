@@ -367,6 +367,7 @@ class FunctionLiteral : public Literal {
 public:
     FunctionPrototype *prototype() const { return prototype_; }
     Expression *body() const { return body_; }
+    void set_body(Expression *body) { body_ = DCHECK_NOTNULL(body); }
 
     Scope *scope() const { return scope_; }
 

@@ -26,7 +26,7 @@ struct ParsingError {
 
     static ParsingError NoError();
 
-    std::string ToString();
+    std::string ToString() const;
 }; // struct ParsingError
 
 class Compiler {

@@ -1,5 +1,5 @@
-#ifndef MIO_LIST_MACROS_H_
-#define MIO_LIST_MACROS_H_
+#ifndef MIO_INTERNAL_LIST_H_
+#define MIO_INTERNAL_LIST_H_
 
 namespace mio {
 
@@ -62,4 +62,4 @@ public:
 
 } // namespace mio
 
-#endif // MIO_LIST_MACROS_H_
+#endif // MIO_INTERNAL_LIST_H_

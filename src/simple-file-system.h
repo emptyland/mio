@@ -14,6 +14,10 @@ public:
 
     virtual bool IsDir(const char *path) = 0;
 
+    virtual bool Exist(const char *path) = 0;
+
+    virtual bool Mkdir(const char *path, bool recursive) = 0;
+
     virtual int GetNames(const char *dir, const char *ext,
                          std::vector<std::string> *names) = 0;
 

@@ -4,6 +4,8 @@
 #include "types.h"
 #include "scopes.h"
 #include "simple-file-system.h"
+#include "text-output-stream.h"
+#include "ast-printer.h"
 #include "gtest/gtest.h"
 
 namespace mio {
@@ -12,6 +14,8 @@ namespace mio {
 
 class CheckerTest : public ::testing::Test {
 public:
+    CheckerTest() : sfs_(CreatePlatformSimpleFileSystem()) {}
+
     virtual void SetUp() override {
         zone_ = new Zone();
         global_ = new (zone_) Scope(nullptr, GLOBAL_SCOPE, zone_);
@@ -39,22 +43,60 @@ public:
     }
 
     CompiledUnitMap *ParseProject(const char *project_dir, ParsingError *error) {
-        std::unique_ptr<SimpleFileSystem> sfs(CreatePlatformSimpleFileSystem());
         std::string dir("test/");
         dir.append(project_dir);
         return Compiler::ParseProject(dir.c_str(),
-                                      sfs.get(),
+                                      sfs_,
                                       types_,
                                       global_,
                                       zone_,
                                       error);
     }
 
+    void AssertProjectAST(const char *project_dir, CompiledUnitMap *all_units) {
+        std::string dir("test/");
+        dir.append(project_dir);
+
+        std::string test_data(dir);
+        test_data.append("/test");
+        if (!sfs_->IsDir(test_data.c_str())) {
+            ASSERT_TRUE(sfs_->Mkdir(test_data.c_str(), true));
+        }
+
+        test_data.append("/assertion.yml");
+        if (!sfs_->Exist(test_data.c_str())) {
+            std::unique_ptr<TextOutputStream> stream(CreateFileOutputStream(test_data.c_str()));
+            AstPrinter::ToYamlString(all_units, 2, stream.get());
+
+            FAIL() << "can not found assertion file: "
+                   << test_data << ", now dump it.";
+        }
+
+        auto fp = fopen(test_data.c_str(), "r");
+        ASSERT_TRUE(fp != nullptr);
+
+        std::string assertion;
+        std::unique_ptr<char []> buf(new char[1024]);
+        for (;;) {
+            auto n = fread(buf.get(), 1, 1024, fp);
+            if (n > 0) {
+                assertion.append(buf.get(), n);
+            }
+            if (n < 1024) {
+                break;
+            }
+        }
+        std::string actual;
+        AstPrinter::ToYamlString(all_units, 2, &actual);
+        EXPECT_EQ(assertion, actual);
+    }
+
 protected:
-    Zone *zone_ = nullptr;
-    Scope *global_ = nullptr;
-    TypeFactory *types_ = nullptr;
-    AstNodeFactory *factory_ = nullptr;
+    Zone             *zone_    = nullptr;
+    Scope            *global_  = nullptr;
+    TypeFactory      *types_   = nullptr;
+    AstNodeFactory   *factory_ = nullptr;
+    SimpleFileSystem *sfs_     = nullptr;
 }; // class CheckerTest
 
 
@@ -246,6 +288,26 @@ TEST_F(CheckerTest, P004_UserVariableBeforeDeclare) {
 
     error = checker.last_error();
     EXPECT_NE(nullptr, strstr(error.message.c_str(), "not found")) << error.ToString();
+}
+
+TEST_F(CheckerTest, P005_ReduceFunctionLiteralParameters) {
+    ParsingError error;
+    auto all_units = ParseProject("005", &error);
+    ASSERT_TRUE(all_units != nullptr) << error.ToString();
+
+    Checker checker(types_, all_units, global_, zone_);
+    ASSERT_TRUE(checker.Run()) << checker.last_error().ToString();
+
+    auto module = global_->FindInnerScopeOrNull("main");
+    ASSERT_TRUE(module != nullptr);
+    Scope *owned;
+    auto var = module->FindOrNullDownTo("main", &owned);
+    ASSERT_TRUE(var != nullptr);
+
+    var = var->scope()->FindOrNullDownTo("fn", &owned);
+    ASSERT_TRUE(var != nullptr);
+
+    AssertProjectAST("005", all_units);
 }
 
 

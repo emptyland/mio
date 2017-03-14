@@ -1,0 +1,11 @@
+package main
+
+native function foo(fn: function(a: int, b: int): int): void
+
+function main: void {
+    var fn: function (a: int, b: int): int
+    fn = lambda (a, b) -> a + b
+
+    foo(lambda (a, b) -> a - b)
+    foo(lambda -> _1 * _2)
+}

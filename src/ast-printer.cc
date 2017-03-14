@@ -1,4 +1,6 @@
 #include "ast-printer.h"
+#include "memory-output-stream.h"
+#include "text-output-stream.h"
 #include "ast.h"
 #include "types.h"
 #include "glog/logging.h"
@@ -18,8 +20,8 @@ namespace {
 
 class YamlPrinterVisitor : public AstVisitor {
 public:
-    YamlPrinterVisitor(std::string *buf, int indent_wide)
-        : buf_(DCHECK_NOTNULL(buf))
+    YamlPrinterVisitor(TextOutputStream *stream, int indent_wide)
+        : stream_(DCHECK_NOTNULL(stream))
         , indent_wide_(indent_wide) {}
 
     // package_name: name
@@ -30,6 +32,7 @@ public:
     //     alias: _
     //   - name: c1
     virtual void VisitPackageImporter(PackageImporter *node) override {
+        WriteMapPair("package", node->package_name()->c_str());
     }
 
     // op: OP_NOT
@@ -175,48 +178,16 @@ public:
     virtual void VisitFunctionLiteral(FunctionLiteral *node) override {
         WriteMapPair("prototype", node->prototype()->Type::ToString().c_str());
         Indent(); WriteMapPair("assignment", node->is_assignment() ? "yes" : "no");
-        Indent(); WriteMapPair("body", node->body());
+        if (node->has_body()) {
+            Indent(); WriteMapPair("body", node->body());
+        }
     }
 
     virtual void VisitFunctionDefine(FunctionDefine *node) override {
         WriteMapPair("function_def", node->name()->c_str());
         Indent(); WriteMapPair("export", node->is_export() ? "yes" : "no");
         Indent(); WriteMapPair("native", node->is_native() ? "yes" : "no");
-
-        if (!node->is_native()) {
-            Indent(); WriteMapPair("literal", node->function_literal());
-        }
-    }
-
-    DISALLOW_IMPLICIT_CONSTRUCTORS(YamlPrinterVisitor)
-private:
-    void Write(const char *fmt, ...) {
-        va_list ap;
-        char buf[128];
-        va_start(ap, fmt);
-        vsnprintf(buf, arraysize(buf), fmt, ap);
-        va_end(ap);
-        buf_->append(buf);
-    }
-
-    void WriteMapPair(const char *key, const char *fmt, ...) {
-        buf_->append(key);
-        buf_->append(": ");
-
-        va_list ap;
-        char buf[128];
-        va_start(ap, fmt);
-        vsnprintf(buf, arraysize(buf), fmt, ap);
-        va_end(ap);
-        buf_->append(buf);
-        buf_->append("\n");
-    }
-
-    void WriteMapPair(const char *key, AstNode *node) {
-        WriteMapPair(key, "");
-        ++indent_;
-        Indent(); node->Accept(this);
-        --indent_;
+        Indent(); WriteMapPair("literal", node->function_literal());
     }
 
     template<class T>
@@ -229,19 +200,47 @@ private:
         --indent_;
     }
 
+    DISALLOW_IMPLICIT_CONSTRUCTORS(YamlPrinterVisitor)
+private:
+    void Write(const char *fmt, ...) {
+        va_list ap;
+        va_start(ap, fmt);
+        stream_->Vprintf(fmt, ap);
+        va_end(ap);
+    }
+
+    void WriteMapPair(const char *key, const char *fmt, ...) {
+        stream_->Write(key);
+        stream_->Write(": ");
+
+        va_list ap;
+        va_start(ap, fmt);
+        stream_->Vprintf(fmt, ap);
+        va_end(ap);
+        stream_->Write("\n");
+    }
+
+    void WriteMapPair(const char *key, AstNode *node) {
+        WriteMapPair(key, "");
+        ++indent_;
+        Indent(); node->Accept(this);
+        --indent_;
+    }
+
     void WriteArrayElement(AstNode *node) {
         Indent();
-        buf_->append("- ");
+        stream_->Write("- ");
         ++indent_;
         node->Accept(this);
         --indent_;
     }
 
     void Indent() {
-        buf_->append(indent_wide_ * indent_, ' ');
+        std::string buf(indent_wide_ * indent_, ' ');
+        stream_->Write(buf.data(), static_cast<int>(buf.size()));
     }
 
-    std::string *buf_;
+    TextOutputStream *stream_;
     int indent_wide_;
     int indent_ = 0;
 };
@@ -250,8 +249,31 @@ private:
 
 /*static*/
 void AstPrinter::ToYamlString(AstNode *ast, int indent_wide, std::string *buf) {
-    auto printer = new YamlPrinterVisitor(buf, indent_wide);
-    ast->Accept(printer);
+    MemoryOutputStream stream(buf);
+    ToYamlString(ast, indent_wide, &stream);
+}
+
+/*static*/
+void AstPrinter::ToYamlString(AstNode *ast, int indent_wide, TextOutputStream *stream) {
+    YamlPrinterVisitor printer(stream, indent_wide);
+    ast->Accept(&printer);
+}
+
+/*static*/ void AstPrinter::ToYamlString(CompiledUnitMap *all_units,
+                                         int indent_wide,
+                                         TextOutputStream *stream) {
+    YamlPrinterVisitor printer(stream, indent_wide);
+    CompiledUnitMap::Iterator iter(all_units);
+    for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
+        printer.WriteMapPair(iter->key()->c_str(), iter->value());
+    }
+}
+
+/*static*/ void AstPrinter::ToYamlString(CompiledUnitMap *all_units,
+                                         int indent_wide,
+                                         std::string *buf) {
+    MemoryOutputStream stream(buf);
+    ToYamlString(all_units, indent_wide, &stream);
 }
 
 } // namespace mio

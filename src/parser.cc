@@ -248,7 +248,7 @@ ValDeclaration *Parser::ParseValDeclaration(bool is_export, bool *ok) {
 
 VarDeclaration *Parser::ParseVarDeclaration(bool is_export, bool *ok) {
     auto position = ahead_.position();
-    Match(TOKEN_VAL, CHECK_OK);
+    Match(TOKEN_VAR, CHECK_OK);
 
     std::string name;
     Match(TOKEN_ID, &name, CHECK_OK);
@@ -348,6 +348,7 @@ Expression *Parser::ParseExpression(bool ignore, int limit, int *rop, bool *ok) 
         case TOKEN_FALSE:
         case TOKEN_FUNCTION:
         case TOKEN_LAMBDA:
+        case TOKEN_LPAREN:
             return ParseOperation(limit, rop, ok);
 
         case TOKEN_IF:
