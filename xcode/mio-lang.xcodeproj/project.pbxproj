@@ -7,6 +7,22 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		232434641E78EEC70054C385 /* vm.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434631E78EEC70054C385 /* vm.cc */; };
+		232434651E78EEC70054C385 /* vm.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434631E78EEC70054C385 /* vm.cc */; };
+		232434681E7922C10054C385 /* vm-thread.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434671E7922C10054C385 /* vm-thread.cc */; };
+		232434691E7922C10054C385 /* vm-thread.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434671E7922C10054C385 /* vm-thread.cc */; };
+		2324346C1E7926F50054C385 /* vm-memory-segment.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2324346B1E7926F50054C385 /* vm-memory-segment.cc */; };
+		2324346D1E7926F50054C385 /* vm-memory-segment.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2324346B1E7926F50054C385 /* vm-memory-segment.cc */; };
+		232434701E7929DD0054C385 /* vm-bitcode-builder.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2324346F1E7929DD0054C385 /* vm-bitcode-builder.cc */; };
+		232434711E7929DD0054C385 /* vm-bitcode-builder.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2324346F1E7929DD0054C385 /* vm-bitcode-builder.cc */; };
+		232434731E7A203D0054C385 /* vm-memory-segment-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434721E7A203D0054C385 /* vm-memory-segment-test.cc */; };
+		232434791E7A77020054C385 /* vm-bitcode-builder-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434781E7A77020054C385 /* vm-bitcode-builder-test.cc */; };
+		2324347C1E7A84C20054C385 /* vm-bitcode-disassembler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2324347B1E7A84C20054C385 /* vm-bitcode-disassembler.cc */; };
+		2324347D1E7A84C20054C385 /* vm-bitcode-disassembler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2324347B1E7A84C20054C385 /* vm-bitcode-disassembler.cc */; };
+		2324347F1E7A8A850054C385 /* vm-bitcode.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2324347E1E7A8A850054C385 /* vm-bitcode.cc */; };
+		232434801E7A8A850054C385 /* vm-bitcode.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2324347E1E7A8A850054C385 /* vm-bitcode.cc */; };
+		232434831E7AA13F0054C385 /* vm-stack.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434821E7AA13F0054C385 /* vm-stack.cc */; };
+		232434841E7AA13F0054C385 /* vm-stack.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434821E7AA13F0054C385 /* vm-stack.cc */; };
 		2349E56C1E4AA77F002883BC /* number-parser.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E56B1E4AA77F002883BC /* number-parser.cc */; };
 		2349E56D1E4AA77F002883BC /* number-parser.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E56B1E4AA77F002883BC /* number-parser.cc */; };
 		2349E56F1E4AB1BB002883BC /* number-parser-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E56E1E4AB1BB002883BC /* number-parser-test.cc */; };
@@ -89,6 +105,23 @@
 
 /* Begin PBXFileReference section */
 		231B09A31E45B86D00BC6D18 /* mio-lang */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "mio-lang"; sourceTree = BUILT_PRODUCTS_DIR; };
+		232434611E78DFD00054C385 /* vm-bitcode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-bitcode.h"; sourceTree = "<group>"; };
+		232434621E78EE7E0054C385 /* vm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vm.h; sourceTree = "<group>"; };
+		232434631E78EEC70054C385 /* vm.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = vm.cc; sourceTree = "<group>"; };
+		232434661E79226B0054C385 /* vm-thread.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-thread.h"; sourceTree = "<group>"; };
+		232434671E7922C10054C385 /* vm-thread.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-thread.cc"; sourceTree = "<group>"; };
+		2324346A1E7925000054C385 /* vm-memory-segment.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-memory-segment.h"; sourceTree = "<group>"; };
+		2324346B1E7926F50054C385 /* vm-memory-segment.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-memory-segment.cc"; sourceTree = "<group>"; };
+		2324346E1E7928B60054C385 /* vm-bitcode-builder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-bitcode-builder.h"; sourceTree = "<group>"; };
+		2324346F1E7929DD0054C385 /* vm-bitcode-builder.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-bitcode-builder.cc"; sourceTree = "<group>"; };
+		232434721E7A203D0054C385 /* vm-memory-segment-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-memory-segment-test.cc"; sourceTree = "<group>"; };
+		232434741E7A25CE0054C385 /* code-label.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "code-label.h"; sourceTree = "<group>"; };
+		232434781E7A77020054C385 /* vm-bitcode-builder-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-bitcode-builder-test.cc"; sourceTree = "<group>"; };
+		2324347A1E7A83470054C385 /* vm-bitcode-disassembler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-bitcode-disassembler.h"; sourceTree = "<group>"; };
+		2324347B1E7A84C20054C385 /* vm-bitcode-disassembler.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-bitcode-disassembler.cc"; sourceTree = "<group>"; };
+		2324347E1E7A8A850054C385 /* vm-bitcode.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-bitcode.cc"; sourceTree = "<group>"; };
+		232434811E7A9E970054C385 /* vm-stack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-stack.h"; sourceTree = "<group>"; };
+		232434821E7AA13F0054C385 /* vm-stack.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-stack.cc"; sourceTree = "<group>"; };
 		2349E56A1E4AA70B002883BC /* number-parser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "number-parser.h"; sourceTree = "<group>"; };
 		2349E56B1E4AA77F002883BC /* number-parser.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "number-parser.cc"; sourceTree = "<group>"; };
 		2349E56E1E4AB1BB002883BC /* number-parser-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "number-parser-test.cc"; sourceTree = "<group>"; };
@@ -219,6 +252,13 @@
 				23E3D5A71E65075C00C51DDE /* checker.cc */,
 				23E3D5B31E6FFF5900C51DDE /* compiler.cc */,
 				23E3D5B71E700A7000C51DDE /* simple-file-system.cc */,
+				232434631E78EEC70054C385 /* vm.cc */,
+				232434671E7922C10054C385 /* vm-thread.cc */,
+				2324347E1E7A8A850054C385 /* vm-bitcode.cc */,
+				232434821E7AA13F0054C385 /* vm-stack.cc */,
+				2324346B1E7926F50054C385 /* vm-memory-segment.cc */,
+				2324346F1E7929DD0054C385 /* vm-bitcode-builder.cc */,
+				2324347B1E7A84C20054C385 /* vm-bitcode-disassembler.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -251,6 +291,14 @@
 				23E3D5A61E6506F200C51DDE /* compiler.h */,
 				23E3D5A51E6506AB00C51DDE /* checker.h */,
 				23E3D5B61E7007E000C51DDE /* simple-file-system.h */,
+				232434741E7A25CE0054C385 /* code-label.h */,
+				232434621E78EE7E0054C385 /* vm.h */,
+				232434661E79226B0054C385 /* vm-thread.h */,
+				232434611E78DFD00054C385 /* vm-bitcode.h */,
+				232434811E7A9E970054C385 /* vm-stack.h */,
+				2324346A1E7925000054C385 /* vm-memory-segment.h */,
+				2324346E1E7928B60054C385 /* vm-bitcode-builder.h */,
+				2324347A1E7A83470054C385 /* vm-bitcode-disassembler.h */,
 			);
 			name = Include;
 			path = ../src;
@@ -271,6 +319,8 @@
 				2349E5931E56FF12002883BC /* parser-test.cc */,
 				23E3D5AA1E6CF20700C51DDE /* checker-test.cc */,
 				23E3D5AD1E6D004C00C51DDE /* scopes-test.cc */,
+				232434721E7A203D0054C385 /* vm-memory-segment-test.cc */,
+				232434781E7A77020054C385 /* vm-bitcode-builder-test.cc */,
 			);
 			name = Tests;
 			path = ../src;
@@ -365,8 +415,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				232434641E78EEC70054C385 /* vm.cc in Sources */,
 				23E3D5A81E65075C00C51DDE /* checker.cc in Sources */,
 				2349E58D1E56FCC9002883BC /* ast.cc in Sources */,
+				232434701E7929DD0054C385 /* vm-bitcode-builder.cc in Sources */,
+				232434681E7922C10054C385 /* vm-thread.cc in Sources */,
 				2349E5721E4B1800002883BC /* keywords.c in Sources */,
 				23E3D5A31E63C6DD00C51DDE /* scopes.cc in Sources */,
 				23E3D5C01E77C51800C51DDE /* memory-output-stream.cc in Sources */,
@@ -379,11 +432,15 @@
 				2349E56C1E4AA77F002883BC /* number-parser.cc in Sources */,
 				23E3D5B81E700A7000C51DDE /* simple-file-system.cc in Sources */,
 				23E3D5BC1E767F8600C51DDE /* text-output-stream.cc in Sources */,
+				2324347F1E7A8A850054C385 /* vm-bitcode.cc in Sources */,
+				2324347C1E7A84C20054C385 /* vm-bitcode-disassembler.cc in Sources */,
 				23E3D59F1E600DCE00C51DDE /* types.cc in Sources */,
+				2324346C1E7926F50054C385 /* vm-memory-segment.cc in Sources */,
 				236202591E45C58800B6B949 /* token.cc in Sources */,
 				236202601E48221700B6B949 /* text-input-stream.cc in Sources */,
 				2349E5911E56FF02002883BC /* parser.cc in Sources */,
 				23E3D5B41E6FFF5900C51DDE /* compiler.cc in Sources */,
+				232434831E7AA13F0054C385 /* vm-stack.cc in Sources */,
 				23E3D5B11E6FA55600C51DDE /* file-input-stream.cc in Sources */,
 				2349E5761E4C5310002883BC /* zone.cc in Sources */,
 			);
@@ -394,9 +451,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				23E3D5C11E77C51800C51DDE /* memory-output-stream.cc in Sources */,
+				232434791E7A77020054C385 /* vm-bitcode-builder-test.cc in Sources */,
 				2349E56D1E4AA77F002883BC /* number-parser.cc in Sources */,
+				2324347D1E7A84C20054C385 /* vm-bitcode-disassembler.cc in Sources */,
 				2349E5861E56EF38002883BC /* raw-string-test.cc in Sources */,
 				2349E56F1E4AB1BB002883BC /* number-parser-test.cc in Sources */,
+				232434691E7922C10054C385 /* vm-thread.cc in Sources */,
 				235808151E495CE200C8C567 /* lexer-test.cc in Sources */,
 				2349E5771E4C5310002883BC /* zone.cc in Sources */,
 				23E3D5AC1E6CF20700C51DDE /* checker-test.cc in Sources */,
@@ -412,18 +472,24 @@
 				23E3D5C91E77CBCC00C51DDE /* file-output-stream.cc in Sources */,
 				23E3D5B51E6FFF5900C51DDE /* compiler.cc in Sources */,
 				2362025A1E45C58800B6B949 /* token.cc in Sources */,
+				232434711E7929DD0054C385 /* vm-bitcode-builder.cc in Sources */,
 				23E3D5BD1E767F8600C51DDE /* text-output-stream.cc in Sources */,
 				23E3D5A01E600DCE00C51DDE /* types.cc in Sources */,
 				2349E58E1E56FCC9002883BC /* ast.cc in Sources */,
 				23E3D5A91E65075C00C51DDE /* checker.cc in Sources */,
 				2349E57A1E554426002883BC /* zone-test.cc in Sources */,
 				2349E5731E4B1800002883BC /* keywords.c in Sources */,
+				232434801E7A8A850054C385 /* vm-bitcode.cc in Sources */,
+				232434731E7A203D0054C385 /* vm-memory-segment-test.cc in Sources */,
 				236202611E48221700B6B949 /* text-input-stream.cc in Sources */,
+				232434651E78EEC70054C385 /* vm.cc in Sources */,
 				2349E5921E56FF02002883BC /* parser.cc in Sources */,
+				2324346D1E7926F50054C385 /* vm-memory-segment.cc in Sources */,
 				2349E58B1E56F3DB002883BC /* raw-string.cc in Sources */,
 				236202521E45BC7E00B6B949 /* base-test.cc in Sources */,
 				2349E57D1E55DD3C002883BC /* zone-hash-map-test.cc in Sources */,
 				236202491E45BC0E00B6B949 /* base.cc in Sources */,
+				232434841E7AA13F0054C385 /* vm-stack.cc in Sources */,
 				23E3D5B91E700A7000C51DDE /* simple-file-system.cc in Sources */,
 				2349E5801E56A71E002883BC /* zone-vector-test.cc in Sources */,
 			);

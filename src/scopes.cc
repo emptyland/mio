@@ -90,7 +90,8 @@ Variable *Scope::Declare(RawStringRef name, Declaration *declaration) {
     if (!has_insert) {
         return nullptr;
     }
-    auto var = new (zone_) Variable(declaration, declaration->position());
+    auto var = new (zone_) Variable(declaration, zone_->generated_id(),
+                                    declaration->position());
     pair->set_value(var);
     return var;
 }

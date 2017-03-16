@@ -58,6 +58,7 @@ namespace mio {
     M(PACKAGE, 0, "package") \
     M(WITH, 0, "with") \
     M(AS, 0, "as") \
+    M(IS, 0, "is") \
     M(BOOL, 0, "bool") \
     M(I8, 0, "i8") \
     M(I16, 0, "i16") \

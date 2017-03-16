@@ -20,6 +20,8 @@ namespace mio {
 #define DEFINE_EXPRESSION_NODES(M) \
     M(UnaryOperation) \
     M(BinaryOperation) \
+    M(TypeTest) \
+    M(TypeCast) \
     M(SmiLiteral) \
     M(Variable) \
     M(Symbol) \
@@ -41,6 +43,14 @@ namespace mio {
     virtual AstNode::NodeType node_type() const override \
         { return AstNode::k##name; }
 
+#define AST_GETTER(field_type, name) \
+    field_type *name() const { return name##_; }
+#define AST_SETTER(field_type, name) \
+    void set_##name(field_type *node) { name##_ = DCHECK_NOTNULL(node); }
+#define AST_ACCESS(field_type, name) \
+    AST_GETTER(field_type, name) \
+    AST_SETTER(field_type, name)
+
 class AstNode;
     class Statement;
         class Expression;
@@ -57,6 +67,8 @@ class AstNode;
                 class FunctionLiteral;
             class UnaryOperation;
             class BinaryOperation;
+            class TypeTest;
+            class TypeCast;
         class Declaration;
             class ValDeclaration;
             class VarDeclaration;
@@ -518,6 +530,41 @@ private:
 }; // class BinaryOperation
 
 
+// expr is int
+class TypeTest : public Expression {
+public:
+    Expression *expression() const { return expression_; }
+    Type *type() const { return type_; }
+
+    DECLARE_AST_NODE(TypeTest)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(TypeTest)
+private:
+    TypeTest(Expression *expression, Type *type, int position)
+        : Expression(position)
+        , expression_(DCHECK_NOTNULL(expression))
+        , type_(DCHECK_NOTNULL(type)) {}
+
+    Expression *expression_;
+    Type *type_;
+}; // class TypeTest
+
+
+class TypeCast : public Expression {
+public:
+    Expression *expression() const { return expression_; }
+    Type *type() const { return type_; }
+
+    DECLARE_AST_NODE(TypeCast)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(TypeCast)
+private:
+    TypeCast(Expression *expression, Type *type, int position)
+        : Expression(position)
+        , expression_(DCHECK_NOTNULL(expression))
+        , type_(DCHECK_NOTNULL(type)) {}
+
+    Expression *expression_;
+    Type *type_;
+}; // class TypeCast
 
 class Variable : public Expression {
 public:
@@ -527,9 +574,10 @@ public:
 //        ARGUMENT,
 //        UP_VALUE,
 //    };
-    Variable(Declaration *declaration, int position)
+    Variable(Declaration *declaration, int64_t unique_id, int position)
         : Expression(position)
-        , declaration_(DCHECK_NOTNULL(declaration)) {
+        , declaration_(DCHECK_NOTNULL(declaration))
+        , unique_id_(unique_id) {
     }
 
     bool is_read_only() const {
@@ -549,10 +597,13 @@ public:
 
     RawStringRef name() const { return declaration_->name(); }
 
+    int64_t unique_id() const { return unique_id_; }
+
     DECLARE_AST_NODE(Variable)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Variable)
 private:
     Declaration *declaration_;
+    int64_t unique_id_;
 }; // class Variable
 
 
@@ -886,9 +937,9 @@ public:
                                           position);
     }
 
-    Variable *CreateVariable(Declaration *declaration,
+    Variable *CreateVariable(Declaration *declaration, int64_t unique_id,
                              int position) {
-        return new (zone_) Variable(declaration, position);
+        return new (zone_) Variable(declaration, unique_id, position);
     }
 
 private:

@@ -33,6 +33,16 @@ typedef double   mio_f64_t;
     void operator = (const clazz_name &) = delete;
 
 /**
+ * Constants
+ *
+ */
+static const int kPageSizeShift = 12;
+
+static const int kPageSize = (1 << kPageSizeShift); // 4 KB
+
+static const int kAlignmentSize = 4;
+
+/**
  * disable copy constructor, assign operator function.
  *
  */
@@ -77,13 +87,13 @@ char (&ArraySizeHelper(const T (&array)[N]))[N];
 #define DEF_SETTER(type, name) \
     inline void set_##name(const type &value) { name##_ = value; }
 
-    template<class T, class F>
-    inline T *down_cast(F *from) {
+template<class T, class F>
+inline T *down_cast(F *from) {
 #ifndef NDEBUG
-        DCHECK_NOTNULL(dynamic_cast<T*>(from));
+    DCHECK_NOTNULL(dynamic_cast<T*>(from));
 #endif
-        return static_cast<T*>(from);
-    }
+    return static_cast<T*>(from);
+}
 
 #define IS_POWER_OF_TWO(x) (((x) & ((x) - 1)) == 0)
 

@@ -21,22 +21,23 @@ class Zone {
 public:
     static const int kNumberOfSlabs     = 8;
 
-    static const int kPageShift         = 12;
-    static const int kPageSize          = (1 << kPageShift); // 4k
     static const uintptr_t kPageAlignmentMask = ~(kPageSize - 1);
-
-    static const int kAlignmentSize     = 4;
 
     static const int kMinAllocatedShift = 4;
     static const int kMinAllocatedSize  = (1 << kMinAllocatedShift);
 
     static const int kDefaultMaxCacheBytes = kPageSize * 4;
 
-    Zone();
+    static const int64_t kInitialSeed = 1315423911;
+
+    Zone() : Zone(kInitialSeed) {}
+    explicit Zone(int64_t seed);
     ~Zone();
 
     DEF_PROP_RW(size_t, max_cache_bytes)
     DEF_PROP_RW(size_t, keeped_cache_bytes)
+
+    int64_t generated_id() { return seed_; }
 
     size_t slab_chunk_size(int index) const;
     int slab_max_chunks(int index) const;
@@ -47,12 +48,18 @@ public:
     void AssertionTest();
     void PreheatEverySlab();
 
+    void GenerateUniqueId() {
+        seed_ ^= ((seed_ << 5) + (sequence_id_++) + (seed_ >> 2));
+    }
+
     void TEST_Report();
 
     typedef ZonePage Page;
     typedef ZoneSlab Slab;
 private:
     Slab *slabs_ = nullptr;
+    int64_t sequence_id_ = 0;
+    int64_t seed_;
     size_t max_cache_bytes_ = kDefaultMaxCacheBytes;
     size_t keeped_cache_bytes_ = kDefaultMaxCacheBytes / 2;
 }; // class Zone

@@ -109,14 +109,14 @@ private:
 }; // class ZoneSlab
 
 void ZoneSlab::Init(size_t chunk_size) {
-    max_chunks_ = (Zone::kPageSize - sizeof(ZonePage)) / chunk_size;
+    max_chunks_ = (kPageSize - sizeof(ZonePage)) / chunk_size;
     chunk_size_ = chunk_size;
     bitmap_bytes_ = (max_chunks_ + 8) / 8;
 
     if (bitmap_bytes_ >= 2) {
         kind_ = PAGE_SMALL;
         bitmap_bytes_ = bitmap_bytes_ < 4 ? 4 : bitmap_bytes_;
-        max_chunks_ = (Zone::kPageSize - sizeof(ZonePage) - bitmap_bytes_) / chunk_size;
+        max_chunks_ = (kPageSize - sizeof(ZonePage) - bitmap_bytes_) / chunk_size;
     } else {
         kind_ = PAGE_NORMAL;
         bitmap_bytes_ = 0; // normal page's bitmap in slab member
@@ -303,14 +303,14 @@ void ZoneSlab::FreeToPage(ZonePage *page, const void *p) {
 }
 
 ZonePage *ZoneSlab::NewPage(int shift) {
-    auto *chunk = valloc(Zone::kPageSize);
+    auto *chunk = valloc(kPageSize);
     if (!chunk) {
         DLOG(ERROR) << "allocate page fail! out of memory!";
         return nullptr;
     }
 
     auto ptr = reinterpret_cast<intptr_t>(chunk);
-    DCHECK(ptr % Zone::kPageSize == 0) << "not align to page_size";
+    DCHECK(ptr % kPageSize == 0) << "not align to page_size";
 
     auto page = static_cast<ZonePage *>(chunk);
     List::Init(page);
@@ -352,8 +352,9 @@ inline size_t ZoneSlab::PurgeCache(size_t keeped_size) {
     return cached_size_;
 }
 
-Zone::Zone()
-    : slabs_(new Slab[kNumberOfSlabs]) {
+Zone::Zone(int64_t seed)
+    : slabs_(new Slab[kNumberOfSlabs])
+    , seed_(0) {
     for (int i = 0; i < kNumberOfSlabs; i++) {
         slabs_[i].Init(kMinAllocatedSize << i);
     }
@@ -380,6 +381,8 @@ int Zone::slab_max_chunks(int index) const {
 }
 
 void *Zone::Allocate(size_t size) {
+    GenerateUniqueId();
+
     if (!size) {
         return nullptr;
     }
@@ -405,6 +408,8 @@ void *Zone::Allocate(size_t size) {
 }
 
 void Zone::Free(const void *p) {
+    GenerateUniqueId();
+
     if (!p) {
         return;
     }

@@ -13,6 +13,7 @@ not, TOKEN_NOT
 package, TOKEN_PACKAGE
 with, TOKEN_WITH
 as, TOKEN_AS
+is, TOKEN_IS
 bool TOKEN_BOOL
 true, TOKEN_TRUE
 false, TOKEN_FALSE

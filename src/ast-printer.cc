@@ -55,6 +55,14 @@ public:
         Indent(); WriteMapPair("rhs", node->rhs());
     }
 
+    virtual void VisitTypeTest(TypeTest *node) override {
+        // TODO:
+    }
+
+    virtual void VisitTypeCast(TypeCast *node) override {
+        // TODO:
+    }
+
     // i1: 1
     // i32: 100
     virtual void VisitSmiLiteral(SmiLiteral *node) override {
