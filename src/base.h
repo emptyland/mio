@@ -32,6 +32,7 @@ typedef double   mio_f64_t;
     clazz_name (clazz_name &&) = delete;           \
     void operator = (const clazz_name &) = delete;
 
+
 /**
  * Constants
  *
@@ -41,6 +42,8 @@ static const int kPageSizeShift = 12;
 static const int kPageSize = (1 << kPageSizeShift); // 4 KB
 
 static const int kAlignmentSize = 4;
+
+static const int kDefaultMaxCallDeep = 0xfff;
 
 /**
  * disable copy constructor, assign operator function.

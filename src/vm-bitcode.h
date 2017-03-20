@@ -59,13 +59,18 @@ namespace mio {
 #define VM_TEST_BC(M) \
     M(test) \
 
+#define VM_CALL_BC(M) \
+    M(call) \
+    M(call_val) \
+    M(frame) \
+    M(ret)
+
 #define VM_ALL_BITCODE(M) \
     M(debug) \
-    M(call) \
-    M(call_native) \
     VM_LOAD_BC(M) \
     VM_ADD_BC(M) \
-    VM_TEST_BC(M)
+    VM_TEST_BC(M) \
+    VM_CALL_BC(M)
 
 
 enum BCInstruction : uint8_t {

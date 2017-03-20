@@ -36,6 +36,12 @@ public:
     static int32_t GetImm32(uint64_t bc) {
         return static_cast<int32_t>(bc & 0xffffffff);
     }
+    static int16_t GetVal1(uint64_t bc) {
+        return static_cast<int16_t>((bc & 0xffffffff) >> 16);
+    }
+    static int16_t GetVal2(uint64_t bc) {
+        return static_cast<int16_t>(bc & 0xffffffff);
+    }
 
     static void Disassemble(MemorySegment *code, int number_of_inst,
                             TextOutputStream *stream);

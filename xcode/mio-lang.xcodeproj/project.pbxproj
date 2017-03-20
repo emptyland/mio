@@ -23,6 +23,10 @@
 		232434801E7A8A850054C385 /* vm-bitcode.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2324347E1E7A8A850054C385 /* vm-bitcode.cc */; };
 		232434831E7AA13F0054C385 /* vm-stack.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434821E7AA13F0054C385 /* vm-stack.cc */; };
 		232434841E7AA13F0054C385 /* vm-stack.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434821E7AA13F0054C385 /* vm-stack.cc */; };
+		232434861E7B935B0054C385 /* vm-thread-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434851E7B935B0054C385 /* vm-thread-test.cc */; };
+		232434871E7B935B0054C385 /* vm-thread-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434851E7B935B0054C385 /* vm-thread-test.cc */; };
+		2324348A1E7BBEA00054C385 /* vm-objects.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434891E7BBEA00054C385 /* vm-objects.cc */; };
+		2324348B1E7BBEA00054C385 /* vm-objects.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434891E7BBEA00054C385 /* vm-objects.cc */; };
 		2349E56C1E4AA77F002883BC /* number-parser.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E56B1E4AA77F002883BC /* number-parser.cc */; };
 		2349E56D1E4AA77F002883BC /* number-parser.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E56B1E4AA77F002883BC /* number-parser.cc */; };
 		2349E56F1E4AB1BB002883BC /* number-parser-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E56E1E4AB1BB002883BC /* number-parser-test.cc */; };
@@ -122,6 +126,10 @@
 		2324347E1E7A8A850054C385 /* vm-bitcode.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-bitcode.cc"; sourceTree = "<group>"; };
 		232434811E7A9E970054C385 /* vm-stack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-stack.h"; sourceTree = "<group>"; };
 		232434821E7AA13F0054C385 /* vm-stack.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-stack.cc"; sourceTree = "<group>"; };
+		232434851E7B935B0054C385 /* vm-thread-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-thread-test.cc"; sourceTree = "<group>"; };
+		232434881E7BBDD30054C385 /* vm-objects.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-objects.h"; sourceTree = "<group>"; };
+		232434891E7BBEA00054C385 /* vm-objects.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-objects.cc"; sourceTree = "<group>"; };
+		2324348C1E7BCCAA0054C385 /* handles.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = handles.h; sourceTree = "<group>"; };
 		2349E56A1E4AA70B002883BC /* number-parser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "number-parser.h"; sourceTree = "<group>"; };
 		2349E56B1E4AA77F002883BC /* number-parser.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "number-parser.cc"; sourceTree = "<group>"; };
 		2349E56E1E4AB1BB002883BC /* number-parser-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "number-parser-test.cc"; sourceTree = "<group>"; };
@@ -259,6 +267,7 @@
 				2324346B1E7926F50054C385 /* vm-memory-segment.cc */,
 				2324346F1E7929DD0054C385 /* vm-bitcode-builder.cc */,
 				2324347B1E7A84C20054C385 /* vm-bitcode-disassembler.cc */,
+				232434891E7BBEA00054C385 /* vm-objects.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -299,6 +308,8 @@
 				2324346A1E7925000054C385 /* vm-memory-segment.h */,
 				2324346E1E7928B60054C385 /* vm-bitcode-builder.h */,
 				2324347A1E7A83470054C385 /* vm-bitcode-disassembler.h */,
+				232434881E7BBDD30054C385 /* vm-objects.h */,
+				2324348C1E7BCCAA0054C385 /* handles.h */,
 			);
 			name = Include;
 			path = ../src;
@@ -321,6 +332,7 @@
 				23E3D5AD1E6D004C00C51DDE /* scopes-test.cc */,
 				232434721E7A203D0054C385 /* vm-memory-segment-test.cc */,
 				232434781E7A77020054C385 /* vm-bitcode-builder-test.cc */,
+				232434851E7B935B0054C385 /* vm-thread-test.cc */,
 			);
 			name = Tests;
 			path = ../src;
@@ -419,6 +431,7 @@
 				23E3D5A81E65075C00C51DDE /* checker.cc in Sources */,
 				2349E58D1E56FCC9002883BC /* ast.cc in Sources */,
 				232434701E7929DD0054C385 /* vm-bitcode-builder.cc in Sources */,
+				232434861E7B935B0054C385 /* vm-thread-test.cc in Sources */,
 				232434681E7922C10054C385 /* vm-thread.cc in Sources */,
 				2349E5721E4B1800002883BC /* keywords.c in Sources */,
 				23E3D5A31E63C6DD00C51DDE /* scopes.cc in Sources */,
@@ -431,6 +444,7 @@
 				23E3D5C81E77CBCC00C51DDE /* file-output-stream.cc in Sources */,
 				2349E56C1E4AA77F002883BC /* number-parser.cc in Sources */,
 				23E3D5B81E700A7000C51DDE /* simple-file-system.cc in Sources */,
+				2324348A1E7BBEA00054C385 /* vm-objects.cc in Sources */,
 				23E3D5BC1E767F8600C51DDE /* text-output-stream.cc in Sources */,
 				2324347F1E7A8A850054C385 /* vm-bitcode.cc in Sources */,
 				2324347C1E7A84C20054C385 /* vm-bitcode-disassembler.cc in Sources */,
@@ -453,6 +467,7 @@
 				23E3D5C11E77C51800C51DDE /* memory-output-stream.cc in Sources */,
 				232434791E7A77020054C385 /* vm-bitcode-builder-test.cc in Sources */,
 				2349E56D1E4AA77F002883BC /* number-parser.cc in Sources */,
+				2324348B1E7BBEA00054C385 /* vm-objects.cc in Sources */,
 				2324347D1E7A84C20054C385 /* vm-bitcode-disassembler.cc in Sources */,
 				2349E5861E56EF38002883BC /* raw-string-test.cc in Sources */,
 				2349E56F1E4AB1BB002883BC /* number-parser-test.cc in Sources */,
@@ -478,6 +493,7 @@
 				2349E58E1E56FCC9002883BC /* ast.cc in Sources */,
 				23E3D5A91E65075C00C51DDE /* checker.cc in Sources */,
 				2349E57A1E554426002883BC /* zone-test.cc in Sources */,
+				232434871E7B935B0054C385 /* vm-thread-test.cc in Sources */,
 				2349E5731E4B1800002883BC /* keywords.c in Sources */,
 				232434801E7A8A850054C385 /* vm-bitcode.cc in Sources */,
 				232434731E7A203D0054C385 /* vm-memory-segment-test.cc in Sources */,

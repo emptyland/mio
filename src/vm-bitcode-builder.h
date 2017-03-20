@@ -26,8 +26,8 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     // load
     ////////////////////////////////////////////////////////////////////////////
-    int load_i32_imm(int32_t imm) {
-        return Emit3Addr(BC_load_i32_imm, 0, 0, imm);
+    int load_i32_imm(uint16_t dest, int32_t imm) {
+        return Emit3Addr(BC_load_i32_imm, dest, 0, imm);
     }
 
     int load(CodeLabel *label);
@@ -52,12 +52,28 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     int call(uint16_t base1, uint16_t base2, CodeLabel *label);
 
+    int call_val(uint16_t base1, uint16_t base2, int32_t obj) {
+        return Emit3Addr(BC_call_val, base1, base2, obj);
+    }
+
+    int ret() {
+        return EmitInstOnly(BC_ret);
+    }
+
+    int frame(int16_t size1, int16_t size2) {
+        return EmitS2Addr(BC_frame, size1, size2);
+    }
+
     int EmitInstOnly(BCInstruction inst) {
         return EmitBitCode(static_cast<uint64_t>(inst) << 56);
     }
 
     int Emit2Addr(BCInstruction inst, uint16_t op1, uint16_t op2) {
         return Emit3Addr(inst, op1, op2, 0);
+    }
+
+    int EmitS2Addr(BCInstruction inst, int16_t val1, int16_t val2) {
+        return EmitBitCode(MakeS2AddrBC(inst, val1, val2));
     }
 
     // op(8bits) result(12bits) op1(12bits) op2(32bits)
@@ -79,6 +95,11 @@ public:
                (static_cast<uint64_t>(result & 0xfff) << 44) |
                (static_cast<uint64_t>(op1 & 0xfff) << 32)    |
                op2;
+    }
+
+    static uint64_t MakeS2AddrBC(BCInstruction inst, int16_t val1, int16_t val2) {
+        return (static_cast<uint64_t>(inst) << 56) |
+                static_cast<uint64_t>((val1 << 16) | val2);
     }
 private:
     MemorySegment *code_;
