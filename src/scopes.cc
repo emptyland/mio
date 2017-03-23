@@ -93,6 +93,7 @@ Variable *Scope::Declare(RawStringRef name, Declaration *declaration) {
     auto var = new (zone_) Variable(declaration, zone_->generated_id(),
                                     declaration->position());
     pair->set_value(var);
+    declaration->set_instance(var);
     return var;
 }
 

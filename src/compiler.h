@@ -15,6 +15,9 @@ class SimpleFileSystem;
 // [unitName, [statement]]
 typedef ZoneHashMap<RawStringRef, ZoneVector<Statement *> *> CompiledUnitMap;
 
+// [moduleName [unitName, statements]]
+typedef ZoneHashMap<RawStringRef, CompiledUnitMap *> CompiledModuleMap;
+
 struct ParsingError {
     int column;
     int line;

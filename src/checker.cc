@@ -290,6 +290,7 @@ private:
         }
     }
     DCHECK_NE(types_->GetUnknown(), proto->return_type());
+    node->set_return_type(proto->return_type());
     PushEvalType(proto->return_type());
 }
 

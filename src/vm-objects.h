@@ -1,6 +1,7 @@
 #ifndef MIO_VM_OBJECTS_H_
 #define MIO_VM_OBJECTS_H_
 
+#include "handles.h"
 #include "base.h"
 
 namespace mio {
@@ -13,21 +14,23 @@ class MIOString;
 class MIOFunction;
     class MIONativeFunction;
     class MIONormalFunction;
+class MIOHashMap;
 
 #define MIO_OBJECTS(M) \
     M(String) \
     M(NativeFunction) \
-    M(NormalFunction)
+    M(NormalFunction) \
+    M(HashMap)
 
 typedef int (*MIOFunctionPrototype)(VM *, Thread *);
 
 template<class T>
-inline T HeapObjectGet(const HeapObject *obj, int offset) {
+inline T HeapObjectGet(const void *obj, int offset) {
     return *reinterpret_cast<const T *>(reinterpret_cast<const uint8_t *>(obj) + offset);
 }
 
 template<class T>
-inline void HeapObjectSet(HeapObject *obj, int offset, T value) {
+inline void HeapObjectSet(void *obj, int offset, T value) {
     *reinterpret_cast<T *>(reinterpret_cast<uint8_t *>(obj) + offset) = value;
 }
 
@@ -115,6 +118,7 @@ public:
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIONativeFunction)
 }; // class MIONativeFunction
 
+
 class MIONormalFunction : public MIOFunction {
 public:
 
@@ -125,6 +129,52 @@ public:
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIONormalFunction)
 }; // class NormalFunction
+
+class MapPair;
+
+class MIOHashMap : public HeapObject {
+public:
+    static const int kDefaultInitialSlots = 4;
+
+    static const int kSeedOffset = kHeapObjectOffset;
+    static const int kFlagsOffset = kSeedOffset + sizeof(int);
+    static const int kSizeOffset = kFlagsOffset + sizeof(uint32_t);
+    static const int kNumberOfSlotsOffset = kSizeOffset + sizeof(int);
+    static const int kSlotsOffset = kNumberOfSlotsOffset + sizeof(int);
+    static const int kMIOHashMapOffset = kSlotsOffset + sizeof(MapPair *);
+
+    DEFINE_HEAP_OBJ_RW(int, Seed)
+    DEFINE_HEAP_OBJ_RW(uint32_t, Flags)
+    DEFINE_HEAP_OBJ_RW(int, Size)
+    DEFINE_HEAP_OBJ_RW(int, NumberOfSlots)
+    DEFINE_HEAP_OBJ_RW(MapPair *, Slots)
+
+
+}; // class MIOHashMap
+
+class MapPair {
+public:
+    static const int kNextOffset = 0;
+    static const int kPrevOffset = kNextOffset + sizeof(MapPair *);
+    static const int kPayloadOffset = kPrevOffset + sizeof(MapPair *);
+    static const int kKeyOffset = kPayloadOffset;
+    static const int kValueOffset = kKeyOffset + sizeof(HeapObject *);
+    static const int kMIOMapPairOffset = kValueOffset + sizeof(HeapObject *);
+
+    DEFINE_HEAP_OBJ_RW(MapPair *, Next)
+    DEFINE_HEAP_OBJ_RW(MapPair *, Prev)
+
+    template<class T>
+    inline T GetKey() { return HeapObjectGet<T>(this, kKeyOffset); }
+
+    template<class T>
+    inline T GetValue() { return HeapObjectGet<T>(this, kValueOffset); }
+
+    template<class T>
+    inline void SetValue(T value) {
+        return HeapObjectSet<T>(this, kValueOffset, value);
+    }
+}; // class MIOMapPair
 
 } // namespace mio
 

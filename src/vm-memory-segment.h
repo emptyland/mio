@@ -28,6 +28,11 @@ public:
         return Advance(static_cast<int>(AlignDownBounds(kAlignmentSize, add)));
     }
 
+    template<class T>
+    void Add(T value) {
+        *static_cast<T *>(AlignAdvance(sizeof(value))) = value;
+    }
+
 private:
     uint8_t *bytes() const { return static_cast<uint8_t *>(chunk_); }
 

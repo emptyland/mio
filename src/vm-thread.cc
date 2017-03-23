@@ -132,7 +132,7 @@ void Thread::Execute(int pc, bool *ok) {
                 }
 
                 auto obj_addr = BitCodeDisassembler::GetImm32(bc);
-                Local<HeapObject> obj(static_cast<HeapObject *>(o_stack_->offset(obj_addr)));
+                Local<HeapObject> obj(o_stack_->Get<HeapObject *>(obj_addr));
                 DCHECK(obj->IsNativeFunction() || obj->IsNormalFunction());
 
                 if (obj->IsNativeFunction()) {
@@ -142,6 +142,12 @@ void Thread::Execute(int pc, bool *ok) {
                         exit_code_ = NULL_NATIVE_FUNCTION;
                         return;
                     }
+
+                    auto base1 = BitCodeDisassembler::GetOp1(bc);
+                    auto base2 = BitCodeDisassembler::GetOp2(bc);
+                    p_stack_->AdjustFrame(base1, 0);
+                    o_stack_->AdjustFrame(base2, 0);
+
                     (*func->GetNativePointer())(vm_, this);
                 } else {
                     auto ctx = call_stack_->Push();

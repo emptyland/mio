@@ -161,6 +161,9 @@ public:
     Scope *scope() const { return scope_; }
     void set_scope(Scope *scope) { scope_ = DCHECK_NOTNULL(scope); }
 
+    Variable *instance() const { return instance_; }
+    void set_instance(Variable *instance) { instance_ = DCHECK_NOTNULL(instance); }
+
     virtual Type *type() const = 0;
 
     virtual RawStringRef name() const = 0;
@@ -172,6 +175,7 @@ protected:
         , scope_(DCHECK_NOTNULL(scope)) {}
 
     Scope *scope_;
+    Variable *instance_ = nullptr;
 }; // class Declaration
 
 
@@ -568,17 +572,22 @@ private:
 
 class Variable : public Expression {
 public:
-//    enum BindType {
-//        GLOBAL,
-//        LOCAL,
-//        ARGUMENT,
-//        UP_VALUE,
-//    };
+    enum BindKind {
+        UNBINDED,
+        GLOBAL,
+        LOCAL,
+        ARGUMENT,
+        UP_VALUE,
+    };
+
     Variable(Declaration *declaration, int64_t unique_id, int position)
         : Expression(position)
         , declaration_(DCHECK_NOTNULL(declaration))
         , unique_id_(unique_id) {
     }
+
+    DEF_PROP_RW(BindKind, bind_kind)
+    DEF_PROP_RW(int, offset)
 
     bool is_read_only() const {
         return declaration_->IsValDeclaration() ||
@@ -603,7 +612,9 @@ public:
     DISALLOW_IMPLICIT_CONSTRUCTORS(Variable)
 private:
     Declaration *declaration_;
-    int64_t unique_id_;
+    int64_t      unique_id_;
+    BindKind     bind_kind_ = UNBINDED;
+    int          offset_    = -1;
 }; // class Variable
 
 
@@ -635,6 +646,9 @@ public:
         expression_ = DCHECK_NOTNULL(expression);
     }
 
+    Type *return_type() const { return DCHECK_NOTNULL(return_type_); }
+    void set_return_type(Type *type) { return_type_ = DCHECK_NOTNULL(type); }
+
     ZoneVector<Expression *> *mutable_arguments() { return arguments_; }
 
     DECLARE_AST_NODE(Call)
@@ -648,6 +662,7 @@ private:
 
     Expression *expression_;
     ZoneVector<Expression *> *arguments_;
+    Type *return_type_ = nullptr;
 }; // class Call
 
 

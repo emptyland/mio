@@ -15,9 +15,6 @@ class TypeFactory;
 class Scope;
 class Zone;
 
-// [moduleName [unitName, statements]]
-typedef ZoneHashMap<RawStringRef, CompiledUnitMap *> CompiledModuleMap;
-
 class Checker {
 public:
     enum CheckState: int {

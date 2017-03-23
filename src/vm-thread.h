@@ -32,6 +32,8 @@ public:
     ~Thread();
 
     DEF_GETTER(ExitCode, exit_code)
+    Stack *p_stack() const { return p_stack_; }
+    Stack *o_stack() const { return o_stack_; }
 
     void Execute(int pc, bool *ok);
 
@@ -39,7 +41,7 @@ public:
 private:
     VM *vm_;
     Stack *p_stack_;
-    Stack *o_stack_ = nullptr;
+    Stack *o_stack_;
     CallStack *call_stack_;
     int pc_ = 0;
     bool should_exit_ = false;

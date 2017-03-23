@@ -13,6 +13,7 @@ class MemorySegment;
 class MIOString;
 class MIONativeFunction;
 class MIONormalFunction;
+class MIOHashMap;
 
 typedef int (*MIOFunctionPrototype)(VM *, Thread *);
 
@@ -27,6 +28,7 @@ public:
     Local<MIONativeFunction> CreateNativeFunction(const char *signature,
                                                   MIOFunctionPrototype pointer);
     Local<MIONormalFunction> CreateNormalFunction(int address);
+    Local<MIOHashMap> CreateHashMap(int seed, uint32_t flags);
 
     Thread *TEST_main_thread() const { return main_thread_; }
     MemorySegment *TEST_code() const { return code_; }

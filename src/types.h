@@ -60,6 +60,9 @@ public:
     // TODO: floating
     bool is_numeric() const { return IsIntegral(); }
 
+    // TODO: floating
+    bool is_primitive() const { return IsIntegral(); }
+
     int64_t id() const { return id_; }
 
     friend class TypeFactory;

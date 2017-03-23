@@ -17,6 +17,7 @@ public:
     void BindNow(CodeLabel *label) { BindTo(label, pc_); }
 
     DEF_GETTER(int, pc);
+    MemorySegment *code() const { return code_; }
 
     ////////////////////////////////////////////////////////////////////////////
     // debug
@@ -26,11 +27,54 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     // load
     ////////////////////////////////////////////////////////////////////////////
+    int load_1b(uint16_t dest, uint16_t segment, int32_t offset) {
+        return Emit3Addr(BC_load_1b, dest, segment, offset);
+    }
+
+    int load_2b(uint16_t dest, uint16_t segment, int32_t offset) {
+        return Emit3Addr(BC_load_2b, dest, segment, offset);
+    }
+
+    int load_4b(uint16_t dest, uint16_t segment, int32_t offset) {
+        return Emit3Addr(BC_load_4b, dest, segment, offset);
+    }
+
+    int load_8b(uint16_t dest, uint16_t segment, int32_t offset) {
+        return Emit3Addr(BC_load_8b, dest, segment, offset);
+    }
+
     int load_i32_imm(uint16_t dest, int32_t imm) {
         return Emit3Addr(BC_load_i32_imm, dest, 0, imm);
     }
 
     int load(CodeLabel *label);
+
+    int load_o(uint16_t dest, int32_t offset) {
+        return Emit3Addr(BC_load_o, dest, BC_GLOBAL_OBJECT_SEGMENT, offset);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // mov
+    ////////////////////////////////////////////////////////////////////////////
+    int mov_1b(int16_t dest, int16_t src) {
+        return EmitS2Addr(BC_mov_1b, dest, src);
+    }
+
+    int mov_2b(int16_t dest, int16_t src) {
+        return EmitS2Addr(BC_mov_2b, dest, src);
+    }
+
+    int mov_4b(int16_t dest, int16_t src) {
+        return EmitS2Addr(BC_mov_4b, dest, src);
+    }
+
+    int mov_8b(int16_t dest, int16_t src) {
+        return EmitS2Addr(BC_mov_8b, dest, src);
+    }
+
+    int mov_o(int16_t dest, int16_t src) {
+        return EmitS2Addr(BC_mov_o, dest, src);
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     // add

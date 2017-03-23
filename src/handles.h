@@ -20,6 +20,11 @@ private:
     T *object_;
 };
 
+template<class T>
+inline Local<T> make_local(T *obj) {
+    return Local<T>(obj);
+}
+
 } // namespace mio
 
 #endif // MIO_HANDLES_H_

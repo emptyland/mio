@@ -45,6 +45,8 @@ static const int kAlignmentSize = 4;
 
 static const int kDefaultMaxCallDeep = 0xfff;
 
+static const int kObjectReferenceSize = sizeof(intptr_t);
+
 /**
  * disable copy constructor, assign operator function.
  *
