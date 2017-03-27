@@ -47,6 +47,7 @@ public:
 
     Variable *Declare(RawStringRef name, Declaration *declaration);
 
+    std::string MakeFullName(RawStringRef name);
 
     typedef std::map<std::string, std::vector<Variable *>> MergingConflicts;
     // merge the low 1 layout scopes, in this layout.

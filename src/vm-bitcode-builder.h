@@ -108,6 +108,12 @@ public:
         return EmitS2Addr(BC_frame, size1, size2);
     }
 
+    int jmp(CodeLabel *label);
+
+    int jnz(uint16_t cond, CodeLabel *label);
+
+    int jz(uint16_t cond, CodeLabel *label);
+
     int EmitInstOnly(BCInstruction inst) {
         return EmitBitCode(static_cast<uint64_t>(inst) << 56);
     }

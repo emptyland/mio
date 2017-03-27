@@ -1,5 +1,6 @@
 #include "scopes.h"
 #include "ast.h"
+#include "text-output-stream.h"
 
 namespace mio {
 
@@ -95,6 +96,24 @@ Variable *Scope::Declare(RawStringRef name, Declaration *declaration) {
     pair->set_value(var);
     declaration->set_instance(var);
     return var;
+}
+
+std::string Scope::MakeFullName(RawStringRef name) {
+    std::string full_name;
+
+    auto scope = this;
+    full_name.append("::");
+    while (scope->type() != GLOBAL_SCOPE) {
+        if (scope->name() == RawString::kEmpty) {
+            full_name.insert(0, TextOutputStream::sprintf("<%p>", scope));
+        } else {
+            full_name.insert(0, scope->name()->ToString());
+        }
+        scope = scope->outter_scope_;
+    }
+    full_name.append("::");
+    full_name.append(name->ToString());
+    return full_name;
 }
 
 bool Scope::MergeInnerScopes(MergingConflicts *conflicts) {

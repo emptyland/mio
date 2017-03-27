@@ -92,7 +92,7 @@ enum BCSegment : int {
     BC_GLOBAL_OBJECT_SEGMENT,
     BC_LOCAL_PRIMITIVE_SEGMENT,
     BC_LOCAL_OBJECT_SEGMENT,
-    BC_FUNCTION,
+    MAX_BC_SEGMENTS,
 };
 
 static_assert(MAX_BC_INSTRUCTIONS <= 255, "bitcode is too much!");

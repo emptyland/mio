@@ -51,6 +51,10 @@
 		235808131E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */; };
 		235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */; };
 		235808151E495CE200C8C567 /* lexer-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2358080F1E487D4C00C8C567 /* lexer-test.cc */; };
+		2361991C1E83FE1100682485 /* vm-function-register.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2361991B1E83FE1100682485 /* vm-function-register.cc */; };
+		2361991D1E83FE1100682485 /* vm-function-register.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2361991B1E83FE1100682485 /* vm-function-register.cc */; };
+		236199201E84CCB900682485 /* vm-object-factory.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2361991F1E84CCB900682485 /* vm-object-factory.cc */; };
+		236199211E84CCB900682485 /* vm-object-factory.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2361991F1E84CCB900682485 /* vm-object-factory.cc */; };
 		2362023D1E45B9EB00B6B949 /* base.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362023C1E45B9EB00B6B949 /* base.cc */; };
 		236202491E45BC0E00B6B949 /* base.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362023C1E45B9EB00B6B949 /* base.cc */; };
 		2362024E1E45BC2F00B6B949 /* libglog.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2362024B1E45BC2F00B6B949 /* libglog.a */; };
@@ -160,6 +164,9 @@
 		235808111E487D9400C8C567 /* fixed-memory-input-stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "fixed-memory-input-stream.h"; sourceTree = "<group>"; };
 		235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "fixed-memory-input-stream.cc"; sourceTree = "<group>"; };
 		2361991A1E83FC5B00682485 /* vm-function-register.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-function-register.h"; sourceTree = "<group>"; };
+		2361991B1E83FE1100682485 /* vm-function-register.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-function-register.cc"; sourceTree = "<group>"; };
+		2361991E1E84CC6500682485 /* vm-object-factory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-object-factory.h"; sourceTree = "<group>"; };
+		2361991F1E84CCB900682485 /* vm-object-factory.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-object-factory.cc"; sourceTree = "<group>"; };
 		2362023B1E45B9A700B6B949 /* base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = base.h; sourceTree = "<group>"; };
 		2362023C1E45B9EB00B6B949 /* base.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = base.cc; sourceTree = "<group>"; };
 		236202421E45BB2B00B6B949 /* mio-test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "mio-test"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -274,6 +281,8 @@
 				2324346F1E7929DD0054C385 /* vm-bitcode-builder.cc */,
 				2324347B1E7A84C20054C385 /* vm-bitcode-disassembler.cc */,
 				232434891E7BBEA00054C385 /* vm-objects.cc */,
+				2361991B1E83FE1100682485 /* vm-function-register.cc */,
+				2361991F1E84CCB900682485 /* vm-object-factory.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -315,9 +324,10 @@
 				2324346A1E7925000054C385 /* vm-memory-segment.h */,
 				2324346E1E7928B60054C385 /* vm-bitcode-builder.h */,
 				2324347A1E7A83470054C385 /* vm-bitcode-disassembler.h */,
+				2361991E1E84CC6500682485 /* vm-object-factory.h */,
+				2361991A1E83FC5B00682485 /* vm-function-register.h */,
 				232434881E7BBDD30054C385 /* vm-objects.h */,
 				2324348C1E7BCCAA0054C385 /* handles.h */,
-				2361991A1E83FC5B00682485 /* vm-function-register.h */,
 			);
 			name = Include;
 			path = ../src;
@@ -442,6 +452,7 @@
 				232434701E7929DD0054C385 /* vm-bitcode-builder.cc in Sources */,
 				232434861E7B935B0054C385 /* vm-thread-test.cc in Sources */,
 				232434681E7922C10054C385 /* vm-thread.cc in Sources */,
+				236199201E84CCB900682485 /* vm-object-factory.cc in Sources */,
 				2349E5721E4B1800002883BC /* keywords.c in Sources */,
 				23E3D5A31E63C6DD00C51DDE /* scopes.cc in Sources */,
 				23E3D5C01E77C51800C51DDE /* memory-output-stream.cc in Sources */,
@@ -454,6 +465,7 @@
 				2349E56C1E4AA77F002883BC /* number-parser.cc in Sources */,
 				23E3D5B81E700A7000C51DDE /* simple-file-system.cc in Sources */,
 				2324348A1E7BBEA00054C385 /* vm-objects.cc in Sources */,
+				2361991C1E83FE1100682485 /* vm-function-register.cc in Sources */,
 				23E3D5BC1E767F8600C51DDE /* text-output-stream.cc in Sources */,
 				2324347F1E7A8A850054C385 /* vm-bitcode.cc in Sources */,
 				2324347C1E7A84C20054C385 /* vm-bitcode-disassembler.cc in Sources */,
@@ -474,6 +486,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				23E3D5C11E77C51800C51DDE /* memory-output-stream.cc in Sources */,
+				2361991D1E83FE1100682485 /* vm-function-register.cc in Sources */,
 				232434791E7A77020054C385 /* vm-bitcode-builder-test.cc in Sources */,
 				2349E56D1E4AA77F002883BC /* number-parser.cc in Sources */,
 				2324348B1E7BBEA00054C385 /* vm-objects.cc in Sources */,
@@ -497,6 +510,7 @@
 				23E3D5B51E6FFF5900C51DDE /* compiler.cc in Sources */,
 				2362025A1E45C58800B6B949 /* token.cc in Sources */,
 				232434711E7929DD0054C385 /* vm-bitcode-builder.cc in Sources */,
+				236199211E84CCB900682485 /* vm-object-factory.cc in Sources */,
 				23E3D5BD1E767F8600C51DDE /* text-output-stream.cc in Sources */,
 				23E3D5A01E600DCE00C51DDE /* types.cc in Sources */,
 				2349E58E1E56FCC9002883BC /* ast.cc in Sources */,
