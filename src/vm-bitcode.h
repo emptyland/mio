@@ -63,12 +63,15 @@ namespace mio {
 
 #define VM_TEST_BC(M) \
     M(test) \
+    M(jz) \
+    M(jmp)
 
 #define VM_CALL_BC(M) \
     M(call) \
     M(call_val) \
     M(frame) \
-    M(ret)
+    M(ret) \
+    M(create)
 
 #define VM_ALL_BITCODE(M) \
     M(debug) \
@@ -86,6 +89,8 @@ enum BCInstruction : uint8_t {
     MAX_BC_INSTRUCTIONS,
 };
 
+static_assert(MAX_BC_INSTRUCTIONS <= 255, "bitcode is too much!");
+
 enum BCSegment : int {
     BC_CONSTANT_SEGMENT,
     BC_GLOBAL_PRIMITIVE_SEGMENT,
@@ -95,7 +100,11 @@ enum BCSegment : int {
     MAX_BC_SEGMENTS,
 };
 
-static_assert(MAX_BC_INSTRUCTIONS <= 255, "bitcode is too much!");
+enum BCConstructorId : int {
+    BC_UnionOrMergeObject,
+    BC_UnionOrMergePrimitive,
+    BC_UnionVoid,
+};
 
 struct InstructionMetadata {
     BCInstruction cmd;

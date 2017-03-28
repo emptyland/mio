@@ -108,6 +108,11 @@ public:
         return EmitS2Addr(BC_frame, size1, size2);
     }
 
+    int create(BCConstructorId id, uint16_t dest, uint16_t op) {
+        return Emit3Addr(BC_create, dest, op, id);
+    }
+
+    // TODO:
     int jmp(CodeLabel *label);
 
     int jnz(uint16_t cond, CodeLabel *label);

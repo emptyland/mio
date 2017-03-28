@@ -497,21 +497,21 @@ private:
     PopEvalType();
 
     ACCEPT_REPLACE_EXPRESSION(then_statement);
-    Type *eval_types[2];
-    eval_types[0] = AnalysisType();
+    node->set_then_type(AnalysisType());
     PopEvalType();
 
-    eval_types[1] = types_->GetVoid();
+    node->set_else_type(types_->GetVoid());
     if (node->has_else()) {
         ACCEPT_REPLACE_EXPRESSION(else_statement);
-        eval_types[1] = AnalysisType();
+        node->set_else_type(AnalysisType());
         PopEvalType();
     }
 
-    if (eval_types[0]->id() != eval_types[1]->id()) {
-        PushEvalType(types_->MergeToFlatUnion(eval_types, 2));
+    if (node->then_type()->id() != node->else_type()->id()) {
+        Type *types[2] = {node->then_type(), node->else_type()};
+        PushEvalType(types_->MergeToFlatUnion(types, 2));
     } else {
-        PushEvalType(eval_types[0]);
+        PushEvalType(node->then_type());
     }
 }
 

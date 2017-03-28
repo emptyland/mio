@@ -704,6 +704,12 @@ public:
 
     bool has_else() const { return else_statement_ != nullptr; }
 
+    Type *then_type() const { return DCHECK_NOTNULL(then_type_); }
+    void set_then_type(Type *type) { then_type_ = DCHECK_NOTNULL(type); }
+
+    Type *else_type() const { return DCHECK_NOTNULL(else_type_); }
+    void set_else_type(Type *type) { else_type_ = DCHECK_NOTNULL(type); }
+
     DECLARE_AST_NODE(IfOperation)
     DISALLOW_IMPLICIT_CONSTRUCTORS(IfOperation)
 private:
@@ -717,7 +723,9 @@ private:
 
     Expression *condition_;
     Statement  *then_statement_;
+    Type       *then_type_ = nullptr;
     Statement  *else_statement_;
+    Type       *else_type_ = nullptr;
 
 }; // class IfOperation
 

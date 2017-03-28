@@ -34,6 +34,7 @@ class TextOutputStream;
 #define DECLARE_TYPE(name) \
     virtual bool Is##name() const override { return true; } \
     virtual int ToString(TextOutputStream *stream) const override; \
+    virtual int placement_size() const override; \
     friend class TypeFactory;
 
 class Type : public ManagedObject {
@@ -56,6 +57,8 @@ public:
     virtual int ToString(TextOutputStream *stream) const = 0;
 
     std::string ToString() const;
+
+    virtual int placement_size() const = 0;
 
     // TODO: floating
     bool is_numeric() const { return IsIntegral(); }

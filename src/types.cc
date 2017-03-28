@@ -23,9 +23,9 @@ private:
 
 }
 
-/*virtual*/ bool Type::CanAcceptFrom(mio::Type *type) const {
-     return id() == DCHECK_NOTNULL(type)->id();
-}
+////////////////////////////////////////////////////////////////////////////////
+/// TypeFactory
+////////////////////////////////////////////////////////////////////////////////
 
 TypeFactory::TypeFactory(Zone *zone)
     : zone_(DCHECK_NOTNULL(zone))
@@ -69,15 +69,81 @@ Union *TypeFactory::MergeToFlatUnion(Type **types, int n) {
     return GetUnion(ut);
 }
 
-void FunctionPrototype::UpdateId() {
-    TypeDigest digest;
+////////////////////////////////////////////////////////////////////////////////
+/// Type
+////////////////////////////////////////////////////////////////////////////////
 
-    digest.Step(TOKEN_FUNCTION);
-    for (int i = 0; i < paramters_->size(); ++i) {
-        digest.Step(paramters_->At(i)->param_type()->id());
-    }
-    digest.Step(return_type()->id() << 4);
-    id_ = digest.value();
+/*virtual*/ bool Type::CanAcceptFrom(mio::Type *type) const {
+    return id() == DCHECK_NOTNULL(type)->id();
+}
+
+std::string Type::ToString() const {
+    std::string buf;
+    MemoryOutputStream stream(&buf);
+    ToString(&stream);
+    return buf;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Integral
+////////////////////////////////////////////////////////////////////////////////
+
+/*virtual*/ int Integral::placement_size() const {
+    return (bitwide_ + 7) / 8;
+}
+
+/*virtual*/
+int Integral::ToString(TextOutputStream *stream) const {
+    return stream->Printf("i%d", bitwide_);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// String
+////////////////////////////////////////////////////////////////////////////////
+
+/*virtual*/ int String::placement_size() const {
+    return kObjectReferenceSize;
+}
+
+/*virtual*/
+int String::ToString(TextOutputStream *stream) const {
+    return stream->Write("string");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Void
+////////////////////////////////////////////////////////////////////////////////
+
+/*virtual*/ int Void::placement_size() const {
+    DLOG(FATAL) << "void type has no placement size.";
+    return 0;
+}
+
+/*virtual*/
+int Void::ToString(TextOutputStream *stream) const {
+    return stream->Write("void");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Unknown
+////////////////////////////////////////////////////////////////////////////////
+
+/*virtual*/ int Unknown::placement_size() const {
+    DLOG(FATAL) << "unknown has no placement size.";
+    return 0;
+}
+
+/*virtual*/
+int Unknown::ToString(TextOutputStream *stream) const {
+    return stream->Write("unknown");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Union
+////////////////////////////////////////////////////////////////////////////////
+
+/*virtual*/ int Union::placement_size() const {
+    return kObjectReferenceSize;
 }
 
 int Union::GetAllTypes(std::vector<Type *> *all_types) const {
@@ -88,52 +154,6 @@ int Union::GetAllTypes(std::vector<Type *> *all_types) const {
         all_types->push_back(iter->value());
     }
     return static_cast<int>(all_types->size());
-}
-
-std::string Type::ToString() const {
-    std::string buf;
-    MemoryOutputStream stream(&buf);
-    ToString(&stream);
-    return buf;
-}
-
-/*virtual*/
-int Integral::ToString(TextOutputStream *stream) const {
-    return stream->Printf("i%d", bitwide_);
-}
-
-/*virtual*/
-int String::ToString(TextOutputStream *stream) const {
-    return stream->Write("string");
-}
-
-
-/*virtual*/
-int Void::ToString(TextOutputStream *stream) const {
-    return stream->Write("void");
-}
-
-/*virtual*/
-int Unknown::ToString(TextOutputStream *stream) const {
-    return stream->Write("unknown");
-}
-
-/*virtual*/
-int FunctionPrototype::ToString(TextOutputStream *stream) const {
-    auto rv = stream->Write("function (");
-    for (int i = 0; i < paramters_->size(); ++i) {
-        if (i != 0) {
-            rv += stream->Write(",");
-        }
-
-        auto param = paramters_->At(i);
-        rv += stream->Write(param->param_name());
-        rv += stream->Write(":");
-        rv += param->param_type()->ToString(stream);
-    }
-    rv += stream->Write("): ");
-    rv += return_type_->ToString(stream);
-    return rv;
 }
 
 /*virtual*/
@@ -175,6 +195,43 @@ int Union::ToString(TextOutputStream *stream) const {
         digest.Step(val);
     }
     return digest.value();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// FunctionPrototype
+////////////////////////////////////////////////////////////////////////////////
+
+/*virtual*/
+int FunctionPrototype::ToString(TextOutputStream *stream) const {
+    auto rv = stream->Write("function (");
+    for (int i = 0; i < paramters_->size(); ++i) {
+        if (i != 0) {
+            rv += stream->Write(",");
+        }
+
+        auto param = paramters_->At(i);
+        rv += stream->Write(param->param_name());
+        rv += stream->Write(":");
+        rv += param->param_type()->ToString(stream);
+    }
+    rv += stream->Write("): ");
+    rv += return_type_->ToString(stream);
+    return rv;
+}
+
+/*virtual*/ int FunctionPrototype::placement_size() const {
+    return kObjectReferenceSize;
+}
+
+void FunctionPrototype::UpdateId() {
+    TypeDigest digest;
+
+    digest.Step(TOKEN_FUNCTION);
+    for (int i = 0; i < paramters_->size(); ++i) {
+        digest.Step(paramters_->At(i)->param_type()->id());
+    }
+    digest.Step(return_type()->id() << 4);
+    id_ = digest.value();
 }
 
 } // namespace mio

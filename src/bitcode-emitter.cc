@@ -13,11 +13,6 @@
 
 namespace mio {
 
-inline int SizeofType(Type *type) {
-    // TODO:
-    return 8;
-}
-
 class EmittedScope {
 public:
     EmittedScope(EmittedScope **current, FunctionPrototype *prototype)
@@ -70,7 +65,11 @@ public:
     virtual void VisitValDeclaration(ValDeclaration *node) override;
     virtual void VisitVarDeclaration(VarDeclaration *node) override;
     virtual void VisitIfOperation(IfOperation *node) override;
+    virtual void VisitUnaryOperation(UnaryOperation *node) override;
+    virtual void VisitBinaryOperation(BinaryOperation *node) override;
     virtual void VisitVariable(Variable *node) override;
+    virtual void VisitStringLiteral(StringLiteral *node) override;
+    virtual void VisitSmiLiteral(SmiLiteral *node) override;
 
     BitCodeBuilder *builder() { return emitter_->builder_; }
 
@@ -121,13 +120,10 @@ void EmittingAstVisitor::VisitFunctionDefine(FunctionDefine *node) {
         emitter_->o_global_->Add(obj.get());
     } else {
         auto pc = emitter_->builder_->pc();
-        Emit(node->function_literal());
+        auto value = Emit(node->function_literal());
         PopValue();
         emitter_->builder_->BindTo(entry->mutable_label(), pc);
-
-        auto obj = emitter_->object_factory_->CreateNormalFunction(pc);
-        entry->set_offset(emitter_->o_global_->size());
-        emitter_->o_global_->Add(obj.get());
+        entry->set_offset(value.offset);
     }
     node->instance()->set_offset(entry->offset());
     node->instance()->set_bind_kind(Variable::GLOBAL);
@@ -150,7 +146,7 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
         auto var = scope->FindOrNullLocal(paramter->param_name());
         var->set_bind_kind(Variable::LOCAL);
         if (var->type()->is_primitive()) {
-            var->set_offset(info.MakePrimitiveRoom(SizeofType(var->type())));
+            var->set_offset(info.MakePrimitiveRoom(var->type()->placement_size()));
         } else {
             var->set_offset(info.MakeObjectRoom());
         }
@@ -162,7 +158,7 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
     } else {
         auto result = Emit(node->body());
         if (node->is_assignment()) {
-            auto size = SizeofType(prototype->return_type());
+            auto size = prototype->return_type()->placement_size();
             if (prototype->return_type()->is_primitive()) {
                 VMValue dest;
                 dest.segment = BC_LOCAL_PRIMITIVE_SEGMENT;
@@ -186,7 +182,14 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
     memcpy(emitter_->builder_->code()->offset(frame_placement), &frame,
            sizeof(frame));
 
-    PushValue(VMValue::Function(frame_placement));
+    auto obj = emitter_->object_factory_->CreateNormalFunction(frame_placement);
+    VMValue value = {
+        .segment = BC_GLOBAL_OBJECT_SEGMENT,
+        .offset  = emitter_->o_global_->size(),
+        .size    = kObjectReferenceSize,
+    };
+    emitter_->o_global_->Add(obj.get());
+    PushValue(value);
 }
 
 void EmittingAstVisitor::VisitBlock(Block *node) {
@@ -197,7 +200,7 @@ void EmittingAstVisitor::VisitReturn(Return *node) {
     if (node->has_return_value()) {
         auto result = Emit(node->expression());
 
-        auto size = SizeofType(current_->prototype()->return_type());
+        auto size = current_->prototype()->return_type()->placement_size();
         if (current_->prototype()->return_type()->is_primitive()) {
             VMValue dest;
             dest.segment = BC_LOCAL_PRIMITIVE_SEGMENT;
@@ -230,7 +233,7 @@ void EmittingAstVisitor::VisitCall(Call *node) {
 
     VMValue result;
     if (!node->return_type()->IsVoid()) {
-        auto result_size = SizeofType(node->return_type());
+        auto result_size = node->return_type()->placement_size();
         if (node->return_type()->is_primitive()) {
             result = {
                 .segment = BC_LOCAL_PRIMITIVE_SEGMENT,
@@ -315,13 +318,77 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
     CodeLabel outter;
     emitter_->builder_->jz(cond.offset, &outter);
 
-    // TODO:
-//    auto then_val = Emit(node->then_statement());
-//    if (node->has_else()) {
-//
-//    } else {
-//
-//    }
+    if (node->has_else()) {
+        CodeLabel leave;
+        bool need_union = node->then_type()->id() != node->else_type()->id();
+
+        VMValue val;
+        auto then_val = Emit(node->then_statement());
+        if (need_union) {
+            val.segment = BC_LOCAL_OBJECT_SEGMENT;
+            val.offset  = current_->MakeObjectRoom();
+            val.size    = kObjectReferenceSize;
+            if (node->then_type()->IsVoid()) {
+                emitter_->builder_->create(BC_UnionVoid, val.offset, 0);
+            } else if (node->then_type()->is_primitive()) {
+                emitter_->builder_->create(BC_UnionOrMergePrimitive, val.offset, then_val.offset);
+            } else {
+                emitter_->builder_->create(BC_UnionOrMergeObject, val.offset, then_val.offset);
+            }
+        }
+        emitter_->builder_->jmp(&leave);
+
+        emitter_->builder_->BindNow(&outter);
+        auto else_val = Emit(node->else_statement());
+        if (need_union) {
+            if (node->else_type()->IsVoid()) {
+                emitter_->builder_->create(BC_UnionVoid, val.offset, 0);
+            } else if (node->else_type()->is_primitive()) {
+                emitter_->builder_->create(BC_UnionOrMergePrimitive, val.offset, else_val.offset);
+            } else {
+                emitter_->builder_->create(BC_UnionOrMergeObject, val.offset, else_val.offset);
+            }
+        } else {
+            if (node->then_type()->IsVoid()) {
+                val = VMValue::Void();
+            } else if (node->then_type()->is_primitive()) {
+                val.segment = BC_LOCAL_PRIMITIVE_SEGMENT;
+                val.offset  = current_->MakePrimitiveRoom(then_val.size);
+                val.size    = then_val.size;
+                EmitLoadOrMove(val, then_val);
+            } else {
+                val.segment = BC_LOCAL_OBJECT_SEGMENT;
+                val.offset  = current_->MakeObjectRoom();
+                val.size    = kObjectReferenceSize;
+                EmitLoadOrMove(val, else_val);
+            }
+        }
+        emitter_->builder_->BindNow(&leave);
+        PushValue(val);
+    } else {
+        CodeLabel leave;
+        VMValue val;
+        // then
+        auto then_val = Emit(node->then_statement());
+        val.segment = BC_LOCAL_OBJECT_SEGMENT;
+        val.offset  = current_->MakeObjectRoom();
+        val.size    = kObjectReferenceSize;
+        if (node->then_type()->IsVoid()) {
+            emitter_->builder_->create(BC_UnionVoid, val.offset, 0);
+        } else if (node->then_type()->is_primitive()) {
+            emitter_->builder_->create(BC_UnionOrMergePrimitive, val.offset, then_val.offset);
+        } else {
+            emitter_->builder_->create(BC_UnionOrMergeObject, val.offset, then_val.offset);
+        }
+        emitter_->builder_->jmp(&leave);
+
+        // else
+        emitter_->builder_->BindNow(&outter);
+        emitter_->builder_->create(BC_UnionVoid, val.offset, 0);
+
+        emitter_->builder_->BindNow(&leave);
+        PushValue(val);
+    }
 }
 
 void EmittingAstVisitor::VisitVarDeclaration(VarDeclaration *node) {
@@ -354,6 +421,118 @@ void EmittingAstVisitor::VisitVarDeclaration(VarDeclaration *node) {
         DCHECK_NOTNULL(node->instance())->set_offset(value.offset);
     }
     PushValue(VMValue::Void());
+}
+
+void EmittingAstVisitor::VisitUnaryOperation(UnaryOperation *node) {
+    auto value = Emit(node->operand());
+    switch (node->op()) {
+        case OP_MINUS:
+            // TODO:
+            break;
+
+        case OP_NOT:
+            // TODO:
+            break;
+
+        default:
+            DLOG(FATAL) << "noreached!";
+            break;
+    }
+    PushValue(value);
+}
+
+void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
+    // TODO:
+}
+
+void EmittingAstVisitor::VisitVariable(Variable *node) {
+    DCHECK_NE(Variable::UNBINDED, node->bind_kind());
+
+    VMValue value;
+    if (node->type()->is_primitive()) {
+        if (node->bind_kind() == Variable::LOCAL ||
+            node->bind_kind() == Variable::ARGUMENT) {
+            value.segment = BC_LOCAL_PRIMITIVE_SEGMENT;
+        } else if (node->bind_kind() == Variable::GLOBAL) {
+            value.segment = BC_GLOBAL_PRIMITIVE_SEGMENT;
+        }
+    } else {
+        if (node->bind_kind() == Variable::LOCAL ||
+            node->bind_kind() == Variable::ARGUMENT) {
+            value.segment = BC_LOCAL_OBJECT_SEGMENT;
+        } else if (node->bind_kind() == Variable::GLOBAL) {
+            value.segment = BC_GLOBAL_OBJECT_SEGMENT;
+        }
+    }
+    value.size   = node->type()->placement_size();
+    value.offset = node->offset();
+
+    PushValue(value);
+}
+
+void EmittingAstVisitor::VisitStringLiteral(StringLiteral *node) {
+    VMValue dest = {
+        .segment = BC_LOCAL_OBJECT_SEGMENT,
+        .offset  = current_->MakeObjectRoom(),
+        .size    = kObjectReferenceSize,
+    }, src = {
+        .segment = BC_GLOBAL_OBJECT_SEGMENT,
+        .offset  = 0,
+        .size    = kObjectReferenceSize,
+    };
+
+    int *offset;
+    auto obj = emitter_->object_factory_->GetOrNewString(node->data()->c_str(), node->data()->size(), &offset);
+    if (*offset < 0) {
+        *offset = emitter_->o_global_->size();
+        emitter_->o_global_->Add(obj.get());
+    }
+    src.offset = *offset;
+    EmitLoadOrMove(dest, src);
+    PushValue(dest);
+}
+
+void EmittingAstVisitor::VisitSmiLiteral(SmiLiteral *node) {
+    VMValue dest = {
+        .segment = BC_LOCAL_PRIMITIVE_SEGMENT,
+        .offset  = 0,
+        .size    = 0,
+    }, src = {
+        .segment = BC_CONSTANT_SEGMENT,
+        .offset  = emitter_->constants_->size(),
+        .size    = (node->bitwide() + 7) / 8,
+    };
+    switch (node->bitwide()) {
+        case 1:
+            emitter_->constants_->Add(node->i1());
+            break;
+
+        case 8:
+            emitter_->constants_->Add(node->i8());
+            break;
+
+        case 16:
+            emitter_->constants_->Add(node->i16());
+            break;
+
+        case 32:
+            emitter_->constants_->Add(node->i32());
+            break;
+
+        case 64:
+            emitter_->constants_->Add(node->i64());
+            break;
+
+        default:
+            DLOG(FATAL) << "noreached! bitwide = " << node->bitwide();
+            break;
+    }
+
+    dest.size = src.size;
+    dest.offset = current_->MakePrimitiveRoom(dest.size);
+    EmitLoadOrMove(dest, src);
+
+    PushValue(dest);
 }
 
 VMValue EmittingAstVisitor::MakePlacementRoom(BCSegment seg_kind,

@@ -19,6 +19,8 @@ public:
 
     virtual Local<MIOString> CreateString(const char *z, int n) = 0;
 
+    virtual Local<MIOString> GetOrNewString(const char *z, int n, int **offset) = 0;
+
     virtual Local<MIONativeFunction>
     CreateNativeFunction(const char *signature, MIOFunctionPrototype pointer) = 0;
 

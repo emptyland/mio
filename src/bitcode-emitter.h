@@ -20,9 +20,7 @@ struct VMValue {
     int       size;
 
     bool is_void() const { return offset < 0 && size < 0; }
-    bool is_function() const { return size < 0; }
 
-    static VMValue Function(int pc) { return { MAX_BC_SEGMENTS, pc, -1 }; }
     static VMValue Void() { return { MAX_BC_SEGMENTS, -1, -1, }; }
     static VMValue Zero() { return { BC_CONSTANT_SEGMENT, 0, 8 }; }
 };
