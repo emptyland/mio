@@ -53,7 +53,24 @@ TEST(BitCodeBuilderTest, LabelLinkThenUse) {
     EXPECT_EQ(3, builder.pc());
 
     auto off = *static_cast<int32_t *>(code.offset(2 * 8));
-    ASSERT_EQ(-2, off);
+    ASSERT_EQ(2, off);
+}
+
+TEST(BitCodeBuilderTest, MoveInstruction) {
+    MemorySegment code;
+    BitCodeBuilder builder(&code);
+
+    builder.frame(8, 0);
+    builder.mov_8b(-8, 0);
+
+    auto bc = static_cast<const uint64_t *>(code.offset(0));
+    EXPECT_EQ(BC_frame, BitCodeDisassembler::GetInst(bc[0]));
+    EXPECT_EQ(8, BitCodeDisassembler::GetVal1(bc[0]));
+    EXPECT_EQ(0, BitCodeDisassembler::GetVal2(bc[0]));
+
+    EXPECT_EQ(BC_mov_8b, BitCodeDisassembler::GetInst(bc[1]));
+    EXPECT_EQ(-8, BitCodeDisassembler::GetVal1(bc[1]));
+    EXPECT_EQ(0, BitCodeDisassembler::GetVal2(bc[1]));
 }
 
 TEST(BitCodeBuilderTest, InstructionStruct) {

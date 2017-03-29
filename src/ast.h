@@ -646,8 +646,8 @@ public:
         expression_ = DCHECK_NOTNULL(expression);
     }
 
-    Type *return_type() const { return DCHECK_NOTNULL(return_type_); }
-    void set_return_type(Type *type) { return_type_ = DCHECK_NOTNULL(type); }
+    Type *callee_type() const { return DCHECK_NOTNULL(callee_type_); }
+    void set_callee_type(Type *type) { callee_type_ = DCHECK_NOTNULL(type); }
 
     ZoneVector<Expression *> *mutable_arguments() { return arguments_; }
 
@@ -662,7 +662,7 @@ private:
 
     Expression *expression_;
     ZoneVector<Expression *> *arguments_;
-    Type *return_type_ = nullptr;
+    Type *callee_type_ = nullptr;
 }; // class Call
 
 

@@ -11,8 +11,15 @@ void BitCodeDisassembler::Run(int pc, int len) {
     DCHECK_LE(pc + len, n_inst_);
 
     for (int i = pc; i < len; ++i) {
+        if (info_) {
+            auto iter = info_->find(i);
+            if (iter != info_->end()) {
+                stream_->Printf("---- %s ----\n", std::get<0>(iter->second).c_str());
+            }
+        }
+
         stream_->Printf("[%03d] ", i);
-        Disassemble(*static_cast<uint64_t *>(code_->offset(i * 8)));
+        Disassemble(*static_cast<uint64_t *>(code_->offset(i * sizeof(uint64_t))));
         stream_->Write("\n");
     }
 }
@@ -89,7 +96,7 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
 /*static*/
 void BitCodeDisassembler::Disassemble(MemorySegment *code, int number_of_inst,
                                       TextOutputStream *stream) {
-    BitCodeDisassembler dis(code, number_of_inst, stream);
+    BitCodeDisassembler dis(code, number_of_inst, nullptr, stream);
     dis.Run();
 }
 

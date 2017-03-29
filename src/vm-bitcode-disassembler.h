@@ -1,6 +1,7 @@
 #ifndef MIO_VM_BITCODE_DISASSEMBLER_H_
 #define MIO_VM_BITCODE_DISASSEMBLER_H_
 
+#include "compiler.h"
 #include "base.h"
 #include "glog/logging.h"
 
@@ -12,9 +13,11 @@ class TextOutputStream;
 class BitCodeDisassembler {
 public:
     BitCodeDisassembler(MemorySegment *code, int number_of_inst,
+                        FunctionInfoMap *info,
                         TextOutputStream *stream)
         : code_(DCHECK_NOTNULL(code))
         , n_inst_(number_of_inst)
+        , info_(info)
         , stream_(DCHECK_NOTNULL(stream)) {}
 
     void Run() { Run(0, n_inst_); }
@@ -54,6 +57,7 @@ private:
     MemorySegment *code_;
     int n_inst_;
     TextOutputStream *stream_;
+    FunctionInfoMap *info_;
 };
 
 } // namespace mio

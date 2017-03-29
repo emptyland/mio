@@ -153,7 +153,8 @@ public:
 
     static uint64_t MakeS2AddrBC(BCInstruction inst, int16_t val1, int16_t val2) {
         return (static_cast<uint64_t>(inst) << 56) |
-                static_cast<uint64_t>((val1 << 16) | val2);
+               ((static_cast<uint64_t>(val1) << 16) & 0xffff0000) |
+               (static_cast<uint64_t>(val2) & 0xffff) ;
     }
 private:
 

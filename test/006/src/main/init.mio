@@ -1,5 +1,7 @@
 package main
 
+function foo(a:int) = a
+
 function main: void {
-    
+    foo(1)
 }

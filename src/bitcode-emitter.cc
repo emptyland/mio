@@ -99,6 +99,8 @@ private:
     VMValue EmitLoadPrimitiveMakeRoom(VMValue src);
     void EmitLoadOrMove(const VMValue &dest, const VMValue &src);
 
+    VMValue EmitLoadMakeRoom(const VMValue &src);
+
     VMValue eval_value() const {
         DCHECK(!value_stack_.empty());
         return value_stack_.top();
@@ -189,7 +191,8 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
     // refill frame instruction
     auto frame = BitCodeBuilder::MakeS2AddrBC(BC_frame, info.p_stack_size(),
                                               info.o_stack_size());
-    memcpy(emitter_->builder_->code()->offset(frame_placement), &frame,
+    memcpy(emitter_->builder_->code()->offset(frame_placement * sizeof(uint64_t)),
+           &frame,
            sizeof(frame));
 
     auto obj = emitter_->object_factory_->CreateNormalFunction(frame_placement);
@@ -203,7 +206,12 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
 }
 
 void EmittingAstVisitor::VisitBlock(Block *node) {
-    // TODO:
+    for (int i = 0; i < node->mutable_body()->size() - 1; ++i) {
+        Emit(node->mutable_body()->At(i));
+    }
+    if (node->mutable_body()->is_not_empty()) {
+        node->mutable_body()->last()->Accept(this);
+    }
 }
 
 void EmittingAstVisitor::VisitReturn(Return *node) {
@@ -231,20 +239,13 @@ void EmittingAstVisitor::VisitReturn(Return *node) {
 
 void EmittingAstVisitor::VisitCall(Call *node) {
     auto expr = Emit(node->expression());
-    if (expr.segment == BC_GLOBAL_OBJECT_SEGMENT) {
-        VMValue tmp;
+    DCHECK_EQ(BC_LOCAL_OBJECT_SEGMENT, expr.segment);
 
-        tmp.segment = BC_LOCAL_OBJECT_SEGMENT;
-        tmp.size    = expr.size;
-        tmp.offset  = current_->MakeObjectRoom();
-        EmitLoadOrMove(tmp, expr);
-        expr = tmp;
-    }
-
+    auto proto = DCHECK_NOTNULL(node->callee_type()->AsFunctionPrototype());
     VMValue result;
-    if (!node->return_type()->IsVoid()) {
-        auto result_size = node->return_type()->placement_size();
-        if (node->return_type()->is_primitive()) {
+    if (!proto->return_type()->IsVoid()) {
+        auto result_size = proto->return_type()->placement_size();
+        if (proto->return_type()->is_primitive()) {
             result = {
                 .segment = BC_LOCAL_PRIMITIVE_SEGMENT,
                 .offset  = current_->MakePrimitiveRoom(result_size),
@@ -287,7 +288,7 @@ void EmittingAstVisitor::VisitCall(Call *node) {
     }
 
     emitter_->builder_->call_val(p_base, o_base, expr.offset);
-    if (!node->return_type()->IsVoid()) {
+    if (!proto->return_type()->IsVoid()) {
         PushValue(result);
     } else {
         PushValue(VMValue::Void());
@@ -463,19 +464,31 @@ void EmittingAstVisitor::VisitVariable(Variable *node) {
         if (node->bind_kind() == Variable::LOCAL ||
             node->bind_kind() == Variable::ARGUMENT) {
             value.segment = BC_LOCAL_PRIMITIVE_SEGMENT;
+            value.size   = node->type()->placement_size();
+            value.offset = node->offset();
         } else if (node->bind_kind() == Variable::GLOBAL) {
-            value.segment = BC_GLOBAL_PRIMITIVE_SEGMENT;
+            VMValue tmp = {
+                .segment = BC_GLOBAL_PRIMITIVE_SEGMENT,
+                .size    = value.size,
+                .offset  = node->offset(),
+            };
+            value = EmitLoadMakeRoom(tmp);
         }
     } else {
         if (node->bind_kind() == Variable::LOCAL ||
             node->bind_kind() == Variable::ARGUMENT) {
             value.segment = BC_LOCAL_OBJECT_SEGMENT;
+            value.size   = node->type()->placement_size();
+            value.offset = node->offset();
         } else if (node->bind_kind() == Variable::GLOBAL) {
-            value.segment = BC_GLOBAL_OBJECT_SEGMENT;
+            VMValue tmp = {
+                .segment = BC_GLOBAL_OBJECT_SEGMENT,
+                .size    = value.size,
+                .offset  = node->offset(),
+            };
+            value = EmitLoadMakeRoom(tmp);
         }
     }
-    value.size   = node->type()->placement_size();
-    value.offset = node->offset();
 
     PushValue(value);
 }
@@ -644,6 +657,53 @@ void EmittingAstVisitor::EmitLoadOrMove(const VMValue &dest, const VMValue &src)
             DLOG(FATAL) << "noreached! src.size = " << src.size;
             break;
     }
+}
+
+VMValue EmittingAstVisitor::EmitLoadMakeRoom(const VMValue &src) {
+    switch (src.segment) {
+        case BC_GLOBAL_PRIMITIVE_SEGMENT:
+        case BC_CONSTANT_SEGMENT: {
+            VMValue value = {
+                .segment = BC_LOCAL_PRIMITIVE_SEGMENT,
+                .offset  = current_->MakePrimitiveRoom(src.size),
+                .size    = src.size,
+            };
+
+            switch (src.size) {
+                case 1:
+                    emitter_->builder_->load_1b(value.offset, src.segment, src.offset);
+                    break;
+                case 2:
+                    emitter_->builder_->load_2b(value.offset, src.segment, src.offset);
+                    break;
+                case 4:
+                    emitter_->builder_->load_4b(value.offset, src.segment, src.offset);
+                    break;
+                case 8:
+                    emitter_->builder_->load_8b(value.offset, src.segment, src.offset);
+                    break;
+                default:
+                    DLOG(FATAL) << "noreached! bad size: " << src.size;
+                    break;
+            }
+            return value;
+        } break;
+
+        case BC_GLOBAL_OBJECT_SEGMENT: {
+            VMValue value = {
+                .segment = BC_LOCAL_OBJECT_SEGMENT,
+                .offset  = current_->MakeObjectRoom(),
+                .size    = src.size,
+            };
+            emitter_->builder_->load_o(value.offset, src.offset);
+            return value;
+        } break;
+
+        default:
+            DLOG(FATAL) << "noreached! bad segment: " << src.segment;
+            break;
+    }
+    return { .segment = MAX_BC_SEGMENTS, .size = -1, .offset = -1 };
 }
 
 VMValue EmittingAstVisitor::EmitLoadPrimitiveMakeRoom(VMValue src) {

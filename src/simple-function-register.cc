@@ -46,7 +46,8 @@ bool SimpleFunctionRegister::RegisterNativeFunction(const char *name,
 int SimpleFunctionRegister::MakeFunctionInfo(FunctionInfoMap *map) {
     int result = 0;
     for (const auto &pair : functions_) {
-        auto heap_obj = static_cast<HeapObject *>(global_->offset(pair.second->offset()));
+        auto heap_obj = *static_cast<HeapObject **>(global_->offset(pair.second->offset()));
+
         auto func = make_local(heap_obj->AsNormalFunction());
         if (func.empty()) {
             continue;

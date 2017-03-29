@@ -77,13 +77,15 @@ public:
                 emitter.Run(m_iter->key(), u_iter->key(), u_iter->value());
             }
         }
+        FunctionInfoMap info;
+        function_register_->MakeFunctionInfo(&info);
 
         MemoryOutputStream stream(text);
-        BitCodeDisassembler dasm(code_, emitter.builder()->pc(), &stream);
+        BitCodeDisassembler dasm(code_, emitter.builder()->pc(), &info, &stream);
         dasm.Run();
     }
 
-private:
+protected:
     Zone             *zone_    = nullptr;
     Scope            *global_  = nullptr;
     TypeFactory      *types_   = nullptr;
@@ -102,6 +104,18 @@ TEST_F(BitCodeEmitterTest, Sanity) {
     ParseProject("006", &dasm);
 
     printf("%s\n", dasm.c_str());
+
+//    const char z[] =
+//    "[000] frame +0 +0\n"
+//    "[001] ret \n";
+//
+//    EXPECT_STREQ(z, dasm.c_str());
+}
+
+TEST_F(BitCodeEmitterTest, ObjectCreation) {
+
+    auto func = object_factory_->CreateNormalFunction(1);
+    ASSERT_EQ(HeapObject::kNormalFunction, func->GetKind());
 }
 
 } // namespace mio
