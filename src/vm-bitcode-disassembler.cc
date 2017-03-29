@@ -29,6 +29,22 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
         case BC_debug:
             break;
 
+        case BC_mov_1b:
+        case BC_mov_2b:
+        case BC_mov_4b:
+        case BC_mov_8b:
+        case BC_mov_o:
+            stream_->Printf("[%d] [%d]", GetVal1(bc), GetVal2(bc));
+            break;
+
+        case BC_load_1b:
+        case BC_load_2b:
+        case BC_load_4b:
+        case BC_load_8b:
+        case BC_load_o:
+            stream_->Printf("[%u] %d@(%u)", GetOp1(bc), GetImm32(bc), GetOp2(bc));
+            break;
+
         case BC_load_i32_imm:
             stream_->Printf("[%u] %d", GetOp1(bc), GetImm32(bc));
             break;
@@ -53,7 +69,19 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
                             GetImm32(bc));
             break;
 
+        case BC_call_val:
+            stream_->Printf("%u %u %d", GetOp1(bc), GetOp2(bc), GetImm32(bc));
+            break;
+
+        case BC_frame:
+            stream_->Printf("+%d +%d", GetVal1(bc), GetVal2(bc));
+            break;
+
+        case BC_ret:
+            break;
+
         default:
+            DLOG(FATAL) << "instruction: " << metadata->text << " not support yet";
             break;
     }
 }

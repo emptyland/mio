@@ -112,7 +112,6 @@ public:
         return Emit3Addr(BC_create, dest, op, id);
     }
 
-    // TODO:
     int jmp(CodeLabel *label);
 
     int jnz(uint16_t cond, CodeLabel *label);
@@ -157,6 +156,7 @@ public:
                 static_cast<uint64_t>((val1 << 16) | val2);
     }
 private:
+
     MemorySegment *code_;
     int pc_ = 0;
 }; // class BitCodeBuilder

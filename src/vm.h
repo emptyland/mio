@@ -24,12 +24,6 @@ public:
 
     DEF_GETTER(int, max_call_deep)
 
-    Local<MIOString> CreateString(const char *z, int n);
-    Local<MIONativeFunction> CreateNativeFunction(const char *signature,
-                                                  MIOFunctionPrototype pointer);
-    Local<MIONormalFunction> CreateNormalFunction(int address);
-    Local<MIOHashMap> CreateHashMap(int seed, uint32_t flags);
-
     Thread *TEST_main_thread() const { return main_thread_; }
     MemorySegment *TEST_code() const { return code_; }
 

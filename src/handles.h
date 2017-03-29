@@ -14,6 +14,8 @@ public:
 
     T *get() const { return object_; }
 
+    bool empty() const { return object_ == nullptr; }
+
     T *operator -> () const { return get(); }
 
 private:

@@ -64,6 +64,7 @@ namespace mio {
 #define VM_TEST_BC(M) \
     M(test) \
     M(jz) \
+    M(jnz) \
     M(jmp)
 
 #define VM_CALL_BC(M) \

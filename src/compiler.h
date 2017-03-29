@@ -4,6 +4,8 @@
 #include "zone-hash-map.h"
 #include "zone-vector.h"
 #include "zone.h"
+#include "code-label.h"
+#include <unordered_map>
 
 namespace mio {
 
@@ -11,12 +13,17 @@ class Statement;
 class TypeFactory;
 class Scope;
 class SimpleFileSystem;
+class FunctionEntry;
 
 // [unitName, [statement]]
 typedef ZoneHashMap<RawStringRef, ZoneVector<Statement *> *> CompiledUnitMap;
 
 // [moduleName [unitName, statements]]
 typedef ZoneHashMap<RawStringRef, CompiledUnitMap *> CompiledModuleMap;
+
+// [pc, <name, entry>]
+typedef std::unordered_map<int, std::tuple<std::string, FunctionEntry*>>
+    FunctionInfoMap;
 
 struct ParsingError {
     int column;
@@ -31,6 +38,21 @@ struct ParsingError {
 
     std::string ToString() const;
 }; // struct ParsingError
+
+class FunctionEntry {
+public:
+    FunctionEntry() : offset_(0), is_native_(false) {}
+
+    DEF_PROP_RW(int, offset)
+    DEF_PROP_RW(bool, is_native)
+    DEF_MUTABLE_GETTER(CodeLabel, label)
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(FunctionEntry)
+private:
+    int offset_;
+    CodeLabel label_;
+    bool is_native_;
+}; // class FunctionEntry
 
 class Compiler {
 public:

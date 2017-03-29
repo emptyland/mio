@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		231378E51E8A5514009384DF /* simple-function-register.cc in Sources */ = {isa = PBXBuildFile; fileRef = 231378E41E8A5514009384DF /* simple-function-register.cc */; };
+		231378E61E8A5514009384DF /* simple-function-register.cc in Sources */ = {isa = PBXBuildFile; fileRef = 231378E41E8A5514009384DF /* simple-function-register.cc */; };
+		231378E81E8B563D009384DF /* bitcode-emitter-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 231378E71E8B563D009384DF /* bitcode-emitter-test.cc */; };
+		231378E91E8B563D009384DF /* bitcode-emitter-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 231378E71E8B563D009384DF /* bitcode-emitter-test.cc */; };
 		232434641E78EEC70054C385 /* vm.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434631E78EEC70054C385 /* vm.cc */; };
 		232434651E78EEC70054C385 /* vm.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434631E78EEC70054C385 /* vm.cc */; };
 		232434681E7922C10054C385 /* vm-thread.cc in Sources */ = {isa = PBXBuildFile; fileRef = 232434671E7922C10054C385 /* vm-thread.cc */; };
@@ -68,6 +72,8 @@
 		2362025D1E45CC5F00B6B949 /* token-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362025B1E45CC5F00B6B949 /* token-test.cc */; };
 		236202601E48221700B6B949 /* text-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362025F1E48221700B6B949 /* text-input-stream.cc */; };
 		236202611E48221700B6B949 /* text-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362025F1E48221700B6B949 /* text-input-stream.cc */; };
+		23658AF71E8A3FD700F7F72A /* malloced-object-factory.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23658AF61E8A3FD700F7F72A /* malloced-object-factory.cc */; };
+		23658AF81E8A3FD700F7F72A /* malloced-object-factory.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23658AF61E8A3FD700F7F72A /* malloced-object-factory.cc */; };
 		23E3D59A1E5C1A7900C51DDE /* ast-printer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5991E5C1A7900C51DDE /* ast-printer.cc */; };
 		23E3D59B1E5C1A7900C51DDE /* ast-printer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5991E5C1A7900C51DDE /* ast-printer.cc */; };
 		23E3D59F1E600DCE00C51DDE /* types.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D59E1E600DCE00C51DDE /* types.cc */; };
@@ -114,6 +120,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		231378E31E8A54CA009384DF /* simple-function-register.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "simple-function-register.h"; sourceTree = "<group>"; };
+		231378E41E8A5514009384DF /* simple-function-register.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "simple-function-register.cc"; sourceTree = "<group>"; };
+		231378E71E8B563D009384DF /* bitcode-emitter-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "bitcode-emitter-test.cc"; sourceTree = "<group>"; };
 		231B09A31E45B86D00BC6D18 /* mio-lang */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "mio-lang"; sourceTree = BUILT_PRODUCTS_DIR; };
 		232434611E78DFD00054C385 /* vm-bitcode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-bitcode.h"; sourceTree = "<group>"; };
 		232434621E78EE7E0054C385 /* vm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vm.h; sourceTree = "<group>"; };
@@ -182,6 +191,8 @@
 		2362025E1E48214500B6B949 /* text-input-stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "text-input-stream.h"; sourceTree = "<group>"; };
 		2362025F1E48221700B6B949 /* text-input-stream.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "text-input-stream.cc"; sourceTree = "<group>"; };
 		236202621E486C9300B6B949 /* token-inl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "token-inl.h"; sourceTree = "<group>"; };
+		23658AF51E8A3F3100F7F72A /* malloced-object-factory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "malloced-object-factory.h"; sourceTree = "<group>"; };
+		23658AF61E8A3FD700F7F72A /* malloced-object-factory.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "malloced-object-factory.cc"; sourceTree = "<group>"; };
 		23E3D5991E5C1A7900C51DDE /* ast-printer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "ast-printer.cc"; sourceTree = "<group>"; };
 		23E3D59C1E5C231400C51DDE /* ast-printer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ast-printer.h"; sourceTree = "<group>"; };
 		23E3D59D1E600CB800C51DDE /* types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = types.h; sourceTree = "<group>"; };
@@ -283,6 +294,8 @@
 				232434891E7BBEA00054C385 /* vm-objects.cc */,
 				2361991B1E83FE1100682485 /* vm-function-register.cc */,
 				2361991F1E84CCB900682485 /* vm-object-factory.cc */,
+				23658AF61E8A3FD700F7F72A /* malloced-object-factory.cc */,
+				231378E41E8A5514009384DF /* simple-function-register.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -328,6 +341,8 @@
 				2361991A1E83FC5B00682485 /* vm-function-register.h */,
 				232434881E7BBDD30054C385 /* vm-objects.h */,
 				2324348C1E7BCCAA0054C385 /* handles.h */,
+				23658AF51E8A3F3100F7F72A /* malloced-object-factory.h */,
+				231378E31E8A54CA009384DF /* simple-function-register.h */,
 			);
 			name = Include;
 			path = ../src;
@@ -351,6 +366,7 @@
 				232434721E7A203D0054C385 /* vm-memory-segment-test.cc */,
 				232434781E7A77020054C385 /* vm-bitcode-builder-test.cc */,
 				232434851E7B935B0054C385 /* vm-thread-test.cc */,
+				231378E71E8B563D009384DF /* bitcode-emitter-test.cc */,
 			);
 			name = Tests;
 			path = ../src;
@@ -455,6 +471,7 @@
 				236199201E84CCB900682485 /* vm-object-factory.cc in Sources */,
 				2349E5721E4B1800002883BC /* keywords.c in Sources */,
 				23E3D5A31E63C6DD00C51DDE /* scopes.cc in Sources */,
+				23658AF71E8A3FD700F7F72A /* malloced-object-factory.cc in Sources */,
 				23E3D5C01E77C51800C51DDE /* memory-output-stream.cc in Sources */,
 				236202551E45BE2900B6B949 /* lexer.cc in Sources */,
 				23E3D59A1E5C1A7900C51DDE /* ast-printer.cc in Sources */,
@@ -467,11 +484,13 @@
 				2324348A1E7BBEA00054C385 /* vm-objects.cc in Sources */,
 				2361991C1E83FE1100682485 /* vm-function-register.cc in Sources */,
 				23E3D5BC1E767F8600C51DDE /* text-output-stream.cc in Sources */,
+				231378E51E8A5514009384DF /* simple-function-register.cc in Sources */,
 				2324347F1E7A8A850054C385 /* vm-bitcode.cc in Sources */,
 				2324347C1E7A84C20054C385 /* vm-bitcode-disassembler.cc in Sources */,
 				23E3D59F1E600DCE00C51DDE /* types.cc in Sources */,
 				2324346C1E7926F50054C385 /* vm-memory-segment.cc in Sources */,
 				236202591E45C58800B6B949 /* token.cc in Sources */,
+				231378E81E8B563D009384DF /* bitcode-emitter-test.cc in Sources */,
 				236202601E48221700B6B949 /* text-input-stream.cc in Sources */,
 				2349E5911E56FF02002883BC /* parser.cc in Sources */,
 				23E3D5B41E6FFF5900C51DDE /* compiler.cc in Sources */,
@@ -494,6 +513,7 @@
 				2349E5861E56EF38002883BC /* raw-string-test.cc in Sources */,
 				2349E56F1E4AB1BB002883BC /* number-parser-test.cc in Sources */,
 				232434691E7922C10054C385 /* vm-thread.cc in Sources */,
+				231378E61E8A5514009384DF /* simple-function-register.cc in Sources */,
 				235808151E495CE200C8C567 /* lexer-test.cc in Sources */,
 				2349E5771E4C5310002883BC /* zone.cc in Sources */,
 				23E3D5AC1E6CF20700C51DDE /* checker-test.cc in Sources */,
@@ -505,6 +525,7 @@
 				236202561E45BE2900B6B949 /* lexer.cc in Sources */,
 				2362025D1E45CC5F00B6B949 /* token-test.cc in Sources */,
 				23E3D5A41E63C6DD00C51DDE /* scopes.cc in Sources */,
+				231378E91E8B563D009384DF /* bitcode-emitter-test.cc in Sources */,
 				2349E5941E56FF12002883BC /* parser-test.cc in Sources */,
 				23E3D5C91E77CBCC00C51DDE /* file-output-stream.cc in Sources */,
 				23E3D5B51E6FFF5900C51DDE /* compiler.cc in Sources */,
@@ -525,6 +546,7 @@
 				232434651E78EEC70054C385 /* vm.cc in Sources */,
 				2349E5921E56FF02002883BC /* parser.cc in Sources */,
 				2324346D1E7926F50054C385 /* vm-memory-segment.cc in Sources */,
+				23658AF81E8A3FD700F7F72A /* malloced-object-factory.cc in Sources */,
 				2349E58B1E56F3DB002883BC /* raw-string.cc in Sources */,
 				236202521E45BC7E00B6B949 /* base-test.cc in Sources */,
 				2349E57D1E55DD3C002883BC /* zone-hash-map-test.cc in Sources */,

@@ -4,6 +4,7 @@
 #include "vm-bitcode-disassembler.h"
 #include "vm-objects.h"
 #include "vm.h"
+#include "malloced-object-factory.h"
 #include "handles.h"
 #include "code-label.h"
 #include "gtest/gtest.h"
@@ -15,14 +16,17 @@ public:
 
     virtual void SetUp() override {
         vm_ = new VM();
+        factory_ = new MallocedObjectFactory;
     }
 
     virtual void TearDown() override {
+        delete factory_;
         delete vm_;
     }
 
 protected:
     VM *vm_ = nullptr;
+    MallocedObjectFactory *factory_ = nullptr;
 };
 
 TEST_F(ThreadTest, Sanity) {
@@ -52,7 +56,7 @@ TEST_F(ThreadTest, CallNativeFunction) {
     builder.call_val(0, 0, 0);
     builder.ret();
 
-    auto nfn = vm_->CreateNativeFunction("foo", FooRoutine);
+    auto nfn = factory_->CreateNativeFunction("foo", FooRoutine);
     vm_->TEST_main_thread()->o_stack()->Push(nfn.get());
     ASSERT_EQ(nfn.get(), vm_->TEST_main_thread()->o_stack()->Get<MIONativeFunction*>(0));
     ASSERT_EQ(HeapObject::kNativeFunction, nfn->GetKind());

@@ -13,6 +13,17 @@
 
 namespace mio {
 
+struct VMValue {
+    BCSegment segment;
+    int       offset;
+    int       size;
+
+    bool is_void() const { return offset < 0 && size < 0; }
+
+    static VMValue Void() { return { MAX_BC_SEGMENTS, -1, -1, }; }
+    static VMValue Zero() { return { BC_CONSTANT_SEGMENT, 0, 8 }; }
+};
+
 class EmittedScope {
 public:
     EmittedScope(EmittedScope **current, FunctionPrototype *prototype)
@@ -121,7 +132,6 @@ void EmittingAstVisitor::VisitFunctionDefine(FunctionDefine *node) {
     } else {
         auto pc = emitter_->builder_->pc();
         auto value = Emit(node->function_literal());
-        PopValue();
         emitter_->builder_->BindTo(entry->mutable_label(), pc);
         entry->set_offset(value.offset);
     }

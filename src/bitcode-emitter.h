@@ -14,17 +14,6 @@ class TypeFactory;
 class ObjectFactory;
 class FunctionRegister;
 
-struct VMValue {
-    BCSegment segment;
-    int       offset;
-    int       size;
-
-    bool is_void() const { return offset < 0 && size < 0; }
-
-    static VMValue Void() { return { MAX_BC_SEGMENTS, -1, -1, }; }
-    static VMValue Zero() { return { BC_CONSTANT_SEGMENT, 0, 8 }; }
-};
-
 class BitCodeEmitter {
 public:
     BitCodeEmitter(MemorySegment *code,
@@ -38,6 +27,8 @@ public:
 
     bool Run(RawStringRef module_name, RawStringRef unit_name,
              ZoneVector<Statement *> *stmts);
+
+    BitCodeBuilder *builder() const { return builder_; }
 
     friend class EmittingAstVisitor;
     DISALLOW_IMPLICIT_CONSTRUCTORS(BitCodeEmitter);
