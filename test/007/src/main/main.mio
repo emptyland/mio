@@ -1,0 +1,7 @@
+package main with (
+    'foo'
+)
+
+function main: void {
+    val a = foo::foo
+}

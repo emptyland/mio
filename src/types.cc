@@ -28,15 +28,27 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 
 TypeFactory::TypeFactory(Zone *zone)
-    : zone_(DCHECK_NOTNULL(zone))
-    , void_type_(new (zone) Void(TOKEN_VOID))
-    , unknown_type_(new (zone) Unknown(-1))
-    , string_type_(new (zone) String(TOKEN_STRING)) {
-    integral_types_[0] = new (zone_) Integral(1,  TOKEN_BOOL);
-    integral_types_[1] = new (zone_) Integral(8,  TOKEN_I8);
-    integral_types_[2] = new (zone_) Integral(16, TOKEN_I16);
-    integral_types_[3] = new (zone_) Integral(32, TOKEN_I32);
-    integral_types_[4] = new (zone_) Integral(64, TOKEN_I64);
+    : zone_(DCHECK_NOTNULL(zone)) {
+    // i1
+    // i8
+    // i16
+    // i32
+    // i64
+    // f32
+    // f64
+    // void
+    // unknown
+    // string
+    simple_types_[0] = new (zone_) Integral(1,  TOKEN_BOOL);
+    simple_types_[1] = new (zone_) Integral(8,  TOKEN_I8);
+    simple_types_[2] = new (zone_) Integral(16, TOKEN_I16);
+    simple_types_[3] = new (zone_) Integral(32, TOKEN_I32);
+    simple_types_[4] = new (zone_) Integral(64, TOKEN_I64);
+    simple_types_[5] = new (zone_) Floating(32, TOKEN_F32);
+    simple_types_[6] = new (zone_) Floating(64, TOKEN_F64);
+    simple_types_[7] = new (zone_) Void(TOKEN_VOID);
+    simple_types_[8] = new (zone_) Unknown(-1);
+    simple_types_[9] = new (zone_) String(TOKEN_STRING);
 }
 
 FunctionPrototype *
@@ -94,6 +106,18 @@ std::string Type::ToString() const {
 
 /*virtual*/
 int Integral::ToString(TextOutputStream *stream) const {
+    return stream->Printf("i%d", bitwide_);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Floating
+////////////////////////////////////////////////////////////////////////////////
+/*virtual*/ int Floating::placement_size() const {
+    return (bitwide_ + 7) / 8;
+}
+
+/*virtual*/
+int Floating::ToString(TextOutputStream *stream) const {
     return stream->Printf("i%d", bitwide_);
 }
 

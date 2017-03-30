@@ -64,6 +64,8 @@ namespace mio {
     M(add_i16) \
     M(add_i32) \
     M(add_i64) \
+    M(add_f32) \
+    M(add_f64) \
     M(add_i8_imm) \
     M(add_i16_imm) \
     M(add_i32_imm) \

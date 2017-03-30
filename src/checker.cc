@@ -424,6 +424,8 @@ private:
             DLOG(FATAL) << "noreached";
             break;
     }
+    node->set_lhs_type(lhs_ty);
+    node->set_rhs_type(rhs_ty);
 }
 
 /*virtual*/ void CheckingAstVisitor::VisitSymbol(Symbol *node) {

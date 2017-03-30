@@ -107,5 +107,12 @@ TEST_F(BitCodeEmitterTest, Sanity) {
 //    EXPECT_STREQ(z, dasm.c_str());
 }
 
+TEST_F(BitCodeEmitterTest, Import) {
+    std::string dasm;
+    ParseProject("007", &dasm);
+
+    printf("%s\n", dasm.c_str());
+}
+
 
 } // namespace mio

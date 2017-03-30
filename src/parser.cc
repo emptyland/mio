@@ -487,7 +487,14 @@ Expression *Parser::ParseSimpleExpression(bool *ok) {
             lexer_->Next(&ahead_);
             return factory_->CreateI1SmiLiteral(false, position);
 
-        // TODO:
+        case TOKEN_I8_LITERAL:
+            lexer_->Next(&ahead_);
+            return factory_->CreateI8SmiLiteral(ahead_.i8_data(), position);
+
+        case TOKEN_I16_LITERAL:
+            lexer_->Next(&ahead_);
+            return factory_->CreateI16SmiLiteral(ahead_.i16_data(), position);
+
         case TOKEN_I32_LITERAL:
             lexer_->Next(&ahead_);
             return factory_->CreateI32SmiLiteral(ahead_.i32_data(), position);
@@ -495,6 +502,8 @@ Expression *Parser::ParseSimpleExpression(bool *ok) {
         case TOKEN_INT_LITERAL:
             lexer_->Next(&ahead_);
             return factory_->CreateI64SmiLiteral(ahead_.int_data(), position);
+
+        // TODO: other literal
 
         case TOKEN_STRING_LITERAL: {
             std::string literal;

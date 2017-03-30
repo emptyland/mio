@@ -12,6 +12,20 @@
 #include "glog/logging.h"
 #include <stack>
 
+#define MIO_BYTES_TO_BITS(M) \
+    M(1, 8) \
+    M(2, 16) \
+    M(4, 32) \
+    M(8, 64)
+
+#define MIO_BYTES_SWITCH(size, M) \
+    switch (size) { \
+        MIO_BYTES_TO_BITS(M) \
+        default: \
+            DLOG(FATAL) << "noreached! bad size: " << (size); \
+            break; \
+    }
+
 namespace mio {
 
 struct VMValue {
@@ -57,6 +71,14 @@ public:
         return base;
     }
 
+    VMValue MakePrimitiveValue(int size) {
+        return {
+            .segment = BC_LOCAL_PRIMITIVE_SEGMENT,
+            .offset  = MakePrimitiveRoom(size),
+            .size    = size,
+        };
+    }
+
     BitCodeBuilder *builder() { return &builder_; }
 
 private:
@@ -89,6 +111,7 @@ public:
     virtual void VisitVariable(Variable *node) override;
     virtual void VisitStringLiteral(StringLiteral *node) override;
     virtual void VisitSmiLiteral(SmiLiteral *node) override;
+    virtual void VisitFloatLiteral(FloatLiteral *node) override;
 
     BitCodeBuilder *builder() { return DCHECK_NOTNULL(current_)->builder(); }
 
@@ -115,6 +138,9 @@ public:
 
     VMValue GetOrNewString(const char *z, int n, Local<MIOString> *obj);
 private:
+    VMValue EmitIntegralAdd(Type *type, Expression *lhs, Expression *rhs);
+    VMValue EmitFloatingAdd(Type *type, Expression *lhs, Expression *rhs);
+
     VMValue EmitLoadPrimitiveMakeRoom(VMValue src);
 
     void EmitLoadOrMove(const VMValue &dest, const VMValue &src);
@@ -514,7 +540,25 @@ void EmittingAstVisitor::VisitUnaryOperation(UnaryOperation *node) {
 }
 
 void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
-    // TODO:
+
+    switch (node->op()) {
+        case OP_ADD:
+            if (node->lhs_type()->IsIntegral()) {
+                DCHECK_EQ(node->lhs_type()->id(), node->rhs_type()->id());
+
+                PushValue(EmitIntegralAdd(node->lhs_type(), node->lhs(),
+                                          node->rhs()));
+            } else if (node->lhs_type()->IsFloating()) {
+
+                DCHECK_EQ(node->lhs_type()->id(), node->rhs_type()->id());
+            }
+            break;
+
+            // TODO: other operator
+        default:
+            DLOG(FATAL) << "noreached!";
+            break;
+    }
 }
 
 void EmittingAstVisitor::VisitVariable(Variable *node) {
@@ -592,7 +636,7 @@ void EmittingAstVisitor::VisitSmiLiteral(SmiLiteral *node) {
             VMValue src = {
                 .segment = BC_CONSTANT_SEGMENT,
                 .offset  = emitter_->constants_->size(),
-                .size    = dest.size,
+                .size    = (node->bitwide() + 7) / 8,
             };
             emitter_->constants_->Add(node->i64());
             EmitLoadOrMove(dest, src);
@@ -602,6 +646,79 @@ void EmittingAstVisitor::VisitSmiLiteral(SmiLiteral *node) {
             break;
     }
     PushValue(dest);
+}
+
+void EmittingAstVisitor::VisitFloatLiteral(FloatLiteral *node) {
+    VMValue src = {
+        .segment = BC_CONSTANT_SEGMENT,
+        .offset  = emitter_->constants_->size(),
+        .size    = (node->bitwide() + 7) / 8,
+    };
+    switch (node->bitwide()) {
+        case 32:
+            emitter_->constants_->Add(node->f32());
+            break;
+        case 64:
+            emitter_->constants_->Add(node->f64());
+            break;
+        default:
+            DLOG(FATAL) << "noreached! bitwide = " << node->bitwide();
+            break;
+    }
+    PushValue(EmitLoadMakeRoom(src));
+}
+
+VMValue EmittingAstVisitor::EmitIntegralAdd(Type *type, Expression *lhs,
+                                            Expression *rhs) {
+    SmiLiteral *smi = nullptr;
+    Expression *op = nullptr;
+    if (lhs->IsSmiLiteral()) {
+        smi = lhs->AsSmiLiteral();
+        op  = rhs;
+    } else if (rhs->IsSmiLiteral()) {
+        smi = rhs->AsSmiLiteral();
+        op  = lhs;
+    }
+
+    if (smi && smi->bitwide() != 64) {
+        auto val = Emit(op);
+        auto result = current_->MakePrimitiveValue(val.size);
+
+        switch (val.size) {
+            case 1:
+                builder()->add_i8_imm(result.offset, val.offset, smi->i8());
+                break;
+            case 2:
+                builder()->add_i16_imm(result.offset, val.offset, smi->i16());
+                break;
+            case 4:
+                builder()->add_i32_imm(result.offset, val.offset, smi->i32());
+                break;
+            default:
+                DLOG(FATAL) << "noreached! size = " << val.size;
+                break;
+        }
+        return result;
+    } else {
+        auto val1 = Emit(lhs);
+        auto val2 = Emit(rhs);
+        DCHECK_EQ(val1.size, val2.size);
+        auto result = current_->MakePrimitiveValue(val1.size);
+
+        #define DEFINE_CASE(byte, bit) \
+            case byte: \
+                builder()->add_i##bit (result.offset, val1.offset, val2.offset); \
+                break;
+
+            MIO_BYTES_SWITCH(val1.size, DEFINE_CASE)
+        #undef DEFINE_CASE
+        return result;
+    }
+}
+
+VMValue EmittingAstVisitor::EmitFloatingAdd(Type *type, Expression *lhs, Expression *rhs) {
+    // TODO:
+    return {};
 }
 
 void EmittingAstVisitor::EmitLoadOrMove(const VMValue &dest, const VMValue &src) {
@@ -621,42 +738,24 @@ void EmittingAstVisitor::EmitLoadOrMove(const VMValue &dest, const VMValue &src)
         }
     }
 
-#define DEFINE_LOAD_OR_MOVE_CASE(posfix) \
-    if (src.segment == BC_LOCAL_PRIMITIVE_SEGMENT) { \
-        builder()->mov##posfix(dest.offset, src.offset); \
-    } else { \
-        if (dest.offset >= 0) { \
-            builder()->load##posfix(dest.offset, src.segment, src.offset); \
+#define DEFINE_CASE(byte, bit) \
+    case byte: \
+        if (src.segment == BC_LOCAL_PRIMITIVE_SEGMENT) { \
+            builder()->mov_##byte##b(dest.offset, src.offset); \
         } else { \
-            auto tmp = current_->MakePrimitiveRoom(src.size); \
-            builder()->load##posfix(tmp, src.segment, src.offset); \
-            builder()->mov##posfix(dest.offset, tmp); \
+            if (dest.offset >= 0) { \
+                builder()->load_##byte##b(dest.offset, src.segment, src.offset); \
+            } else { \
+                auto tmp = current_->MakePrimitiveRoom(src.size); \
+                builder()->load_##byte##b(tmp, src.segment, src.offset); \
+                builder()->mov_##byte##b(dest.offset, tmp); \
+            } \
         } \
-    }
+        break;
 
     DCHECK_EQ(BC_LOCAL_PRIMITIVE_SEGMENT, dest.segment);
-    switch (src.size) {
-        case 1:
-            DEFINE_LOAD_OR_MOVE_CASE(_1b)
-            break;
-
-        case 2:
-            DEFINE_LOAD_OR_MOVE_CASE(_2b)
-            break;
-
-        case 4:
-            DEFINE_LOAD_OR_MOVE_CASE(_4b)
-            break;
-
-        case 8:
-            DEFINE_LOAD_OR_MOVE_CASE(_8b)
-            break;
-
-#undef DEFINE_LOAD_OR_MOVE_CASE
-        default:
-            DLOG(FATAL) << "noreached! src.size = " << src.size;
-            break;
-    }
+    MIO_BYTES_SWITCH(src.size, DEFINE_CASE)
+#undef DEFINE_CASE
 }
 
 VMValue EmittingAstVisitor::EmitLoadMakeRoom(const VMValue &src) {
@@ -669,23 +768,13 @@ VMValue EmittingAstVisitor::EmitLoadMakeRoom(const VMValue &src) {
                 .size    = src.size,
             };
 
-            switch (src.size) {
-                case 1:
-                    builder()->load_1b(value.offset, src.segment, src.offset);
-                    break;
-                case 2:
-                    builder()->load_2b(value.offset, src.segment, src.offset);
-                    break;
-                case 4:
-                    builder()->load_4b(value.offset, src.segment, src.offset);
-                    break;
-                case 8:
-                    builder()->load_8b(value.offset, src.segment, src.offset);
-                    break;
-                default:
-                    DLOG(FATAL) << "noreached! bad size: " << src.size;
-                    break;
-            }
+        #define DEFINE_CASE(byte, bit) \
+            case byte: \
+                builder()->load_##byte##b(value.offset, src.segment, src.offset); \
+                break;
+
+            MIO_BYTES_SWITCH(src.size, DEFINE_CASE)
+        #undef DEFINE_CASE
             return value;
         } break;
 
@@ -716,23 +805,14 @@ VMValue EmittingAstVisitor::EmitStoreMakeRoom(const VMValue &src) {
             };
             emitter_->p_global_->AlignAdvance(src.size);
 
-            switch (src.size) {
-                case 1:
-                    builder()->store_1b(value.offset, src.segment, src.offset);
-                    break;
-                case 2:
-                    builder()->store_2b(value.offset, src.segment, src.offset);
-                    break;
-                case 4:
-                    builder()->store_4b(value.offset, src.segment, src.offset);
-                    break;
-                case 8:
-                    builder()->store_8b(value.offset, src.segment, src.offset);
-                    break;
-                default:
-                    DLOG(FATAL) << "noreached! bad size: " << src.size;
-                    break;
-            }
+        #define DEFINE_CASE(byte, bit) \
+            case byte: \
+                builder()->store_##byte##b(value.offset, src.segment, src.offset); \
+                break;
+
+            MIO_BYTES_SWITCH(src.size, DEFINE_CASE)
+        #undef DEFINE_CASE
+
             return value;
         } break;
 

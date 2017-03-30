@@ -111,8 +111,32 @@ public:
         return Emit3Addr(BC_add_i8, result, lhs, rhs);
     }
 
+    int add_i16(uint16_t result, uint16_t lhs, uint16_t rhs) {
+        return Emit3Addr(BC_add_i16, result, lhs, rhs);
+    }
+
+    int add_i32(uint16_t result, uint16_t lhs, uint16_t rhs) {
+        return Emit3Addr(BC_add_i32, result, lhs, rhs);
+    }
+
+    int add_i64(uint16_t result, uint16_t lhs, uint16_t rhs) {
+        return Emit3Addr(BC_add_i64, result, lhs, rhs);
+    }
+
+    int add_f32(uint16_t result, uint16_t lhs, uint16_t rhs) {
+        return Emit3Addr(BC_add_f32, result, lhs, rhs);
+    }
+
+    int add_f64(uint16_t result, uint16_t lhs, uint16_t rhs) {
+        return Emit3Addr(BC_add_f64, result, lhs, rhs);
+    }
+
     int add_i8_imm(uint16_t result, uint16_t lhs, int8_t imm) {
         return Emit3Addr(BC_add_i8_imm, result, lhs, imm);
+    }
+
+    int add_i16_imm(uint16_t result, uint16_t lhs, int16_t imm) {
+        return Emit3Addr(BC_add_i16_imm, result, lhs, imm);
     }
 
     int add_i32_imm(uint16_t result, uint16_t lhs, int32_t imm) {

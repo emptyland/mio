@@ -13,6 +13,7 @@ namespace mio {
     M(FunctionPrototype) \
     M(Union) \
     M(Integral) \
+    M(Floating) \
     M(String) \
     M(Void) \
     M(Unknown)
@@ -91,7 +92,6 @@ class Integral : public Type {
 public:
     DEF_GETTER(int, bitwide)
 
-
     DECLARE_TYPE(Integral)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Integral);
 private:
@@ -101,6 +101,21 @@ private:
 
     int bitwide_;
 }; // class Integral
+
+
+class Floating : public Type {
+public:
+    DEF_GETTER(int, bitwide)
+
+    DECLARE_TYPE(Floating)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Floating);
+private:
+    Floating(int bitwide, int64_t id)
+        : Type(id)
+        , bitwide_(bitwide) {}
+
+    int bitwide_;
+}; // class Floating
 
 
 class Unknown : public Type {
@@ -195,21 +210,30 @@ private:
 
 class TypeFactory {
 public:
-    static const int kMaxIntegralTypes = 5;
+    static const int kNumberOfIntegralTypes = 5;
+    static const int kNumberOfFloatingTypes = 2;
+    static const int kMaxSimpleTypes = kNumberOfIntegralTypes
+                                     + kNumberOfFloatingTypes
+                                     + 1  // String
+                                     + 1  // Void
+                                     + 1; // Unknown
 
     TypeFactory(Zone *zone);
 
     Zone *zone() const { return zone_; }
 
-    Integral *GetI1() const { return integral_types_[0]; }
-    Integral *GetI8() const { return integral_types_[1]; }
-    Integral *GetI16() const { return integral_types_[2]; }
-    Integral *GetI32() const { return integral_types_[3]; }
-    Integral *GetI64() const { return integral_types_[4]; }
+    Integral *GetI1() const { return simple_types_[0]->AsIntegral(); }
+    Integral *GetI8() const { return simple_types_[1]->AsIntegral(); }
+    Integral *GetI16() const { return simple_types_[2]->AsIntegral(); }
+    Integral *GetI32() const { return simple_types_[3]->AsIntegral(); }
+    Integral *GetI64() const { return simple_types_[4]->AsIntegral(); }
 
-    Void *GetVoid() const { return void_type_; }
-    Unknown *GetUnknown() const { return unknown_type_; }
-    String *GetString() const { return string_type_; }
+    Floating *GetF32() const { return simple_types_[5]->AsFloating(); }
+    Floating *GetF64() const { return simple_types_[6]->AsFloating(); }
+
+    Void *GetVoid() const { return simple_types_[7]->AsVoid(); }
+    Unknown *GetUnknown() const { return simple_types_[8]->AsUnknown(); }
+    String *GetString() const { return simple_types_[9]->AsString(); }
 
     FunctionPrototype *GetFunctionPrototype(ZoneVector<Paramter *> *paramters,
                                             Type *return_type);
@@ -231,11 +255,12 @@ private:
     // i16
     // i32
     // i64
-    Integral *integral_types_[kMaxIntegralTypes];
-    Void     *void_type_;
-    Unknown  *unknown_type_;
-    String   *string_type_;
-
+    // f32
+    // f64
+    // void
+    // unknown
+    // string
+    Type *simple_types_[kMaxSimpleTypes];
     Zone *zone_;
 };
 

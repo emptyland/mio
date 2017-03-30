@@ -86,6 +86,18 @@ public:
         }
     }
 
+    virtual void VisitFloatLiteral(FloatLiteral *node) override {
+        Write("i%d: ", node->bitwide());
+        switch (node->bitwide()) {
+            case 32:
+                Write("%f\n", node->f32());
+                break;
+            case 64:
+                Write("%f\n", node->f64());
+                break;
+        }
+    }
+
     // string: literal
     virtual void VisitStringLiteral(StringLiteral *node) override {
         WriteMapPair("string", node->data()->c_str());

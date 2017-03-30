@@ -23,6 +23,7 @@ namespace mio {
     M(TypeTest) \
     M(TypeCast) \
     M(SmiLiteral) \
+    M(FloatLiteral) \
     M(Variable) \
     M(Symbol) \
     M(Call) \
@@ -63,6 +64,7 @@ class AstNode;
             class FieldAccessing;
             class Literal;
                 class SmiLiteral;
+                class FloatLiteral;
                 class StringLiteral;
                 class FunctionLiteral;
             class UnaryOperation;
@@ -364,6 +366,27 @@ private:
 }; // class SmiLiteral
 
 
+class FloatLiteral : public Literal {
+public:
+    DEF_GETTER(int, bitwide)
+
+    mio_f32_t f32() const { return data_.as_f32; }
+    mio_f64_t f64() const { return data_.as_f64; }
+
+    DECLARE_AST_NODE(FloatLiteral)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(FloatLiteral);
+private:
+    FloatLiteral(int bitwide, int position)
+        : Literal(position), bitwide_(bitwide) {}
+
+    int bitwide_;
+    union {
+        mio_f32_t as_f32;
+        mio_f64_t as_f64;
+    } data_;
+}; // class FloatLiteral
+
+
 class StringLiteral : public Literal {
 public:
     RawStringRef data() const { return data_; }
@@ -519,6 +542,12 @@ public:
     Expression *rhs() const { return rhs_; }
     void set_rhs(Expression *node) { rhs_ = DCHECK_NOTNULL(node); }
 
+    Type *lhs_type() const { return DCHECK_NOTNULL(lhs_type_); }
+    void set_lhs_type(Type *type) { lhs_type_ = DCHECK_NOTNULL(type); }
+
+    Type *rhs_type() const { return DCHECK_NOTNULL(rhs_type_); }
+    void set_rhs_type(Type *type) { rhs_type_ = DCHECK_NOTNULL(type); }
+
     DECLARE_AST_NODE(BinaryOperation)
     DISALLOW_IMPLICIT_CONSTRUCTORS(BinaryOperation)
 private:
@@ -531,6 +560,8 @@ private:
     Operator op_;
     Expression *lhs_;
     Expression *rhs_;
+    Type *lhs_type_ = nullptr;
+    Type *rhs_type_ = nullptr;
 }; // class BinaryOperation
 
 
@@ -841,12 +872,26 @@ public:
                                            DCHECK_NOTNULL(rhs), position);
     }
 
-    // TODO: other smi literals
-
     SmiLiteral *CreateI1SmiLiteral(mio_bool_t value, int position) {
         auto node = new (zone_) SmiLiteral(1, position);
         if (node) {
             node->data_.as_i1 = value;
+        }
+        return node;
+    }
+
+    SmiLiteral *CreateI8SmiLiteral(mio_i8_t value, int position) {
+        auto node = new (zone_) SmiLiteral(8, position);
+        if (node) {
+            node->data_.as_i8 = value;
+        }
+        return node;
+    }
+
+    SmiLiteral *CreateI16SmiLiteral(mio_i16_t value, int position) {
+        auto node = new (zone_) SmiLiteral(16, position);
+        if (node) {
+            node->data_.as_i16 = value;
         }
         return node;
     }
@@ -863,6 +908,22 @@ public:
         auto node = new (zone_) SmiLiteral(64, position);
         if (node) {
             node->data_.as_i64 = value;
+        }
+        return node;
+    }
+
+    FloatLiteral *CreateF32FloatLiteral(mio_f32_t value, int position) {
+        auto node = new (zone_) FloatLiteral(32, position);
+        if (node) {
+            node->data_.as_f32 = value;
+        }
+        return node;
+    }
+
+    FloatLiteral *CreateF64FloatLiteral(mio_f64_t value, int position) {
+        auto node = new (zone_) FloatLiteral(64, position);
+        if (node) {
+            node->data_.as_f64 = value;
         }
         return node;
     }

@@ -81,6 +81,7 @@ Compiler::ParseProject(const char *project_dir,
         module_path.append(dir_name);
 
 
+        names.clear();
         if (sfs->GetNames(module_path.c_str(), ".mio", &names) < 0) {
             error->message = "file system error";
             return nullptr;
