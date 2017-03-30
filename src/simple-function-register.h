@@ -21,6 +21,8 @@ public:
 
     virtual FunctionEntry *FindOrInsert(const char *name) override;
 
+    virtual FunctionEntry *FindOrNull(const char *name) const override;
+
     virtual bool RegisterNativeFunction(const char *name,
                                         MIOFunctionPrototype pointer) override;
 

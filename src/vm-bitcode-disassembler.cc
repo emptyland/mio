@@ -48,8 +48,18 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
             stream_->Printf("[%u] %d@(%u)", GetOp1(bc), GetImm32(bc), GetOp2(bc));
             break;
 
+        case BC_load_i8_imm:
+        case BC_load_i16_imm:
         case BC_load_i32_imm:
             stream_->Printf("[%u] %d", GetOp1(bc), GetImm32(bc));
+            break;
+
+        case BC_store_1b:
+        case BC_store_2b:
+        case BC_store_4b:
+        case BC_store_8b:
+        case BC_store_o:
+            stream_->Printf("%d@%u [%u]", GetImm32(bc), GetOp2(bc), GetOp1(bc));
             break;
 
         case BC_add_i8:

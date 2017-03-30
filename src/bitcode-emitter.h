@@ -3,7 +3,7 @@
 
 #include "compiler.h"
 #include "vm-bitcode.h"
-#include <unordered_map>
+#include <unordered_set>
 
 namespace mio {
 
@@ -13,6 +13,9 @@ class BitCodeBuilder;
 class TypeFactory;
 class ObjectFactory;
 class FunctionRegister;
+class Declaration;
+class PackageImporter;
+    class EmittedScope;
 
 class BitCodeEmitter {
 public:
@@ -27,16 +30,28 @@ public:
     bool Run(RawStringRef module_name, RawStringRef unit_name,
              ZoneVector<Statement *> *stmts);
 
+    bool Run(CompiledModuleMap *all_modules);
+
     friend class EmittingAstVisitor;
     DISALLOW_IMPLICIT_CONSTRUCTORS(BitCodeEmitter);
 
 private:
+    bool EmitModule(RawStringRef module_name,
+                    CompiledUnitMap *all_units,
+                    CompiledModuleMap *all_modules);
+
+    bool ProcessImportList(PackageImporter *pkg,
+                           EmittedScope *info,
+                           CompiledModuleMap *all_modules);
+
     MemorySegment *constants_;
     MemorySegment *p_global_;
     MemorySegment *o_global_;
     TypeFactory *types_;
     ObjectFactory *object_factory_;
     FunctionRegister *function_register_;
+    std::unordered_set<Declaration *> emitted_;
+    std::unordered_set<std::string> imported_;
 };
 
 } // namespace mio

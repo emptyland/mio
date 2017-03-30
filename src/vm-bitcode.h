@@ -42,8 +42,15 @@ namespace mio {
     M(load_2b) \
     M(load_4b) \
     M(load_8b) \
+    M(load_i8_imm) \
+    M(load_i16_imm) \
     M(load_i32_imm) \
     M(load_o) \
+    M(store_1b) \
+    M(store_2b) \
+    M(store_4b) \
+    M(store_8b) \
+    M(store_o)
 
 #define VM_MOV_BC(M) \
     M(mov_1b) \

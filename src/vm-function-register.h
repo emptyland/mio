@@ -15,6 +15,8 @@ public:
 
     virtual FunctionEntry *FindOrInsert(const char *name) = 0;
 
+    virtual FunctionEntry *FindOrNull(const char *name) const = 0;
+
     virtual bool RegisterNativeFunction(const char *name,
                                         MIOFunctionPrototype pointer) = 0;
 

@@ -13,6 +13,7 @@ class RawString;
 typedef const RawString * RawStringRef;
 
 extern const RawString *const kMainValue;
+extern const RawString *const kBoostrapValue;
 
 
 class RawString {

@@ -92,22 +92,16 @@ public:
 
 class MIOFunction : public HeapObject {
 public:
-    enum Type: int {
-        NATIVE,
-        NORMAL,
-    };
+    static const int kNameOffset = kHeapObjectOffset;
+    static const int kMIOFunctionOffset = kHeapObjectOffset + kObjectReferenceSize;
 
-    static const int kTypeOffset = kHeapObjectOffset;
-    static const int kMIOFunctionOffset = kHeapObjectOffset + sizeof(int);
-
-    DEFINE_HEAP_OBJ_RW(Type, Type)
+    DEFINE_HEAP_OBJ_RW(MIOString *, Name)
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOFunction)
 }; // class FunctionObject
 
 class MIONativeFunction : public MIOFunction {
 public:
-
     static const int kSignatureOffset = kMIOFunctionOffset;
     static const int kNativePointerOffset = kMIOFunctionOffset + sizeof(HeapObject *);
     static const int kMIONativeFunctionOffset = kNativePointerOffset + sizeof(MIOFunctionPrototype);
@@ -121,12 +115,10 @@ public:
 
 class MIONormalFunction final: public MIOFunction {
 public:
-    static const int kNameOffset = kMIOFunctionOffset;
-    static const int kCodeSizeOffset = kNameOffset + kObjectReferenceSize;
+    static const int kCodeSizeOffset = kMIOFunctionOffset;
     static const int kCodeOffset = kCodeSizeOffset + sizeof(int);
     static const int kHeadOffset = kCodeOffset;
 
-    DEFINE_HEAP_OBJ_RW(MIOString *, Name)
     DEFINE_HEAP_OBJ_RW(int, CodeSize)
 
     void *GetCode() { return reinterpret_cast<uint8_t *>(this) + kCodeOffset; }

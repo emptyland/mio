@@ -841,10 +841,20 @@ public:
                                            DCHECK_NOTNULL(rhs), position);
     }
 
+    // TODO: other smi literals
+
     SmiLiteral *CreateI1SmiLiteral(mio_bool_t value, int position) {
         auto node = new (zone_) SmiLiteral(1, position);
         if (node) {
             node->data_.as_i1 = value;
+        }
+        return node;
+    }
+
+    SmiLiteral *CreateI32SmiLiteral(mio_i32_t value, int position) {
+        auto node = new (zone_) SmiLiteral(32, position);
+        if (node) {
+            node->data_.as_i32 = value;
         }
         return node;
     }

@@ -25,6 +25,12 @@ FunctionEntry *SimpleFunctionRegister::FindOrInsert(const char *name) {
 }
 
 /*virtual*/
+FunctionEntry *SimpleFunctionRegister::FindOrNull(const char *name) const {
+    auto iter = functions_.find(name);
+    return iter == functions_.end() ? nullptr : iter->second;
+}
+
+/*virtual*/
 bool SimpleFunctionRegister::RegisterNativeFunction(const char *name,
                                                     MIOFunctionPrototype pointer) {
     auto iter = functions_.find(name);

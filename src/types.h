@@ -199,6 +199,8 @@ public:
 
     TypeFactory(Zone *zone);
 
+    Zone *zone() const { return zone_; }
+
     Integral *GetI1() const { return integral_types_[0]; }
     Integral *GetI8() const { return integral_types_[1]; }
     Integral *GetI16() const { return integral_types_[2]; }

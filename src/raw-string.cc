@@ -4,8 +4,10 @@
 namespace mio {
 
 static const char kMainValueBlob[] = "\x04\x00\x00\x00main";
-
 const RawString *const kMainValue = reinterpret_cast<RawStringRef>(kMainValueBlob);
+
+//static const char kBootstrapBlob[] = "\x09\x00\x00\x00bootstrap";
+//const RawString *const kBootsrapValue = reinterpret_cast<RawStringRef>(kBootstrapBlob);
 
 static const int kEmptyStringBlob[2] = { 0, 0 };
 

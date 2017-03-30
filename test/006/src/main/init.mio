@@ -1,7 +1,10 @@
 package main
 
-function foo(a:int) = a
+val b = 1d
 
 function main: void {
-    foo(1)
+    val a = b
+    foo(a)
 }
+
+function foo(a:i32) = a

@@ -68,14 +68,7 @@ public:
                                types_,
                                object_factory_,
                                function_register_);
-        CompiledModuleMap::Iterator m_iter(checker.mutable_all_modules());
-        for (m_iter.Init(); m_iter.HasNext(); m_iter.MoveNext()) {
-
-            CompiledUnitMap::Iterator u_iter(m_iter->value());
-            for (u_iter.Init(); u_iter.HasNext(); u_iter.MoveNext()) {
-                emitter.Run(m_iter->key(), u_iter->key(), u_iter->value());
-            }
-        }
+        ASSERT_TRUE(emitter.Run(checker.mutable_all_modules()));
 
         std::vector<Local<MIONormalFunction>> all_functions;
         function_register_->GetAllFunctions(&all_functions);
