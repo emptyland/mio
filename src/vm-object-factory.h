@@ -24,7 +24,7 @@ public:
     virtual Local<MIONativeFunction>
     CreateNativeFunction(const char *signature, MIOFunctionPrototype pointer) = 0;
 
-    virtual Local<MIONormalFunction> CreateNormalFunction(int address) = 0;
+    virtual Local<MIONormalFunction> CreateNormalFunction(const void *code, int size) = 0;
 
     virtual Local<MIOHashMap> CreateHashMap(int seed, uint32_t flags) = 0;
 

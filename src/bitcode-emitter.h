@@ -16,8 +16,7 @@ class FunctionRegister;
 
 class BitCodeEmitter {
 public:
-    BitCodeEmitter(MemorySegment *code,
-                   MemorySegment *constants,
+    BitCodeEmitter(MemorySegment *constants,
                    MemorySegment *p_global,
                    MemorySegment *o_global,
                    TypeFactory *types,
@@ -28,12 +27,10 @@ public:
     bool Run(RawStringRef module_name, RawStringRef unit_name,
              ZoneVector<Statement *> *stmts);
 
-    BitCodeBuilder *builder() const { return builder_; }
-
     friend class EmittingAstVisitor;
     DISALLOW_IMPLICIT_CONSTRUCTORS(BitCodeEmitter);
+
 private:
-    BitCodeBuilder *builder_;
     MemorySegment *constants_;
     MemorySegment *p_global_;
     MemorySegment *o_global_;

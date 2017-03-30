@@ -1,5 +1,6 @@
 #include "malloced-object-factory.h"
 #include "vm-objects.h"
+#include "glog/logging.h"
 #include <stdlib.h>
 
 namespace mio {
@@ -18,8 +19,10 @@ MallocedObjectFactory::~MallocedObjectFactory() {
 /*virtual*/
 Local<MIOString>
 MallocedObjectFactory::GetOrNewString(const char *z, int n, int **offset) {
-    offset_stub_ = -1;
-    *offset = offset_pointer_;
+    if (offset) {
+        offset_stub_ = -1;
+        *offset = offset_pointer_;
+    }
     return CreateString(z, n);
 }
 
@@ -51,10 +54,14 @@ Local<MIONativeFunction> MallocedObjectFactory::CreateNativeFunction(const char 
 }
 
 /*virtual*/
-Local<MIONormalFunction> MallocedObjectFactory::CreateNormalFunction(int address) {
-    auto obj = static_cast<MIONormalFunction *>(malloc(MIONormalFunction::kMIONormalFunctionOffset));
+Local<MIONormalFunction> MallocedObjectFactory::CreateNormalFunction(const void *code, int size) {
+    DCHECK_EQ(0, size % sizeof(uint64_t));
+
+    auto obj = static_cast<MIONormalFunction *>(malloc(MIONormalFunction::kHeadOffset + size));
     obj->SetKind(HeapObject::kNormalFunction);
-    obj->SetAddress(address);
+    obj->SetName(CreateString("", 0).get());
+    obj->SetCodeSize(size / 8);
+    memcpy(obj->GetCode(), code, size);
 
     objects_.push_back(obj);
     return make_local(obj);

@@ -2,11 +2,15 @@
 #define MIO_SIMPLE_FUNCTION_REGISTER_H_
 
 #include "vm-function-register.h"
-#include "compiler.h"
+#include "vm-objects.h"
+#include "glog/logging.h"
+#include <vector>
+#include <unordered_map>
 
 namespace mio {
 
 class MemorySegment;
+class FunctionEntry;
 
 class SimpleFunctionRegister : public FunctionRegister {
 public:
@@ -20,7 +24,7 @@ public:
     virtual bool RegisterNativeFunction(const char *name,
                                         MIOFunctionPrototype pointer) override;
 
-    int MakeFunctionInfo(FunctionInfoMap *map);
+    int GetAllFunctions(std::vector<Local<MIONormalFunction>> *all_functions);
 
 private:
     std::unordered_map<std::string, FunctionEntry *> functions_;

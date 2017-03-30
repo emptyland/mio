@@ -62,8 +62,7 @@ public:
         ASSERT_TRUE(checker.Run()) << "checking fail: " << checker.last_error().ToString();
 
 
-        BitCodeEmitter emitter(code_,
-                               constant_,
+        BitCodeEmitter emitter(constant_,
                                p_global_,
                                o_global_,
                                types_,
@@ -77,12 +76,15 @@ public:
                 emitter.Run(m_iter->key(), u_iter->key(), u_iter->value());
             }
         }
-        FunctionInfoMap info;
-        function_register_->MakeFunctionInfo(&info);
+
+        std::vector<Local<MIONormalFunction>> all_functions;
+        function_register_->GetAllFunctions(&all_functions);
 
         MemoryOutputStream stream(text);
-        BitCodeDisassembler dasm(code_, emitter.builder()->pc(), &info, &stream);
-        dasm.Run();
+        BitCodeDisassembler dasm(&stream);
+        for (auto function : all_functions) {
+            dasm.Run(function);
+        }
     }
 
 protected:
@@ -112,10 +114,5 @@ TEST_F(BitCodeEmitterTest, Sanity) {
 //    EXPECT_STREQ(z, dasm.c_str());
 }
 
-TEST_F(BitCodeEmitterTest, ObjectCreation) {
-
-    auto func = object_factory_->CreateNormalFunction(1);
-    ASSERT_EQ(HeapObject::kNormalFunction, func->GetKind());
-}
 
 } // namespace mio

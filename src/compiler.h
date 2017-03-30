@@ -21,10 +21,6 @@ typedef ZoneHashMap<RawStringRef, ZoneVector<Statement *> *> CompiledUnitMap;
 // [moduleName [unitName, statements]]
 typedef ZoneHashMap<RawStringRef, CompiledUnitMap *> CompiledModuleMap;
 
-// [pc, <name, entry>]
-typedef std::unordered_map<int, std::tuple<std::string, FunctionEntry*>>
-    FunctionInfoMap;
-
 struct ParsingError {
     int column;
     int line;

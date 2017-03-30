@@ -23,7 +23,7 @@ public:
                          MIOFunctionPrototype pointer) override;
 
     virtual Local<MIONormalFunction>
-    CreateNormalFunction(int address) override;
+    CreateNormalFunction(const void *code, int size) override;
 
     virtual Local<MIOHashMap>
     CreateHashMap(int seed, uint32_t flags) override;

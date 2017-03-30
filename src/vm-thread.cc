@@ -44,13 +44,11 @@ Thread::~Thread() {
     delete o_stack_;
 }
 
-void Thread::Execute(int pc, bool *ok) {
-    DCHECK_LT(pc * 8, vm_->code_->size());
-    pc_ = pc;
-
-    uint64_t *pbc = static_cast<uint64_t *>(vm_->code_->offset(pc_));
+void Thread::Execute(MIONormalFunction *callee, bool *ok) {
+    pc_ = 0;
+    bc_ = static_cast<uint64_t *>(callee->GetCode());
     while (!should_exit_) {
-        auto bc = pbc[pc_++];
+        auto bc = bc_[pc_++];
 
         switch (BitCodeDisassembler::GetInst(bc)) {
             case BC_debug:
@@ -88,6 +86,7 @@ void Thread::Execute(int pc, bool *ok) {
                 }
                 auto ctx = call_stack_->Top();
                 pc_ = ctx->pc;
+                bc_ = ctx->bc;
 
                 p_stack_->SetFrame(ctx->p_stack_base, ctx->p_stack_size);
                 o_stack_->SetFrame(ctx->o_stack_base, ctx->o_stack_size);
@@ -114,6 +113,7 @@ void Thread::Execute(int pc, bool *ok) {
                 ctx->o_stack_base = o_stack_->base_size();
                 ctx->o_stack_size = o_stack_->size();
                 ctx->pc = pc_ + 1;
+                ctx->bc = bc_;
 
                 auto base1 = BitCodeDisassembler::GetOp1(bc);
                 auto base2 = BitCodeDisassembler::GetOp2(bc);
@@ -156,14 +156,16 @@ void Thread::Execute(int pc, bool *ok) {
                     ctx->o_stack_base = o_stack_->base_size();
                     ctx->o_stack_size = o_stack_->size();
                     ctx->pc = pc_ + 1;
+                    ctx->bc = bc_;
 
                     auto base1 = BitCodeDisassembler::GetOp1(bc);
                     auto base2 = BitCodeDisassembler::GetOp2(bc);
                     p_stack_->AdjustFrame(base1, 0);
                     o_stack_->AdjustFrame(base2, 0);
 
-                    auto func = obj->AsNormalFunction();
-                    pc_ += func->GetAddress();
+                    auto func = DCHECK_NOTNULL(obj->AsNormalFunction());
+                    pc_ = 0;
+                    bc_ = static_cast<uint64_t *>(func->GetCode());
                 }
             } break;
 

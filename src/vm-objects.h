@@ -119,13 +119,17 @@ public:
 }; // class MIONativeFunction
 
 
-class MIONormalFunction : public MIOFunction {
+class MIONormalFunction final: public MIOFunction {
 public:
+    static const int kNameOffset = kMIOFunctionOffset;
+    static const int kCodeSizeOffset = kNameOffset + kObjectReferenceSize;
+    static const int kCodeOffset = kCodeSizeOffset + sizeof(int);
+    static const int kHeadOffset = kCodeOffset;
 
-    static const int kAddressOffset = kMIOFunctionOffset;
-    static const int kMIONormalFunctionOffset = kAddressOffset + sizeof(int);
+    DEFINE_HEAP_OBJ_RW(MIOString *, Name)
+    DEFINE_HEAP_OBJ_RW(int, CodeSize)
 
-    DEFINE_HEAP_OBJ_RW(int, Address);
+    void *GetCode() { return reinterpret_cast<uint8_t *>(this) + kCodeOffset; }
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIONormalFunction)
 }; // class NormalFunction

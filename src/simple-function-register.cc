@@ -1,5 +1,6 @@
 #include "simple-function-register.h"
 #include "vm-memory-segment.h"
+#include "compiler.h"
 
 namespace mio {
 
@@ -33,7 +34,7 @@ bool SimpleFunctionRegister::RegisterNativeFunction(const char *name,
 
     auto entry = iter->second;
     if (entry->is_native()) {
-        auto heap_obj = static_cast<HeapObject *>(global_->offset(entry->offset()));
+        auto heap_obj = global_->Get<HeapObject *>(entry->offset());
         auto func = make_local(heap_obj->AsNativeFunction());
         DCHECK(!func.empty());
 
@@ -43,18 +44,17 @@ bool SimpleFunctionRegister::RegisterNativeFunction(const char *name,
     return false;
 }
 
-int SimpleFunctionRegister::MakeFunctionInfo(FunctionInfoMap *map) {
+int
+SimpleFunctionRegister::GetAllFunctions(std::vector<Local<MIONormalFunction>> *all_functions) {
     int result = 0;
     for (const auto &pair : functions_) {
-        auto heap_obj = *static_cast<HeapObject **>(global_->offset(pair.second->offset()));
+        auto obj = global_->Get<HeapObject *>(pair.second->offset());
+        auto func = obj->AsNormalFunction();
 
-        auto func = make_local(heap_obj->AsNormalFunction());
-        if (func.empty()) {
-            continue;
+        if (func) {
+            all_functions->push_back(make_local(func));
+            ++result;
         }
-
-        map->emplace(func->GetAddress(), std::make_tuple(pair.first, pair.second));
-        result++;
     }
     return result;
 }

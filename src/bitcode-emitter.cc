@@ -27,13 +27,18 @@ struct VMValue {
 class EmittedScope {
 public:
     EmittedScope(EmittedScope **current, FunctionPrototype *prototype)
-        : current_(DCHECK_NOTNULL(current))
+        : code_(new MemorySegment)
+        , builder_(code_)
+        , current_(DCHECK_NOTNULL(current))
         , saved_(*DCHECK_NOTNULL(current))
         , prototype_(DCHECK_NOTNULL(prototype)) {
         *current_ = this;
     }
 
-    ~EmittedScope() { *current_ = saved_; }
+    ~EmittedScope() {
+        *current_ = saved_;
+        delete code_;
+    }
 
     DEF_GETTER(int, p_stack_size)
     DEF_GETTER(int, o_stack_size)
@@ -51,12 +56,16 @@ public:
         return base;
     }
 
+    BitCodeBuilder *builder() { return &builder_; }
+
 private:
+    MemorySegment *code_;
     EmittedScope **current_;
     EmittedScope *saved_;
     int p_stack_size_ = 0;
     int o_stack_size_ = 0;
     FunctionPrototype *prototype_;
+    BitCodeBuilder builder_;
 };
 
 class EmittingAstVisitor : public DoNothingAstVisitor {
@@ -82,7 +91,7 @@ public:
     virtual void VisitStringLiteral(StringLiteral *node) override;
     virtual void VisitSmiLiteral(SmiLiteral *node) override;
 
-    BitCodeBuilder *builder() { return emitter_->builder_; }
+    BitCodeBuilder *builder() { return DCHECK_NOTNULL(current_)->builder(); }
 
     VMValue Emit(AstNode *node) {
         DCHECK_NOTNULL(node)->Accept(this);
@@ -124,7 +133,8 @@ private:
 
 void EmittingAstVisitor::VisitFunctionDefine(FunctionDefine *node) {
     auto scope = node->scope();
-    auto entry = emitter_->function_register_->FindOrInsert(scope->MakeFullName(node->name()).c_str());
+    auto full_name = scope->MakeFullName(node->name());
+    auto entry = emitter_->function_register_->FindOrInsert(full_name.c_str());
     entry->set_is_native(node->is_native());
 
     if (node->is_native()) {
@@ -132,10 +142,17 @@ void EmittingAstVisitor::VisitFunctionDefine(FunctionDefine *node) {
         entry->set_offset(emitter_->o_global_->size());
         emitter_->o_global_->Add(obj.get());
     } else {
-        auto pc = emitter_->builder_->pc();
         auto value = Emit(node->function_literal());
-        emitter_->builder_->BindTo(entry->mutable_label(), pc);
         entry->set_offset(value.offset);
+
+        DCHECK_EQ(BC_GLOBAL_OBJECT_SEGMENT, value.segment);
+        auto func = make_local(emitter_->o_global_->Get<HeapObject *>(value.offset)->AsNormalFunction());
+        DCHECK(!func.empty());
+
+        func->SetName(emitter_->object_factory_->GetOrNewString(
+            full_name.c_str(),
+            static_cast<int>(full_name.size()),
+            nullptr).get());
     }
     node->instance()->set_offset(entry->offset());
     node->instance()->set_bind_kind(Variable::GLOBAL);
@@ -150,7 +167,7 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
     auto scope = node->scope();
 
     // placement frame instruction
-    auto frame_placement = emitter_->builder_->debug();
+    auto frame_placement = builder()->debug();
 
     for (int i = 0; i < prototype->mutable_paramters()->size(); ++i) {
         auto paramter = prototype->mutable_paramters()->At(i);
@@ -166,7 +183,7 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
 
     if (prototype->return_type()->IsVoid()) {
         node->body()->Accept(this);
-        emitter_->builder_->ret();
+        builder()->ret();
     } else {
         auto result = Emit(node->body());
         if (node->is_assignment()) {
@@ -184,18 +201,19 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
                 dest.offset  = -size;
                 EmitLoadOrMove(dest, result);
             }
-            emitter_->builder_->ret();
+            builder()->ret();
         }
     }
 
     // refill frame instruction
     auto frame = BitCodeBuilder::MakeS2AddrBC(BC_frame, info.p_stack_size(),
                                               info.o_stack_size());
-    memcpy(emitter_->builder_->code()->offset(frame_placement * sizeof(uint64_t)),
+    memcpy(builder()->code()->offset(frame_placement * sizeof(uint64_t)),
            &frame,
            sizeof(frame));
 
-    auto obj = emitter_->object_factory_->CreateNormalFunction(frame_placement);
+    auto obj = emitter_->object_factory_->CreateNormalFunction(builder()->code()->offset(0),
+                                                               builder()->code()->size());
     VMValue value = {
         .segment = BC_GLOBAL_OBJECT_SEGMENT,
         .offset  = emitter_->o_global_->size(),
@@ -233,7 +251,7 @@ void EmittingAstVisitor::VisitReturn(Return *node) {
             EmitLoadOrMove(dest, result);
         }
     }
-    emitter_->builder_->ret();
+    builder()->ret();
     PushValue(VMValue::Void());
 }
 
@@ -275,11 +293,11 @@ void EmittingAstVisitor::VisitCall(Call *node) {
                 break;
 
             case BC_GLOBAL_OBJECT_SEGMENT:
-                emitter_->builder_->load_o(current_->MakeObjectRoom(), value.offset);
+                builder()->load_o(current_->MakeObjectRoom(), value.offset);
                 break;
 
             case BC_LOCAL_OBJECT_SEGMENT:
-                emitter_->builder_->mov_o(current_->MakeObjectRoom(), value.offset);
+                builder()->mov_o(current_->MakeObjectRoom(), value.offset);
                 break;
 
             default:
@@ -287,7 +305,7 @@ void EmittingAstVisitor::VisitCall(Call *node) {
         }
     }
 
-    emitter_->builder_->call_val(p_base, o_base, expr.offset);
+    builder()->call_val(p_base, o_base, expr.offset);
     if (!proto->return_type()->IsVoid()) {
         PushValue(result);
     } else {
@@ -327,7 +345,7 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
     DCHECK(cond.segment == BC_LOCAL_PRIMITIVE_SEGMENT);
 
     CodeLabel outter;
-    emitter_->builder_->jz(cond.offset, &outter);
+    builder()->jz(cond.offset, &outter);
 
     if (node->has_else()) {
         CodeLabel leave;
@@ -340,24 +358,24 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
             val.offset  = current_->MakeObjectRoom();
             val.size    = kObjectReferenceSize;
             if (node->then_type()->IsVoid()) {
-                emitter_->builder_->create(BC_UnionVoid, val.offset, 0);
+                builder()->create(BC_UnionVoid, val.offset, 0);
             } else if (node->then_type()->is_primitive()) {
-                emitter_->builder_->create(BC_UnionOrMergePrimitive, val.offset, then_val.offset);
+                builder()->create(BC_UnionOrMergePrimitive, val.offset, then_val.offset);
             } else {
-                emitter_->builder_->create(BC_UnionOrMergeObject, val.offset, then_val.offset);
+                builder()->create(BC_UnionOrMergeObject, val.offset, then_val.offset);
             }
         }
-        emitter_->builder_->jmp(&leave);
+        builder()->jmp(&leave);
 
-        emitter_->builder_->BindNow(&outter);
+        builder()->BindNow(&outter);
         auto else_val = Emit(node->else_statement());
         if (need_union) {
             if (node->else_type()->IsVoid()) {
-                emitter_->builder_->create(BC_UnionVoid, val.offset, 0);
+                builder()->create(BC_UnionVoid, val.offset, 0);
             } else if (node->else_type()->is_primitive()) {
-                emitter_->builder_->create(BC_UnionOrMergePrimitive, val.offset, else_val.offset);
+                builder()->create(BC_UnionOrMergePrimitive, val.offset, else_val.offset);
             } else {
-                emitter_->builder_->create(BC_UnionOrMergeObject, val.offset, else_val.offset);
+                builder()->create(BC_UnionOrMergeObject, val.offset, else_val.offset);
             }
         } else {
             if (node->then_type()->IsVoid()) {
@@ -374,7 +392,7 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
                 EmitLoadOrMove(val, else_val);
             }
         }
-        emitter_->builder_->BindNow(&leave);
+        builder()->BindNow(&leave);
         PushValue(val);
     } else {
         CodeLabel leave;
@@ -385,19 +403,19 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
         val.offset  = current_->MakeObjectRoom();
         val.size    = kObjectReferenceSize;
         if (node->then_type()->IsVoid()) {
-            emitter_->builder_->create(BC_UnionVoid, val.offset, 0);
+            builder()->create(BC_UnionVoid, val.offset, 0);
         } else if (node->then_type()->is_primitive()) {
-            emitter_->builder_->create(BC_UnionOrMergePrimitive, val.offset, then_val.offset);
+            builder()->create(BC_UnionOrMergePrimitive, val.offset, then_val.offset);
         } else {
-            emitter_->builder_->create(BC_UnionOrMergeObject, val.offset, then_val.offset);
+            builder()->create(BC_UnionOrMergeObject, val.offset, then_val.offset);
         }
-        emitter_->builder_->jmp(&leave);
+        builder()->jmp(&leave);
 
         // else
-        emitter_->builder_->BindNow(&outter);
-        emitter_->builder_->create(BC_UnionVoid, val.offset, 0);
+        builder()->BindNow(&outter);
+        builder()->create(BC_UnionVoid, val.offset, 0);
 
-        emitter_->builder_->BindNow(&leave);
+        builder()->BindNow(&leave);
         PushValue(val);
     }
 }
@@ -608,29 +626,29 @@ void EmittingAstVisitor::EmitLoadOrMove(const VMValue &dest, const VMValue &src)
     if (src.segment == BC_LOCAL_OBJECT_SEGMENT) {
         DCHECK_EQ(BC_LOCAL_OBJECT_SEGMENT, dest.segment);
 
-        emitter_->builder_->mov_o(dest.offset, src.offset);
+        builder()->mov_o(dest.offset, src.offset);
         return;
     } else if (src.segment == BC_GLOBAL_OBJECT_SEGMENT) {
         DCHECK_EQ(BC_LOCAL_OBJECT_SEGMENT, dest.segment);
         if (dest.offset >= 0) {
-            emitter_->builder_->load_o(dest.offset, src.offset);
+            builder()->load_o(dest.offset, src.offset);
         } else {
             auto tmp = current_->MakeObjectRoom();
-            emitter_->builder_->load_o(tmp, src.offset);
-            emitter_->builder_->mov_o(dest.offset, tmp);
+            builder()->load_o(tmp, src.offset);
+            builder()->mov_o(dest.offset, tmp);
         }
     }
 
 #define DEFINE_LOAD_OR_MOVE_CASE(posfix) \
     if (src.segment == BC_LOCAL_PRIMITIVE_SEGMENT) { \
-        emitter_->builder_->mov##posfix(dest.offset, src.offset); \
+        builder()->mov##posfix(dest.offset, src.offset); \
     } else { \
         if (dest.offset >= 0) { \
-            emitter_->builder_->load##posfix(dest.offset, src.segment, src.offset); \
+            builder()->load##posfix(dest.offset, src.segment, src.offset); \
         } else { \
             auto tmp = current_->MakePrimitiveRoom(src.size); \
-            emitter_->builder_->load##posfix(tmp, src.segment, src.offset); \
-            emitter_->builder_->mov##posfix(dest.offset, tmp); \
+            builder()->load##posfix(tmp, src.segment, src.offset); \
+            builder()->mov##posfix(dest.offset, tmp); \
         } \
     }
 
@@ -671,16 +689,16 @@ VMValue EmittingAstVisitor::EmitLoadMakeRoom(const VMValue &src) {
 
             switch (src.size) {
                 case 1:
-                    emitter_->builder_->load_1b(value.offset, src.segment, src.offset);
+                    builder()->load_1b(value.offset, src.segment, src.offset);
                     break;
                 case 2:
-                    emitter_->builder_->load_2b(value.offset, src.segment, src.offset);
+                    builder()->load_2b(value.offset, src.segment, src.offset);
                     break;
                 case 4:
-                    emitter_->builder_->load_4b(value.offset, src.segment, src.offset);
+                    builder()->load_4b(value.offset, src.segment, src.offset);
                     break;
                 case 8:
-                    emitter_->builder_->load_8b(value.offset, src.segment, src.offset);
+                    builder()->load_8b(value.offset, src.segment, src.offset);
                     break;
                 default:
                     DLOG(FATAL) << "noreached! bad size: " << src.size;
@@ -695,7 +713,7 @@ VMValue EmittingAstVisitor::EmitLoadMakeRoom(const VMValue &src) {
                 .offset  = current_->MakeObjectRoom(),
                 .size    = src.size,
             };
-            emitter_->builder_->load_o(value.offset, src.offset);
+            builder()->load_o(value.offset, src.offset);
             return value;
         } break;
 
@@ -717,15 +735,13 @@ VMValue EmittingAstVisitor::EmitLoadPrimitiveMakeRoom(VMValue src) {
     return value;
 }
 
-BitCodeEmitter::BitCodeEmitter(MemorySegment *code,
-                               MemorySegment *constants,
+BitCodeEmitter::BitCodeEmitter(MemorySegment *constants,
                                MemorySegment *p_global,
                                MemorySegment *o_global,
                                TypeFactory *types,
                                ObjectFactory *object_factory,
                                FunctionRegister *function_register)
-    : builder_(new BitCodeBuilder(code))
-    , constants_(DCHECK_NOTNULL(constants))
+    : constants_(DCHECK_NOTNULL(constants))
     , p_global_(DCHECK_NOTNULL(p_global))
     , o_global_(DCHECK_NOTNULL(o_global))
     , types_(DCHECK_NOTNULL(types))
@@ -736,7 +752,6 @@ BitCodeEmitter::BitCodeEmitter(MemorySegment *code,
 }
 
 BitCodeEmitter::~BitCodeEmitter() {
-    delete builder_;
 }
 
 bool BitCodeEmitter::Run(RawStringRef module_name, RawStringRef unit_name,

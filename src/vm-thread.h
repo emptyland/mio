@@ -14,9 +14,11 @@ struct CallContext {
     int o_stack_base;
     int o_stack_size;
     int pc;
+    uint64_t *bc;
 };
 
 class CallStack;
+class MIONormalFunction;
 
 class Thread {
 public:
@@ -35,7 +37,7 @@ public:
     Stack *p_stack() const { return p_stack_; }
     Stack *o_stack() const { return o_stack_; }
 
-    void Execute(int pc, bool *ok);
+    void Execute(MIONormalFunction *callee, bool *ok);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Thread)
 private:
@@ -44,6 +46,7 @@ private:
     Stack *o_stack_;
     CallStack *call_stack_;
     int pc_ = 0;
+    uint64_t *bc_ = nullptr;
     bool should_exit_ = false;
     ExitCode exit_code_ = SUCCESS;
 }; // class Thread

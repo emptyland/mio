@@ -105,13 +105,13 @@ std::string Scope::MakeFullName(RawStringRef name) {
     full_name.append("::");
     while (scope->type() != GLOBAL_SCOPE) {
         if (scope->name() == RawString::kEmpty) {
-            full_name.insert(0, TextOutputStream::sprintf("<%p>", scope));
+            full_name.append(TextOutputStream::sprintf("<%p>", scope));
         } else {
-            full_name.insert(0, scope->name()->ToString());
+            full_name.append(scope->name()->ToString());
         }
         scope = scope->outter_scope_;
+        full_name.append("::");
     }
-    full_name.append("::");
     full_name.append(name->ToString());
     return full_name;
 }
