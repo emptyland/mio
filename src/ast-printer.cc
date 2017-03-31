@@ -3,10 +3,12 @@
 #include "text-output-stream.h"
 #include "ast.h"
 #include "types.h"
+#include "scopes.h"
 #include "glog/logging.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <string>
+//#include <unordered_set>
 
 namespace mio {
 
@@ -180,7 +182,14 @@ public:
     }
 
     virtual void VisitVariable(Variable *node) override {
-        WriteMapPair("var", node->declaration());
+        std::string name;
+//        if (node->scope()->type() == UNIT_SCOPE ||
+//            node->scope()->type() == MODULE_SCOPE) {
+            name = node->scope()->MakeFullName(node->name());
+//        } else {
+//            name = node->name()->ToString();
+//        }
+        WriteMapPair("var", name.c_str());
     }
 
     // block:
@@ -260,9 +269,18 @@ private:
         stream_->Write(buf.data(), static_cast<int>(buf.size()));
     }
 
+//    bool TraceDeclaration(Declaration *decl) {
+//        if (printed_.find(decl) != printed_.end()) {
+//            return true;
+//        }
+//        printed_.insert(decl);
+//        return false;
+//    }
+
     TextOutputStream *stream_;
     int indent_wide_;
     int indent_ = 0;
+    //std::unordered_set<Declaration *> printed_;
 };
 
 } // namespace

@@ -59,7 +59,13 @@ namespace mio {
     M(mov_8b) \
     M(mov_o)
 
-#define VM_ADD_BC(M) \
+#define VM_ARITH_BC(M) \
+    M(cmp_i8) \
+    M(cmp_i16) \
+    M(cmp_i32) \
+    M(cmp_i64) \
+    M(cmp_f32) \
+    M(cmp_f64) \
     M(add_i8) \
     M(add_i16) \
     M(add_i32) \
@@ -69,6 +75,12 @@ namespace mio {
     M(add_i8_imm) \
     M(add_i16_imm) \
     M(add_i32_imm) \
+    M(sub_i8) \
+    M(sub_i16) \
+    M(sub_i32) \
+    M(sub_i64) \
+    M(sub_f32) \
+    M(sub_f64)
 
 #define VM_TEST_BC(M) \
     M(test) \
@@ -81,16 +93,29 @@ namespace mio {
     M(call_val) \
     M(frame) \
     M(ret) \
-    M(create)
+    M(oop)
 
 #define VM_ALL_BITCODE(M) \
     M(debug) \
     VM_LOAD_BC(M) \
     VM_MOV_BC(M) \
-    VM_ADD_BC(M) \
+    VM_ARITH_BC(M) \
     VM_TEST_BC(M) \
     VM_CALL_BC(M)
 
+
+#define VM_COMPARATOR(M) \
+    M(EQ) \
+    M(NE) \
+    M(LT) \
+    M(LE) \
+    M(GT) \
+    M(GE)
+
+#define OBJECT_OPERATOR(M) \
+    M(UnionOrMergeObject) \
+    M(UnionOrMergePrimitive) \
+    M(UnionVoid)
 
 enum BCInstruction : uint8_t {
 #define BitCode_ENUM_DEFINE(name) BC_##name,
@@ -99,7 +124,7 @@ enum BCInstruction : uint8_t {
     MAX_BC_INSTRUCTIONS,
 };
 
-static_assert(MAX_BC_INSTRUCTIONS <= 255, "bitcode is too much!");
+static_assert(MAX_BC_INSTRUCTIONS <= 255, "instructions is too much!");
 
 enum BCSegment : int {
     BC_CONSTANT_SEGMENT,
@@ -110,10 +135,18 @@ enum BCSegment : int {
     MAX_BC_SEGMENTS,
 };
 
-enum BCConstructorId : int {
-    BC_UnionOrMergeObject,
-    BC_UnionOrMergePrimitive,
-    BC_UnionVoid,
+enum BCObjectOperatorId : int {
+#define ObjectOperator_ENUM_DEFINE(name) OO_##name,
+    OBJECT_OPERATOR(ObjectOperator_ENUM_DEFINE)
+#undef  ObjectOperator_ENUM_DEFINE
+    MAX_OO_OPERATORS,
+};
+
+enum BCComparator : int {
+#define Comparator_ENUM_DEFINE(name) CC_##name,
+    VM_COMPARATOR(Comparator_ENUM_DEFINE)
+#undef  Comparator_ENUM_DEFINE
+    MAX_CC_COMPARATORS,
 };
 
 struct InstructionMetadata {
@@ -122,6 +155,8 @@ struct InstructionMetadata {
 };
 
 extern const InstructionMetadata kInstructionMetadata[MAX_BC_INSTRUCTIONS];
+extern const char * const kObjectOperatorText[MAX_OO_OPERATORS];
+extern const char * const kComparatorText[MAX_CC_COMPARATORS];
 
 } // namespace mio
 

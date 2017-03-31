@@ -134,10 +134,10 @@ Statement *Parser::ParseDeclaration(bool *ok) {
 FunctionDefine *Parser::ParseFunctionDefine(bool is_export, bool is_native,
                                             bool *ok) {
     auto position = ahead_.position();
-    auto scope = EnterScope("", FUNCTION_SCOPE);
 
     std::string name;
     auto prototype = ParseFunctionPrototype(false, &name, CHECK_OK);
+    auto scope = EnterScope("", FUNCTION_SCOPE);
 
     Expression *body = nullptr;
     bool is_assignment = false;
@@ -171,11 +171,8 @@ FunctionDefine *Parser::ParseFunctionDefine(bool is_export, bool is_native,
                                                    position,
                                                    ahead_.position());
     auto function = factory_->CreateFunctionDefine(name, is_export, is_native,
-                                                   literal, scope, position,
-                                                   ahead_.position());
-
+                                                   literal, scope_, position);
     scope->set_name(function->name());
-    scope->Declare(function->name(), function);
     scope->set_function(function);
     LeaveScope();
 

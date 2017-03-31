@@ -38,6 +38,11 @@ public:
         return *static_cast<T *>(offset(addr));
     }
 
+    template<class T>
+    void Set(int addr, T value) {
+        *static_cast<T *>(offset(addr)) = value;
+    }
+
 private:
     uint8_t *bytes() const { return static_cast<uint8_t *>(chunk_); }
 

@@ -3,5 +3,5 @@ package main with (
 )
 
 function main: void {
-    val a = foo::foo
+    val a = foo::foo + 100d
 }

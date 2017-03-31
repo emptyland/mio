@@ -266,7 +266,6 @@ private:
 class FunctionDefine : public Declaration {
 public:
     FunctionLiteral *function_literal() const { return function_literal_; }
-    int start_position() const { return position(); }
 
     virtual RawStringRef name() const override { return name_; }
     virtual Type *type() const override;
@@ -281,16 +280,14 @@ private:
     FunctionDefine(RawStringRef name,
                    bool is_export,
                    bool is_native,
-                   FunctionLiteral *function_literal,
+                   FunctionLiteral *literal,
                    Scope *scope,
-                   int start_position,
-                   int end_position)
-        : Declaration(scope, start_position)
+                   int position)
+        : Declaration(scope, position)
         , name_(DCHECK_NOTNULL(name))
         , is_export_(is_export)
         , is_native_(is_native)
-        , function_literal_(DCHECK_NOTNULL(function_literal))
-        , end_position_(end_position) {}
+        , function_literal_(DCHECK_NOTNULL(literal)) {}
 
     RawStringRef name_;
     bool is_export_;
@@ -974,17 +971,15 @@ public:
     FunctionDefine *CreateFunctionDefine(const std::string &name,
                                          bool is_export,
                                          bool is_native,
-                                         FunctionLiteral *function_literal,
+                                         FunctionLiteral *literal,
                                          Scope *scope,
-                                         int start_position,
-                                         int end_position) {
+                                         int position) {
         return new (zone_) FunctionDefine(RawString::Create(name, zone_),
                                           is_export,
                                           is_native,
-                                          function_literal,
+                                          literal,
                                           scope,
-                                          start_position,
-                                          end_position);
+                                          position);
     }
 
     FunctionLiteral *CreateFunctionLiteral(FunctionPrototype *prototype,

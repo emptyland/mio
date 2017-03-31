@@ -62,10 +62,32 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
             stream_->Printf("%d@%u [%u]", GetImm32(bc), GetOp2(bc), GetOp1(bc));
             break;
 
+        case BC_cmp_i8:
+        case BC_cmp_i16:
+        case BC_cmp_i32:
+        case BC_cmp_i64:
+        case BC_cmp_f32:
+        case BC_cmp_f64:
+            DCHECK_LT(GetOp1(bc), MAX_CC_COMPARATORS);
+            stream_->Printf("<%s> [%u] [%d] [%d]",
+                            kComparatorText[GetOp1(bc)],
+                            GetOp2(bc),
+                            GetVal1(bc),
+                            GetVal2(bc));
+            break;
+
         case BC_add_i8:
         case BC_add_i16:
         case BC_add_i32:
         case BC_add_i64:
+        case BC_add_f32:
+        case BC_add_f64:
+        case BC_sub_i8:
+        case BC_sub_i16:
+        case BC_sub_i32:
+        case BC_sub_i64:
+        case BC_sub_f32:
+        case BC_sub_f64:
             stream_->Printf("[%u] [%u] [%u]", GetOp1(bc), GetOp2(bc),
                             GetOp3(bc));
             break;
@@ -91,6 +113,24 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
             break;
 
         case BC_ret:
+            break;
+
+        case BC_oop:
+            DCHECK_LT(GetOp1(bc), MAX_OO_OPERATORS);
+            stream_->Printf("\'%s\' [%u] %d %d",
+                            kObjectOperatorText[GetOp1(bc)],
+                            GetOp2(bc),
+                            GetVal1(bc),
+                            GetVal2(bc));
+            break;
+
+        case BC_jz:
+        case BC_jnz:
+            stream_->Printf("[%u] %d", GetOp2(bc), GetImm32(bc));
+            break;
+
+        case BC_jmp:
+            stream_->Printf("%d", GetImm32(bc));
             break;
 
         default:

@@ -8,4 +8,16 @@ const InstructionMetadata kInstructionMetadata[MAX_BC_INSTRUCTIONS] = {
 #undef  InstructionMetadata_ELEM_DEFINE
 };
 
+const char * const kObjectOperatorText[MAX_OO_OPERATORS] = {
+#define ObjectOperatorText_ELEM_DEFINE(name) #name,
+    OBJECT_OPERATOR(ObjectOperatorText_ELEM_DEFINE)
+#undef  ObjectOperatorText_ELEM_DEFINE
+};
+
+const char * const kComparatorText[MAX_CC_COMPARATORS] = {
+#define ComparatorText_ELEM_DEFINE(name) #name,
+    VM_COMPARATOR(ComparatorText_ELEM_DEFINE)
+#undef ComparatorText_ELEM_DEFINE
+};
+
 } // namespace mio

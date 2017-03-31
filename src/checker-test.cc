@@ -310,5 +310,15 @@ TEST_F(CheckerTest, P005_ReduceFunctionLiteralParameters) {
     AssertProjectAST("005", all_units);
 }
 
+TEST_F(CheckerTest, P009_RecursiveFunctionCall) {
+    ParsingError error;
+    auto all_units = ParseProject("009", &error);
+    ASSERT_TRUE(all_units != nullptr) << error.ToString();
+
+    Checker checker(types_, all_units, global_, zone_);
+    ASSERT_TRUE(checker.Run()) << checker.last_error().ToString();
+    
+    AssertProjectAST("009", all_units);
+}
 
 } // namespace mio

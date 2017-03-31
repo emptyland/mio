@@ -94,7 +94,7 @@ protected:
     SimpleFunctionRegister *function_register_ = nullptr;
 };
 
-TEST_F(BitCodeEmitterTest, Sanity) {
+TEST_F(BitCodeEmitterTest, P006_Sanity) {
     std::string dasm;
     ParseProject("006", &dasm);
 
@@ -107,12 +107,25 @@ TEST_F(BitCodeEmitterTest, Sanity) {
 //    EXPECT_STREQ(z, dasm.c_str());
 }
 
-TEST_F(BitCodeEmitterTest, Import) {
+TEST_F(BitCodeEmitterTest, P007_Import) {
     std::string dasm;
     ParseProject("007", &dasm);
 
     printf("%s\n", dasm.c_str());
 }
 
+TEST_F(BitCodeEmitterTest, P008_IfOperation) {
+    std::string dasm;
+    ParseProject("008", &dasm);
+
+    printf("%s\n", dasm.c_str());
+}
+
+TEST_F(BitCodeEmitterTest, P009_RecursiveFunctionCall) {
+    std::string dasm;
+    ParseProject("009", &dasm);
+
+    printf("%s\n", dasm.c_str());
+}
 
 } // namespace mio

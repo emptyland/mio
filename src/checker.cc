@@ -232,15 +232,17 @@ private:
 /*virtual*/ void CheckingAstVisitor::VisitVarDeclaration(VarDeclaration *node) {
     if (node->has_initializer()) {
         ACCEPT_REPLACE_EXPRESSION(initializer);
-        if (!node->type()->CanAcceptFrom(AnalysisType())) {
-            ThrowError(node, "var %s can not accept initializer type",
-                       node->name()->c_str());
-        }
     }
 
     if (node->type() == types_->GetUnknown()) {
         DCHECK_NOTNULL(node->initializer());
         node->set_type(AnalysisType());
+    } else {
+        if (node->has_initializer() &&
+            !node->type()->CanAcceptFrom(AnalysisType())) {
+            ThrowError(node, "var %s can not accept initializer type",
+                       node->name()->c_str());
+        }
     }
     SetEvalType(types_->GetVoid());
 }
@@ -444,10 +446,10 @@ private:
     Scope *owned;
     auto var = scope->FindOrNullRecursive(node->name(), &owned);
     if (!var) {
+        Scope::TEST_PrintAllVariables(2, scope);
         ThrowError(node, "symbol \'%s\' is not found", node->name()->c_str());
         return;
     }
-    DCHECK_EQ(var->scope(), owned);
 
     if (var->type() == types_->GetUnknown()) {
         if (!var->is_function()) {
@@ -755,8 +757,6 @@ RawStringRef Checker::CheckImportList(RawStringRef module_name,
 CompiledUnitMap *Checker::CheckModule(RawStringRef name,
                                       CompiledUnitMap *all_units,
                                       bool *ok) {
-    //DLOG(INFO) << "check module: " << name->ToString();
-
     auto scope = DCHECK_NOTNULL(global_->FindInnerScopeOrNull(name));
     DCHECK_EQ(MODULE_SCOPE, scope->type());
     scope->MergeInnerScopes();

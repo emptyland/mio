@@ -13,10 +13,8 @@ class BitCodeBuilder {
 public:
     BitCodeBuilder(MemorySegment *code) : code_(DCHECK_NOTNULL(code)) {}
 
-    void BindTo(CodeLabel *label, int position);
-    void BindNow(CodeLabel *label) { BindTo(label, pc_); }
+    int pc() const { return code_->size() / sizeof(uint64_t); }
 
-    DEF_GETTER(int, pc);
     MemorySegment *code() const { return code_; }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -105,8 +103,32 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    // add
+    // arithmetic
     ////////////////////////////////////////////////////////////////////////////
+    int cmp_i8(BCComparator op, uint16_t result, int16_t lhs, int16_t rhs) {
+        return Emit4Op(BC_cmp_i8, op, result, lhs, rhs);
+    }
+
+    int cmp_i16(BCComparator op, uint16_t result, int16_t lhs, int16_t rhs) {
+        return Emit4Op(BC_cmp_i16, op, result, lhs, rhs);
+    }
+
+    int cmp_i32(BCComparator op, uint16_t result, int16_t lhs, int16_t rhs) {
+        return Emit4Op(BC_cmp_i32, op, result, lhs, rhs);
+    }
+
+    int cmp_i64(BCComparator op, uint16_t result, int16_t lhs, int16_t rhs) {
+        return Emit4Op(BC_cmp_i64, op, result, lhs, rhs);
+    }
+
+    int cmp_f32(BCComparator op, uint16_t result, int16_t lhs, int16_t rhs) {
+        return Emit4Op(BC_cmp_f32, op, result, lhs, rhs);
+    }
+
+    int cmp_f64(BCComparator op, uint16_t result, int16_t lhs, int16_t rhs) {
+        return Emit4Op(BC_cmp_f64, op, result, lhs, rhs);
+    }
+
     int add_i8(uint16_t result, uint16_t lhs, uint16_t rhs) {
         return Emit3Addr(BC_add_i8, result, lhs, rhs);
     }
@@ -143,6 +165,30 @@ public:
         return Emit3Addr(BC_add_i32_imm, result, lhs, imm);
     }
 
+    int sub_i8(uint16_t result, uint16_t lhs, uint16_t rhs) {
+        return Emit3Addr(BC_sub_i8, result, lhs, rhs);
+    }
+
+    int sub_i16(uint16_t result, uint16_t lhs, uint16_t rhs) {
+        return Emit3Addr(BC_sub_i16, result, lhs, rhs);
+    }
+
+    int sub_i32(uint16_t result, uint16_t lhs, uint16_t rhs) {
+        return Emit3Addr(BC_sub_i32, result, lhs, rhs);
+    }
+
+    int sub_i64(uint16_t result, uint16_t lhs, uint16_t rhs) {
+        return Emit3Addr(BC_sub_i64, result, lhs, rhs);
+    }
+
+    int sub_f32(uint16_t result, uint16_t lhs, uint16_t rhs) {
+        return Emit3Addr(BC_sub_f64, result, lhs, rhs);
+    }
+
+    int sub_f64(uint16_t result, uint16_t lhs, uint16_t rhs) {
+        return Emit3Addr(BC_sub_f64, result, lhs, rhs);
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     // call
     ////////////////////////////////////////////////////////////////////////////
@@ -160,15 +206,28 @@ public:
         return EmitS2Addr(BC_frame, size1, size2);
     }
 
-    int create(BCConstructorId id, uint16_t dest, uint16_t op) {
-        return Emit3Addr(BC_create, dest, op, id);
+    int oop(BCObjectOperatorId id, uint16_t result, int16_t val1, int16_t val2) {
+        return Emit4Op(BC_oop, id, result, val1, val2);
     }
 
-    int jmp(CodeLabel *label);
+    int jmp(int32_t delta) {
+        return Emit3Addr(BC_jmp, 0, 0, delta);
+    }
 
-    int jnz(uint16_t cond, CodeLabel *label);
+    int jnz(uint16_t cond, int32_t delta) {
+        return Emit3Addr(BC_jnz, 0, cond, delta);
+    }
 
-    int jz(uint16_t cond, CodeLabel *label);
+    int jz(uint16_t cond, int32_t delta) {
+        return Emit3Addr(BC_jz, 0, cond, delta);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // [common]
+    ////////////////////////////////////////////////////////////////////////////
+    void FillPlacement(int pc, uint64_t bc) {
+        code_->Set(pc * sizeof(bc), bc);
+    }
 
     int EmitInstOnly(BCInstruction inst) {
         return EmitBitCode(static_cast<uint64_t>(inst) << 56);
@@ -188,9 +247,15 @@ public:
         return EmitBitCode(Make3AddrBC(inst, result, op1, op2));
     }
 
+    int Emit4Op(BCInstruction inst, uint16_t id, uint16_t result,
+                int16_t val1, int16_t val2) {
+        return EmitBitCode(Make4OpBC(inst, id, result, val1, val2));
+    }
+
     int EmitBitCode(uint64_t bc) {
+        auto pos = pc();
         *static_cast<uint64_t *>(code_->Advance(sizeof(bc))) = bc;
-        return pc_++;
+        return pos;
     }
 
     static uint64_t Make3AddrBC(BCInstruction inst, uint16_t result,
@@ -203,15 +268,25 @@ public:
                op2;
     }
 
+    static uint64_t Make4OpBC(BCInstruction inst, uint16_t id, uint16_t result,
+                              int16_t val1, int16_t val2) {
+        DCHECK_LE(id, 0xfff);
+        DCHECK_LE(result, 0xfff);
+        return (static_cast<uint64_t>(inst) << 56)                |
+               (static_cast<uint64_t>(id & 0xfff) << 44)          |
+               (static_cast<uint64_t>(result & 0xfff) << 32)      |
+               ((static_cast<uint64_t>(val1) << 16) & 0xffff0000) |
+               (static_cast<uint64_t>(val2) & 0xffff);
+    }
+
     static uint64_t MakeS2AddrBC(BCInstruction inst, int16_t val1, int16_t val2) {
         return (static_cast<uint64_t>(inst) << 56) |
                ((static_cast<uint64_t>(val1) << 16) & 0xffff0000) |
                (static_cast<uint64_t>(val2) & 0xffff) ;
     }
 private:
-
     MemorySegment *code_;
-    int pc_ = 0;
+
 }; // class BitCodeBuilder
 
 } // namespace mio
