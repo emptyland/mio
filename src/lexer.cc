@@ -212,6 +212,10 @@ bool Lexer::Next(TokenObject *token) {
                     ahead = Move();
                     token->set_len(2);
                     token->set_token_code(TOKEN_LE);
+                } else if (ahead == '-') {
+                    ahead = Move();
+                    token->set_len(2);
+                    token->set_token_code(TOKEN_THIN_LARROW);
                 } else {
                     token->set_len(1);
                     token->set_token_code(TOKEN_LT);

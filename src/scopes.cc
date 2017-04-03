@@ -100,16 +100,17 @@ Variable *Scope::Declare(RawStringRef name, Declaration *declaration) {
 
 std::string Scope::MakeFullName(RawStringRef name) {
     std::string full_name;
-
+    int i = 0;
     auto scope = this;
     while (scope->type() != GLOBAL_SCOPE) {
         full_name = "::" + full_name;
         if (scope->name() == RawString::kEmpty) {
-            full_name = TextOutputStream::sprintf("<%p>", scope) + full_name;
+            full_name = TextOutputStream::sprintf("<%d>", i) + full_name;
         } else {
             full_name = scope->name()->ToString() + full_name;
         }
         scope = scope->outter_scope_;
+        ++i;
     }
     full_name = "::" + full_name;
     full_name.append(name->ToString());

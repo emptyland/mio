@@ -105,6 +105,16 @@ public:
         WriteMapPair("string", node->data()->c_str());
     }
 
+    virtual void VisitMapInitializer(MapInitializer *node) override {
+        WriteMapPair("type", node->map_type()->Type::ToString().c_str());
+        Indent();  WriteMapPair("pairs", node->mutable_pairs());
+    }
+
+    virtual void VisitPair(Pair *node) override {
+        WriteMapPair("key", node->key());
+        Indent(); WriteMapPair("value", node->value());
+    }
+
     // symbol: name
     // symbol: ns::name
     virtual void VisitSymbol(Symbol *node) override {
@@ -182,13 +192,7 @@ public:
     }
 
     virtual void VisitVariable(Variable *node) override {
-        std::string name;
-//        if (node->scope()->type() == UNIT_SCOPE ||
-//            node->scope()->type() == MODULE_SCOPE) {
-            name = node->scope()->MakeFullName(node->name());
-//        } else {
-//            name = node->name()->ToString();
-//        }
+        auto name = node->scope()->MakeFullName(node->name());
         WriteMapPair("var", name.c_str());
     }
 

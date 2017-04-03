@@ -49,18 +49,10 @@ TypeFactory::TypeFactory(Zone *zone)
     simple_types_[7] = new (zone_) Void(TOKEN_VOID);
     simple_types_[8] = new (zone_) Unknown(-1);
     simple_types_[9] = new (zone_) String(TOKEN_STRING);
-}
 
-FunctionPrototype *
-TypeFactory::GetFunctionPrototype(ZoneVector<Paramter *> *paramters,
-                                  Type *return_type) {
-    auto prototype = new (zone_) FunctionPrototype(paramters, return_type, 0);
-    prototype->UpdateId();
-    return prototype;
-}
-
-Union *TypeFactory::GetUnion(ZoneHashMap<int64_t, Type *> *types) {
-    return new (zone_) Union(types);
+    for (auto type : simple_types_) {
+        Record(type);
+    }
 }
 
 Union *TypeFactory::MergeToFlatUnion(Type **types, int n) {
@@ -75,10 +67,19 @@ Union *TypeFactory::MergeToFlatUnion(Type **types, int n) {
                 ut->Put(iter->key(), iter->value());
             }
         } else {
-            ut->Put(types[i]->id(), types[i]);
+            ut->Put(types[i]->GenerateId(), types[i]);
         }
     }
     return GetUnion(ut);
+}
+
+int TypeFactory::GetAllTypeId(std::set<int64_t> *all_id) const {
+    int i = 0;
+    for (auto type : all_types_) {
+        all_id->insert(type->GenerateId());
+        ++i;
+    }
+    return i;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -86,7 +87,15 @@ Union *TypeFactory::MergeToFlatUnion(Type **types, int n) {
 ////////////////////////////////////////////////////////////////////////////////
 
 /*virtual*/ bool Type::CanAcceptFrom(mio::Type *type) const {
-    return id() == DCHECK_NOTNULL(type)->id();
+    return GenerateId() == DCHECK_NOTNULL(type)->GenerateId();
+}
+
+/*virtual*/ int64_t Type::GenerateId() const {
+    return id_;
+}
+
+bool Type::CanBeKey() const {
+    return IsIntegral() || IsFloating() || IsString();
 }
 
 std::string Type::ToString() const {
@@ -118,7 +127,7 @@ int Integral::ToString(TextOutputStream *stream) const {
 
 /*virtual*/
 int Floating::ToString(TextOutputStream *stream) const {
-    return stream->Printf("i%d", bitwide_);
+    return stream->Printf("f%d", bitwide_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -196,23 +205,23 @@ int Union::ToString(TextOutputStream *stream) const {
 }
 
 /*virtual*/ bool Union::CanAcceptFrom(Type *type) const {
-    if (id() == type->id()) {
+    if (GenerateId() == type->GenerateId()) {
         return true;
     }
-    return types_->Exist(type->id());
+    return types_->Exist(type->GenerateId());
 }
 
-/*static*/ int64_t Union::GenerateId(TypeMap *types) {
+/*virtual*/ int64_t Union::GenerateId() const {
     TypeDigest digest;
     digest.Step(TOKEN_UNION);
-    if (types->is_empty()) {
+    if (types_->is_empty()) {
         return digest.value();
     }
 
     std::vector<int64_t> primary;
-    TypeMap::Iterator iter(types);
+    TypeMap::Iterator iter(types_);
     for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
-        primary.push_back(iter->key());
+        primary.push_back(iter->value()->GenerateId());
     }
     std::sort(primary.begin(), primary.end());
     for (auto val : primary) {
@@ -247,15 +256,39 @@ int FunctionPrototype::ToString(TextOutputStream *stream) const {
     return kObjectReferenceSize;
 }
 
-void FunctionPrototype::UpdateId() {
+/*virtual*/ int64_t FunctionPrototype::GenerateId() const {
     TypeDigest digest;
 
     digest.Step(TOKEN_FUNCTION);
     for (int i = 0; i < paramters_->size(); ++i) {
-        digest.Step(paramters_->At(i)->param_type()->id());
+        digest.Step(paramters_->At(i)->param_type()->GenerateId());
     }
-    digest.Step(return_type()->id() << 4);
-    id_ = digest.value();
+    digest.Step(return_type()->GenerateId() << 4);
+    return digest.value();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Map
+////////////////////////////////////////////////////////////////////////////////
+/*virtual*/ int Map::placement_size() const {
+    return kObjectReferenceSize;
+}
+
+/*virtual*/
+int Map::ToString(TextOutputStream *stream) const {
+    auto rv = stream->Write("[");
+    rv += key_->ToString(stream);
+    rv += stream->Write(",");
+    rv += value_->ToString(stream);
+    return rv + stream->Write("]");
+}
+
+/*virtual*/ int64_t Map::GenerateId() const {
+    TypeDigest digest;
+    digest.Step(TOKEN_MAP);
+    digest.Step(key_->GenerateId());
+    digest.Step(value_->GenerateId());
+    return digest.value();
 }
 
 } // namespace mio

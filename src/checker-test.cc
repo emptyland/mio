@@ -321,4 +321,15 @@ TEST_F(CheckerTest, P009_RecursiveFunctionCall) {
     AssertProjectAST("009", all_units);
 }
 
+TEST_F(CheckerTest, P010_MapInitializer) {
+    ParsingError error;
+    auto all_units = ParseProject("010", &error);
+    ASSERT_TRUE(all_units != nullptr) << error.ToString();
+
+    Checker checker(types_, all_units, global_, zone_);
+    ASSERT_TRUE(checker.Run()) << checker.last_error().ToString();
+
+    AssertProjectAST("010", all_units);
+}
+
 } // namespace mio

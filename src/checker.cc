@@ -8,7 +8,7 @@
 
 namespace mio {
 
-#define CHECK_OK ok); if (!*ok) { return 0; } ((void)0
+#define CHECK_OK &ok); if (!ok) { return; } ((void)0
 
 class ScopeHolder {
 public:
@@ -49,7 +49,7 @@ public:
         }
     }
 
-    void Apply(Type *type) { types_->Put(type->id(), type); }
+    void Apply(Type *type) { types_->Put(type->GenerateId(), type); }
 
     Union::TypeMap *ReleaseTypes() {
         auto types = types_;
@@ -78,8 +78,8 @@ private:
     Zone *zone_;
 }; // class ReturnTypeHolder
 
-#define ACCEPT_REPLACE_EXPRESSION(field) \
-    node->field()->Accept(this); \
+#define ACCEPT_REPLACE_EXPRESSION(node, field) \
+    (node)->field()->Accept(this); \
     if (has_error()) { \
         return; \
     } \
@@ -95,11 +95,11 @@ private:
                 return; \
             } \
         } \
-        node->set_##field(AnalysisExpression()); \
+        (node)->set_##field(AnalysisExpression()); \
         PopAnalysisExpression(); \
     } (void)0
 
-#define ACCEPT_REPLACE_EXPRESSION_I(field, idx) \
+#define ACCEPT_REPLACE_EXPRESSION_I(node, field, idx) \
     node->field()->At(idx)->Accept(this); \
     if (has_error()) { \
         return; \
@@ -149,12 +149,14 @@ public:
     virtual void VisitBinaryOperation(BinaryOperation *node) override;
     virtual void VisitSymbol(Symbol *node) override;
     virtual void VisitSmiLiteral(SmiLiteral *node) override;
+    virtual void VisitFloatLiteral(FloatLiteral *node) override;
     virtual void VisitStringLiteral(StringLiteral *node) override;
     virtual void VisitIfOperation(IfOperation *node) override;
     virtual void VisitBlock(Block *node) override;
     virtual void VisitReturn(Return *node) override;
     virtual void VisitFunctionDefine(FunctionDefine *node) override;
     virtual void VisitFunctionLiteral(FunctionLiteral *node) override;
+    virtual void VisitMapInitializer(MapInitializer *node) override;
 
     Type *AnalysisType() { return type_stack_.top(); };
 
@@ -177,7 +179,6 @@ public:
     bool has_error() { return checker_->has_error(); }
 
 private:
-
     bool AcceptOrReduceFunctionLiteral(AstNode *node, Type *target_ty,
                                        FunctionLiteral *rval);
 
@@ -213,7 +214,7 @@ private:
 
 /*virtual*/ void CheckingAstVisitor::VisitValDeclaration(ValDeclaration *node) {
     if (node->has_initializer()) {
-        ACCEPT_REPLACE_EXPRESSION(initializer);
+        ACCEPT_REPLACE_EXPRESSION(node, initializer);
     }
 
     if (node->type() == types_->GetUnknown()) {
@@ -231,7 +232,7 @@ private:
 
 /*virtual*/ void CheckingAstVisitor::VisitVarDeclaration(VarDeclaration *node) {
     if (node->has_initializer()) {
-        ACCEPT_REPLACE_EXPRESSION(initializer);
+        ACCEPT_REPLACE_EXPRESSION(node, initializer);
     }
 
     if (node->type() == types_->GetUnknown()) {
@@ -248,7 +249,7 @@ private:
 }
 
 /*virtual*/ void CheckingAstVisitor::VisitCall(Call *node) {
-    ACCEPT_REPLACE_EXPRESSION(expression);
+    ACCEPT_REPLACE_EXPRESSION(node, expression);
     auto callee_ty = AnalysisType();
     PopEvalType();
     if (!callee_ty->IsFunctionPrototype()) {
@@ -274,7 +275,7 @@ private:
             return;
         }
 
-        ACCEPT_REPLACE_EXPRESSION_I(mutable_arguments, i);
+        ACCEPT_REPLACE_EXPRESSION_I(node, mutable_arguments, i);
         auto arg_ty = AnalysisType();
         PopEvalType();
 
@@ -296,7 +297,7 @@ private:
 }
 
 /*virtual*/ void CheckingAstVisitor::VisitUnaryOperation(UnaryOperation *node) {
-    ACCEPT_REPLACE_EXPRESSION(operand);
+    ACCEPT_REPLACE_EXPRESSION(node, operand);
     switch (node->op()) {
         case OP_MINUS:
             if (!AnalysisType()->is_numeric()) {
@@ -323,7 +324,7 @@ private:
 }
 
 /*virtual*/ void CheckingAstVisitor::VisitAssignment(Assignment *node) {
-    ACCEPT_REPLACE_EXPRESSION(target);
+    ACCEPT_REPLACE_EXPRESSION(node, target);
     auto target_ty = AnalysisType();
     PopEvalType();
 
@@ -337,7 +338,7 @@ private:
                                        node->rval()->AsFunctionLiteral())) {
         return;
     }
-    ACCEPT_REPLACE_EXPRESSION(rval);
+    ACCEPT_REPLACE_EXPRESSION(node, rval);
     if (!target_ty->CanAcceptFrom(AnalysisType())) {
         ThrowError(node, "assignment taget can not accept rval type. %s vs %s",
                    target_ty->ToString().c_str(),
@@ -349,11 +350,11 @@ private:
 }
 
 /*virtual*/ void CheckingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
-    ACCEPT_REPLACE_EXPRESSION(lhs);
+    ACCEPT_REPLACE_EXPRESSION(node, lhs);
     auto lhs_ty = AnalysisType();
     PopEvalType();
 
-    ACCEPT_REPLACE_EXPRESSION(rhs);
+    ACCEPT_REPLACE_EXPRESSION(node, rhs);
     auto rhs_ty = AnalysisType();
     PopEvalType();
 
@@ -363,7 +364,7 @@ private:
         case OP_MUL:
         case OP_DIV:
         case OP_MOD:
-            if (lhs_ty->id() != rhs_ty->id()) {
+            if (lhs_ty->GenerateId() != rhs_ty->GenerateId()) {
                 ThrowError(node, "operator: `%s' has different type of operands.",
                            GetOperatorText(node->op()));
             }
@@ -393,7 +394,7 @@ private:
         case OP_LE:
         case OP_GT:
         case OP_GE:
-            if (lhs_ty->id() != rhs_ty->id()) {
+            if (lhs_ty->GenerateId() != rhs_ty->GenerateId()) {
                 ThrowError(node, "operator: `%s' has different type of operands.",
                            GetOperatorText(node->op()));
             }
@@ -407,7 +408,7 @@ private:
 
         case OP_OR:
         case OP_AND:
-            if (lhs_ty->id() != rhs_ty->id()) {
+            if (lhs_ty->GenerateId() != rhs_ty->GenerateId()) {
                 ThrowError(node, "operator: `%s' has different type of operands.",
                            GetOperatorText(node->op()));
             }
@@ -491,26 +492,42 @@ private:
     }
 }
 
+void CheckingAstVisitor::VisitFloatLiteral(FloatLiteral *node) {
+    switch (node->bitwide()) {
+        case 32:
+            PushEvalType(types_->GetF32());
+            break;
+
+        case 64:
+            PushEvalType(types_->GetF64());
+            break;
+
+        default:
+            DLOG(FATAL) << "noreached: bitwide = " << node->bitwide();
+            break;
+    }
+}
+
 /*virtual*/ void CheckingAstVisitor::VisitStringLiteral(StringLiteral *node) {
     PushEvalType(types_->GetString());
 }
 
 /*virtual*/ void CheckingAstVisitor::VisitIfOperation(IfOperation *node) {
-    ACCEPT_REPLACE_EXPRESSION(condition);
+    ACCEPT_REPLACE_EXPRESSION(node, condition);
     PopEvalType();
 
-    ACCEPT_REPLACE_EXPRESSION(then_statement);
+    ACCEPT_REPLACE_EXPRESSION(node, then_statement);
     node->set_then_type(AnalysisType());
     PopEvalType();
 
     node->set_else_type(types_->GetVoid());
     if (node->has_else()) {
-        ACCEPT_REPLACE_EXPRESSION(else_statement);
+        ACCEPT_REPLACE_EXPRESSION(node, else_statement);
         node->set_else_type(AnalysisType());
         PopEvalType();
     }
 
-    if (node->then_type()->id() != node->else_type()->id()) {
+    if (node->then_type()->GenerateId() != node->else_type()->GenerateId()) {
         Type *types[2] = {node->then_type(), node->else_type()};
         PushEvalType(types_->MergeToFlatUnion(types, 2));
     } else {
@@ -526,7 +543,7 @@ private:
 
     ScopeHolder holder(node->scope(), &scope_);
     for (int i = 0; i < node->mutable_body()->size(); ++i) {
-        ACCEPT_REPLACE_EXPRESSION_I(mutable_body, i);
+        ACCEPT_REPLACE_EXPRESSION_I(node, mutable_body, i);
         if (i < node->mutable_body()->size() - 1) {
             PopEvalType();
         }
@@ -542,7 +559,7 @@ private:
     }
 
     if (node->has_return_value()) {
-        ACCEPT_REPLACE_EXPRESSION(expression);
+        ACCEPT_REPLACE_EXPRESSION(node, expression);
         if (AnalysisType()->IsVoid()) {
             ThrowError(node, "return void type.");
             return;
@@ -587,7 +604,7 @@ private:
     ScopeHolder holder(node->scope(), &scope_);
     ReturnTypeHolder ret(&return_types_, zone_);
 
-    ACCEPT_REPLACE_EXPRESSION(body);
+    ACCEPT_REPLACE_EXPRESSION(node, body);
 
     Type *return_type = nullptr;
     if (node->is_assignment()) {
@@ -600,7 +617,6 @@ private:
     auto proto = node->prototype();
     if (proto->return_type()->IsUnknown()) {
         proto->set_return_type(return_type);
-        proto->UpdateId();
     } else {
         if (!proto->return_type()->CanAcceptFrom(return_type)) {
             ThrowError(node, "function: %s, can not accept return type. %s vs %s",
@@ -611,6 +627,66 @@ private:
         }
     }
     PushEvalType(proto);
+}
+
+/*virtual*/
+void CheckingAstVisitor::VisitMapInitializer(MapInitializer *node) {
+    auto map_type = node->map_type();
+    if (map_type->key()->IsUnknown() || map_type->value()->IsUnknown()) {
+        if (node->mutable_pairs()->is_empty()) {
+            ThrowError(node, "map initializer has unknwon key and value's type");
+            return;
+        }
+    } else if (map_type->key()->CanNotBeKey()) {
+        ThrowError(node, "type %s can not be map key.",
+                   map_type->key()->ToString().c_str());
+        return;
+    }
+
+    auto value_types = new (types_->zone()) ZoneHashMap<int64_t, Type *>(types_->zone());
+    for (int i = 0; i < node->mutable_pairs()->size(); ++i) {
+        auto pair = node->mutable_pairs()->At(i);
+        ACCEPT_REPLACE_EXPRESSION(pair, key);
+        auto key = AnalysisType();
+        PopEvalType();
+
+        if (map_type->key()->IsUnknown()) {
+            map_type->set_key(key);
+        } else if (!map_type->key()->CanAcceptFrom(key)) {
+            ThrowError(pair->key(), "map initializer key can accept expression, (%s vs %s)",
+                       map_type->key()->ToString().c_str(),
+                       key->ToString().c_str());
+            return;
+        }
+        if (map_type->key()->CanNotBeKey()) {
+            ThrowError(pair->key(), "type %s can not be map key.",
+                       map_type->key()->ToString().c_str());
+            return;
+        }
+
+        ACCEPT_REPLACE_EXPRESSION(pair, value);
+        auto value = AnalysisType();
+        PopEvalType();
+
+        if (!map_type->value()->IsUnknown() &&
+            !map_type->value()->CanAcceptFrom(value)) {
+            ThrowError(pair->key(), "map initializer value can accept expression, (%s vs %s)",
+                       map_type->value()->ToString().c_str(),
+                       value->ToString().c_str());
+            return;
+        }
+
+        pair->set_value_type(value);
+        value_types->Put(value->GenerateId(), value);
+    }
+
+    if (map_type->value()->IsUnknown()) {
+        map_type->set_value(types_->GetUnion(value_types));
+    }
+
+    DCHECK(!map_type->key()->IsUnknown() &&
+           !map_type->value()->IsUnknown());
+    PushEvalType(node->map_type());
 }
 
 bool CheckingAstVisitor::AcceptOrReduceFunctionLiteral(AstNode *node,
@@ -776,10 +852,19 @@ CompiledUnitMap *Checker::CheckModule(RawStringRef name,
         for (jter.Init(); jter.HasNext(); jter.MoveNext()) {
             auto pair = all_modules_.Get(jter->key());
 
-            CheckImportList(jter->key(), iter->key(), CHECK_OK);
-            CheckModule(jter->key(), DCHECK_NOTNULL(pair->value()), CHECK_OK);
+            CheckImportList(jter->key(), iter->key(), ok);
+            if (!ok) {
+                return nullptr;
+            }
+            CheckModule(jter->key(), DCHECK_NOTNULL(pair->value()), ok);
+            if (!ok) {
+                return nullptr;
+            }
         }
-        CheckUnit(iter->key(), pkg_stmt, scope, iter->value(), CHECK_OK);
+        CheckUnit(iter->key(), pkg_stmt, scope, iter->value(), ok);
+        if (!ok) {
+            return nullptr;
+        }
     }
     check_state_.emplace(name->ToString(), MODULE_CHECKED);
     return all_units;

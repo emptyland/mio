@@ -346,6 +346,7 @@ Expression *Parser::ParseExpression(bool ignore, int limit, int *rop, bool *ok) 
         case TOKEN_FUNCTION:
         case TOKEN_LAMBDA:
         case TOKEN_LPAREN:
+        case TOKEN_MAP:
             return ParseOperation(limit, rop, ok);
 
         case TOKEN_IF:
@@ -500,6 +501,14 @@ Expression *Parser::ParseSimpleExpression(bool *ok) {
             lexer_->Next(&ahead_);
             return factory_->CreateI64SmiLiteral(ahead_.int_data(), position);
 
+        case TOKEN_F32_LITERAL:
+            lexer_->Next(&ahead_);
+            return factory_->CreateF32FloatLiteral(ahead_.f32_data(), position);
+
+        case TOKEN_F64_LITERAL:
+            lexer_->Next(&ahead_);
+            return factory_->CreateF64FloatLiteral(ahead_.f64_data(), position);
+
         // TODO: other literal
 
         case TOKEN_STRING_LITERAL: {
@@ -513,6 +522,9 @@ Expression *Parser::ParseSimpleExpression(bool *ok) {
 
         case TOKEN_FUNCTION:
             return ParseFunctionLiteral(ok);
+
+        case TOKEN_MAP:
+            return ParseMapInitializer(ok);
 
         default:
             return ParseSuffixed(ok);
@@ -608,6 +620,36 @@ Expression *Parser::ParseFunctionLiteral(bool *ok) {
     return literal;
 }
 
+// map {key<-value, ...}
+// map[key, value] {key<-value, ...}
+// map 'weak' {key<-value, ...}
+Expression *Parser::ParseMapInitializer(bool *ok) {
+    auto position = ahead_.position();
+    auto map = ParseMapType(false, CHECK_OK);
+
+    std::string txt;
+    RawStringRef annoation = RawString::kEmpty;
+    if (Test(TOKEN_STRING_LITERAL, &txt)) {
+        annoation = RawString::Create(txt, zone_);
+    }
+
+    auto pairs = new (zone_) ZoneVector<Pair *>(zone_);
+    Match(TOKEN_LBRACE, CHECK_OK);
+    do {
+        auto pair_pos = ahead_.position();
+
+        auto key = ParseExpression(false, CHECK_OK);
+        Match(TOKEN_THIN_LARROW, CHECK_OK);
+        auto value = ParseExpression(false, CHECK_OK);
+
+        pairs->Add(factory_->CreatePair(key, value, pair_pos));
+    } while (Test(TOKEN_COMMA));
+    Match(TOKEN_RBRACE, CHECK_OK);
+
+    return factory_->CreateMapInitializer(map, pairs, annoation, position,
+                                          ahead_.position());
+}
+
 // lambda (parameters) -> expression
 // lambda -> expression
 Expression *Parser::ParseLambda(bool *ok) {
@@ -646,7 +688,7 @@ Expression *Parser::ParseLambda(bool *ok) {
     auto body = ParseExpression(false, CHECK_OK);
     auto lambda = factory_->CreateFunctionLiteral(proto, body, scope, true,
                                                   position, ahead_.position());
-    scope->set_name(RawString::sprintf(zone_, "lambda-%p", lambda));
+    scope->set_name(RawString::sprintf(zone_, "lambda-%d", position));
     LeaveScope();
     return lambda;
 }
@@ -677,6 +719,14 @@ Type *Parser::ParseType(bool *ok) {
             lexer_->Next(&ahead_);
             return types_->GetI64();
 
+        case TOKEN_F32:
+            lexer_->Next(&ahead_);
+            return types_->GetF32();
+
+        case TOKEN_F64:
+            lexer_->Next(&ahead_);
+            return types_->GetF64();
+
         case TOKEN_STRING:
             lexer_->Next(&ahead_);
             return types_->GetString();
@@ -686,6 +736,10 @@ Type *Parser::ParseType(bool *ok) {
 
         case TOKEN_LBRACK:
             return ParseUnionType(ok);
+
+        case TOKEN_MAP:
+            return ParseMapType(true, ok);
+
             // TODO:
         default:
             *ok = false;
@@ -702,7 +756,7 @@ Union *Parser::ParseUnionType(bool *ok) {
     Match(TOKEN_LBRACK, CHECK_OK);
     do {
         auto type = ParseType(CHECK_OK);
-        types->Put(type->id(), type);
+        types->Put(type->GenerateId(), type);
     }while (Test(TOKEN_COMMA));
     Match(TOKEN_RBRACK, CHECK_OK);
 
@@ -751,6 +805,29 @@ FunctionPrototype *Parser::ParseFunctionPrototype(bool strict,
     }
 
     return types_->GetFunctionPrototype(params, return_type);
+}
+
+Map *Parser::ParseMapType(bool strict, bool *ok) {
+    Match(TOKEN_MAP, CHECK_OK);
+
+    Type *key = types_->GetUnknown(), *value = types_->GetUnknown();
+
+    if (strict) {
+        Match(TOKEN_LBRACK, CHECK_OK);
+        key = ParseType(CHECK_OK);
+        Match(TOKEN_COMMA, CHECK_OK);
+        value = ParseType(CHECK_OK);
+        Match(TOKEN_RBRACK, CHECK_OK);
+    } else {
+        if (Test(TOKEN_LBRACK)) {
+            key = ParseType(CHECK_OK);
+            Match(TOKEN_COMMA, CHECK_OK);
+            value = ParseType(CHECK_OK);
+            Match(TOKEN_RBRACK, CHECK_OK);
+        }
+    }
+
+    return types_->GetMap(key, value);
 }
 
 void Parser::Match(Token code, std::string *txt, bool *ok) {

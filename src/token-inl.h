@@ -33,6 +33,7 @@ namespace mio {
     M(COLON, 0, ":") \
     M(NAME_BREAK, 0, "::") \
     M(THIN_RARROW, 0, "->") \
+    M(THIN_LARROW, 0, "<-") \
     M(ASSIGN, 0, "=") \
     M(PLUS, 0, "+") \
     M(STAR, 0, "*") \
@@ -70,7 +71,12 @@ namespace mio {
     M(STRING, 0, "string") \
     M(VOID, 0, "void") \
     M(UNION, 0, "union") \
+    M(MAP, 0, "map") \
+    M(ARRAY, 0, "array") \
+    M(STRUCT, 0, "struct") \
     M(ERROR_TYPE, 0, "error") \
+    M(WEAK, 0, "weak") \
+    M(STRONG, 0, "strong") \
     M(ID, 0, "[$_a-zA-Z0-9]+") \
     M(I8_LITERAL, 0, "\\d+b") \
     M(I16_LITERAL, 0, "\\d+w") \

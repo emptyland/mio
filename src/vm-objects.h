@@ -14,6 +14,7 @@ class MIOString;
 class MIOFunction;
     class MIONativeFunction;
     class MIONormalFunction;
+class MIOUnion;
 class MIOHashMap;
 
 #define MIO_OBJECTS(M) \
@@ -90,6 +91,9 @@ public:
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOString)
 }; // class MIOString
 
+static_assert(sizeof(MIOString) == sizeof(HeapObject),
+              "MIOString can bigger than HeapObject");
+
 class MIOFunction : public HeapObject {
 public:
     static const int kNameOffset = kHeapObjectOffset;
@@ -99,6 +103,9 @@ public:
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOFunction)
 }; // class FunctionObject
+
+static_assert(sizeof(MIOFunction) == sizeof(HeapObject),
+              "MIOFunction can bigger than HeapObject");
 
 class MIONativeFunction : public MIOFunction {
 public:
@@ -112,6 +119,8 @@ public:
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIONativeFunction)
 }; // class MIONativeFunction
 
+static_assert(sizeof(MIONativeFunction) == sizeof(HeapObject),
+              "MIONativeFunction can bigger than HeapObject");
 
 class MIONormalFunction final: public MIOFunction {
 public:
@@ -125,6 +134,26 @@ public:
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIONormalFunction)
 }; // class NormalFunction
+
+static_assert(sizeof(MIONormalFunction) == sizeof(HeapObject),
+              "MIONormalFunction can bigger than HeapObject");
+
+class MIOUnion : public HeapObject {
+public:
+    static const int kTypeIdOffset = kHeapObjectOffset;
+    static const int kDataOffset   = kTypeIdOffset + sizeof(int64_t);
+    static const int kMIOUnionOffset = kDataOffset + kObjectReferenceSize;
+
+    DEFINE_HEAP_OBJ_RW(int64_t, TypeId)
+
+    void *GetData() { return reinterpret_cast<uint8_t *>(this) + kDataOffset; }
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOUnion)
+}; // class MIOUnion
+
+static_assert(sizeof(MIOUnion) == sizeof(HeapObject),
+              "MIOUnion can bigger than HeapObject");
+
 
 class MapPair;
 
@@ -145,8 +174,11 @@ public:
     DEFINE_HEAP_OBJ_RW(int, NumberOfSlots)
     DEFINE_HEAP_OBJ_RW(MapPair *, Slots)
 
-
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOHashMap)
 }; // class MIOHashMap
+
+static_assert(sizeof(MIOHashMap) == sizeof(HeapObject),
+              "MIOHashMap can bigger than HeapObject");
 
 class MapPair {
 public:

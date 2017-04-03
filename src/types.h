@@ -6,10 +6,12 @@
 #include "raw-string.h"
 #include "zone.h"
 #include "token.h"
+#include <set>
 
 namespace mio {
 
 #define DEFINE_TYPE_NODES(M) \
+    M(Map) \
     M(FunctionPrototype) \
     M(Union) \
     M(Integral) \
@@ -19,6 +21,7 @@ namespace mio {
     M(Unknown)
 
 class Type;
+    class Map;
     class FunctionPrototype;
     class Integral;
     class Floating;
@@ -55,19 +58,20 @@ public:
 
     virtual bool CanAcceptFrom(Type *type) const;
 
+    virtual int64_t GenerateId() const;
+
     virtual int ToString(TextOutputStream *stream) const = 0;
+
+    bool CanBeKey() const;
+    bool CanNotBeKey() const { return !CanBeKey(); }
 
     std::string ToString() const;
 
     virtual int placement_size() const = 0;
 
-    // TODO: floating
-    bool is_numeric() const { return IsIntegral(); }
+    bool is_numeric() const { return IsIntegral() || IsFloating(); }
 
-    // TODO: floating
-    bool is_primitive() const { return IsIntegral(); }
-
-    int64_t id() const { return id_; }
+    bool is_primitive() const { return is_numeric(); }
 
     friend class TypeFactory;
     DISALLOW_IMPLICIT_CONSTRUCTORS(Type);
@@ -159,22 +163,44 @@ private:
 }; // class Paramter
 
 
+class Map : public Type {
+public:
+    Type *key() const   { return key_; }
+    void set_key(Type *key) { key_ = DCHECK_NOTNULL(key); }
+
+    Type *value() const { return value_; }
+    void set_value(Type *value) { value_ = DCHECK_NOTNULL(value); }
+
+    DECLARE_TYPE(Map)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Map)
+
+    virtual int64_t GenerateId() const override;
+private:
+    Map(Type *key, Type *value)
+        : Type(0)
+        , key_(key)
+        , value_(value) { id_ = GenerateId(); }
+
+    Type *key_;
+    Type *value_;
+}; // class Map
+
+
 class FunctionPrototype : public Type {
 public:
     ZoneVector<Paramter *> *mutable_paramters() { return paramters_; }
     Type *return_type() const { return return_type_; }
     void set_return_type(Type *type) { return_type_ = type; }
 
-    void UpdateId();
+    virtual int64_t GenerateId() const override;
 
     DECLARE_TYPE(FunctionPrototype)
     DISALLOW_IMPLICIT_CONSTRUCTORS(FunctionPrototype)
 private:
-    FunctionPrototype(ZoneVector<Paramter *> *paramters, Type *return_type,
-                      int id)
-        : Type(id)
+    FunctionPrototype(ZoneVector<Paramter *> *paramters, Type *return_type)
+        : Type(0)
         , paramters_(DCHECK_NOTNULL(paramters))
-        , return_type_(DCHECK_NOTNULL(return_type)) {}
+        , return_type_(DCHECK_NOTNULL(return_type)) { id_ = GenerateId(); }
     
     ZoneVector<Paramter *> *paramters_;
     Type *return_type_;
@@ -189,19 +215,18 @@ public:
 
     int GetAllTypes(std::vector<Type *> *all_types) const;
 
-    bool CanBe(Type *type) { return types_->Exist(type->id()); }
+    bool CanBe(Type *type) { return types_->Exist(type->GenerateId()); }
 
     virtual bool CanAcceptFrom(Type *type) const override;
 
-    static int64_t GenerateId(TypeMap *types);
+    virtual int64_t GenerateId() const override;
 
     DECLARE_TYPE(Union)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Union)
 private:
     Union(TypeMap *types)
-        : Type(GenerateId(DCHECK_NOTNULL(types)))
-        , types_(types) {
-    }
+        : Type(0)
+        , types_(types) { id_ = GenerateId(); }
 
     // [type_id: type]
     TypeMap *types_;
@@ -236,9 +261,17 @@ public:
     String *GetString() const { return simple_types_[9]->AsString(); }
 
     FunctionPrototype *GetFunctionPrototype(ZoneVector<Paramter *> *paramters,
-                                            Type *return_type);
+                                            Type *return_type) {
+        return Record(new (zone_) FunctionPrototype(paramters, return_type));
+    }
 
-    Union *GetUnion(ZoneHashMap<int64_t, Type *> *types);
+    Union *GetUnion(ZoneHashMap<int64_t, Type *> *types) {
+        return Record(new (zone_) Union(types));
+    }
+
+    Map *GetMap(Type *key, Type *value) {
+        return Record(new (zone_) Map(key, value));
+    }
 
     // [t1, t2] and [t2, t3, t4] merge to
     // [t1, t2, t3, t4]
@@ -248,7 +281,14 @@ public:
         return new (zone_) Paramter(RawString::Create(name, zone_), type);
     }
 
+    int GetAllTypeId(std::set<int64_t> *all_id) const;
+
 private:
+    template<class T>
+    T *Record(T *type) {
+        all_types_.push_back(type);
+        return type;
+    }
 
     // i1
     // i8
@@ -262,6 +302,7 @@ private:
     // string
     Type *simple_types_[kMaxSimpleTypes];
     Zone *zone_;
+    std::vector<Type *> all_types_;
 };
 
 } // namespace mio

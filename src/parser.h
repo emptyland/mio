@@ -29,6 +29,7 @@ class TypeFactory;
 class Type;
 class Union;
 class FunctionPrototype;
+class Map;
 
 
 class Parser {
@@ -68,11 +69,13 @@ public:
     Expression *ParseSuffixed(bool *ok);
     Expression *ParsePrimary(bool *ok);
     Expression *ParseFunctionLiteral(bool *ok);
+    Expression *ParseMapInitializer(bool *ok);
     Expression *ParseLambda(bool *ok);
     Type *ParseType(bool *ok);
     Union *ParseUnionType(bool *ok);
     FunctionPrototype *ParseFunctionPrototype(bool strict, std::string *name,
                                               bool *ok);
+    Map *ParseMapType(bool strict, bool *ok);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Parser)
 private:

@@ -68,6 +68,7 @@ public:
                                types_,
                                object_factory_,
                                function_register_);
+        emitter.Init();
         ASSERT_TRUE(emitter.Run(checker.mutable_all_modules()));
 
         std::vector<Local<MIONormalFunction>> all_functions;

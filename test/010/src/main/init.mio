@@ -1,0 +1,14 @@
+package main
+
+function main: void {
+    val m = map 'weak' {'name' <- 1, 'age' <- 10}
+    val n = map[string, [f32, i32]] {
+        'first'  <- 1d,
+        'second' <- 1F
+    }
+    val o = map 'strong' {
+        'name'   <- 'John',
+        'factor' <- 1.1D,
+        'id'     <- 101
+    }
+}

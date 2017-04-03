@@ -1,6 +1,6 @@
 /* ANSI-C code produced by gperf version 3.0.3 */
 /* Command-line: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/gperf -L ANSI-C -C -N mio_parse_keyword -K z -t -c -n keywords.gperf  */
-/* Computed positions: -k'1,$' */
+/* Computed positions: -k'1,4,$' */
 
 #if !((' ' == 32) && ('!' == 33) && ('"' == 34) && ('#' == 35) \
       && ('%' == 37) && ('&' == 38) && ('\'' == 39) && ('(' == 40) \
@@ -39,12 +39,12 @@ struct mio_keyword {
 	int id;
 };
 
-#define TOTAL_KEYWORDS 35
+#define TOTAL_KEYWORDS 40
 #define MIN_WORD_LENGTH 2
 #define MAX_WORD_LENGTH 15
-#define MIN_HASH_VALUE 0
-#define MAX_HASH_VALUE 95
-/* maximum key range = 96, duplicates = 0 */
+#define MIN_HASH_VALUE 1
+#define MAX_HASH_VALUE 120
+/* maximum key range = 120, duplicates = 0 */
 
 #ifdef __GNUC__
 __inline
@@ -58,34 +58,47 @@ hash (register const char *str, register unsigned int len)
 {
   static const unsigned char asso_values[] =
     {
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      16, 96, 11, 96, 41, 96, 36, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 50, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 55, 96, 45,
-      45,  5, 25, 25, 15, 96, 96, 30, 56, 96,
-       6, 96,  1,  1,  0, 35, 10, 60, 46, 30,
-       0, 55, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96, 96, 96,
-      96, 96, 96, 96, 96, 96, 96, 96
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+       36, 121,  31, 121,   2, 121,  61, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121,  55, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121,   1,  25,  55,
+       10,   5,  30,  30,  35,  15, 121,  10,   0,  45,
+       35,   0,  26, 121,   5,  55,  15,  25,   1,  11,
+      121,   0, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121, 121, 121, 121, 121,
+      121, 121, 121, 121, 121, 121
     };
-  return asso_values[(unsigned char)str[len - 1]] + asso_values[(unsigned char)str[0]+2];
+  register unsigned int hval = 0;
+
+  switch (len)
+    {
+      default:
+        hval += asso_values[(unsigned char)str[3]];
+      /*FALLTHROUGH*/
+      case 3:
+      case 2:
+      case 1:
+        hval += asso_values[(unsigned char)str[0]];
+        break;
+    }
+  return hval + asso_values[(unsigned char)str[len - 1]];
 }
 
 const struct mio_keyword *
@@ -93,95 +106,110 @@ mio_parse_keyword (register const char *str, register unsigned int len)
 {
   static const struct mio_keyword wordlist[] =
     {
-#line 37 "keywords.gperf"
-      {"var", TOKEN_VAR},
+      {""},
+#line 43 "keywords.gperf"
+      {"val", TOKEN_VAL},
+#line 32 "keywords.gperf"
+      {"array", TOKEN_ARRAY},
+      {""}, {""},
 #line 11 "keywords.gperf"
       {"or", TOKEN_OR},
-      {""}, {""}, {""},
-#line 13 "keywords.gperf"
-      {"package", TOKEN_PACKAGE},
-#line 43 "keywords.gperf"
-      {"native", TOKEN_NATIVE},
-      {""}, {""}, {""},
-#line 35 "keywords.gperf"
-      {"continue", TOKEN_CONTINUE},
-#line 12 "keywords.gperf"
-      {"not", TOKEN_NOT},
-      {""}, {""}, {""},
-#line 32 "keywords.gperf"
-      {"for", TOKEN_FOR},
-#line 33 "keywords.gperf"
-      {"return", TOKEN_RETURN},
-      {""}, {""}, {""},
-#line 19 "keywords.gperf"
-      {"false", TOKEN_FALSE},
-#line 38 "keywords.gperf"
-      {"function", TOKEN_FUNCTION},
+#line 44 "keywords.gperf"
+      {"var", TOKEN_VAR},
       {""}, {""}, {""},
 #line 28 "keywords.gperf"
       {"error", TOKEN_ERROR_TYPE},
-#line 26 "keywords.gperf"
-      {"f64", TOKEN_F64},
+#line 10 "keywords.gperf"
+      {"and", TOKEN_AND},
       {""}, {""}, {""},
-#line 30 "keywords.gperf"
+#line 37 "keywords.gperf"
       {"else", TOKEN_ELSE},
-#line 25 "keywords.gperf"
-      {"f32", TOKEN_F32},
-      {""}, {""}, {""},
-#line 44 "keywords.gperf"
+#line 38 "keywords.gperf"
+      {"while", TOKEN_WHILE},
+#line 21 "keywords.gperf"
+      {"i16", TOKEN_I16},
+      {""}, {""},
+#line 49 "keywords.gperf"
       {"export", TOKEN_EXPORT},
-#line 42 "keywords.gperf"
-      {"union", TOKEN_UNION},
+#line 29 "keywords.gperf"
+      {"void", TOKEN_VOID},
+      {""}, {""}, {""},
+#line 18 "keywords.gperf"
+      {"true", TOKEN_TRUE},
+#line 46 "keywords.gperf"
+      {"lambda", TOKEN_LAMBDA},
       {""}, {""}, {""},
 #line 24 "keywords.gperf"
       {"int", TOKEN_INT},
+#line 34 "keywords.gperf"
+      {"weak", TOKEN_WEAK},
+      {""}, {""}, {""},
+#line 39 "keywords.gperf"
+      {"for", TOKEN_FOR},
+#line 41 "keywords.gperf"
+      {"break", TOKEN_BREAK},
+      {""}, {""}, {""},
+#line 47 "keywords.gperf"
+      {"def", TOKEN_DEF},
+#line 13 "keywords.gperf"
+      {"package", TOKEN_PACKAGE},
+      {""}, {""}, {""},
+#line 36 "keywords.gperf"
+      {"if", TOKEN_IF},
 #line 23 "keywords.gperf"
       {"i64", TOKEN_I64},
       {""}, {""}, {""},
-#line 41 "keywords.gperf"
-      {"void", TOKEN_VOID},
+#line 12 "keywords.gperf"
+      {"not", TOKEN_NOT},
 #line 22 "keywords.gperf"
       {"i32", TOKEN_I32},
       {""}, {""}, {""},
+#line 48 "keywords.gperf"
+      {"native", TOKEN_NATIVE},
+#line 15 "keywords.gperf"
+      {"as", TOKEN_AS},
+      {""}, {""}, {""},
+#line 30 "keywords.gperf"
+      {"union", TOKEN_UNION},
+#line 26 "keywords.gperf"
+      {"f64", TOKEN_F64},
+      {""}, {""}, {""},
 #line 40 "keywords.gperf"
-      {"def", TOKEN_DEF},
-#line 18 "keywords.gperf"
-      {"true", TOKEN_TRUE},
-      {""}, {""}, {""},
-#line 29 "keywords.gperf"
-      {"if", TOKEN_IF},
-#line 36 "keywords.gperf"
-      {"val", TOKEN_VAL},
-      {""}, {""}, {""},
-#line 31 "keywords.gperf"
-      {"while", TOKEN_WHILE},
-#line 39 "keywords.gperf"
-      {"lambda", TOKEN_LAMBDA},
+      {"return", TOKEN_RETURN},
+#line 25 "keywords.gperf"
+      {"f32", TOKEN_F32},
       {""}, {""}, {""},
 #line 16 "keywords.gperf"
       {"is", TOKEN_IS},
+#line 31 "keywords.gperf"
+      {"map", TOKEN_MAP},
+      {""}, {""}, {""},
+#line 42 "keywords.gperf"
+      {"continue", TOKEN_CONTINUE},
 #line 20 "keywords.gperf"
       {"i8", TOKEN_I8},
       {""}, {""}, {""},
+#line 17 "keywords.gperf"
+      {"bool TOKEN_BOOL"},
 #line 14 "keywords.gperf"
       {"with", TOKEN_WITH},
-#line 21 "keywords.gperf"
-      {"i16", TOKEN_I16},
       {""}, {""}, {""},
-#line 34 "keywords.gperf"
-      {"break", TOKEN_BREAK},
+#line 35 "keywords.gperf"
+      {"strong", TOKEN_STRONG},
       {""}, {""}, {""}, {""},
-#line 15 "keywords.gperf"
-      {"as", TOKEN_AS},
+#line 19 "keywords.gperf"
+      {"false", TOKEN_FALSE},
+      {""}, {""}, {""}, {""},
+#line 33 "keywords.gperf"
+      {"struct", TOKEN_STRUCT},
       {""}, {""}, {""}, {""},
 #line 27 "keywords.gperf"
       {"string", TOKEN_STRING},
-      {""}, {""}, {""}, {""},
-#line 10 "keywords.gperf"
-      {"and", TOKEN_AND},
-      {""}, {""}, {""}, {""},
-#line 17 "keywords.gperf"
-      {"bool TOKEN_BOOL"}
+      {""}, {""}, {""}, {""}, {""}, {""}, {""}, {""}, {""},
+      {""}, {""}, {""}, {""}, {""}, {""}, {""}, {""}, {""},
+      {""},
+#line 45 "keywords.gperf"
+      {"function", TOKEN_FUNCTION}
     };
 
   if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH)

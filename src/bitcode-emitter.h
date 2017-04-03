@@ -27,6 +27,8 @@ public:
                    FunctionRegister *function_register);
     ~BitCodeEmitter();
 
+    void Init();
+
     bool Run(RawStringRef module_name, RawStringRef unit_name,
              ZoneVector<Statement *> *stmts);
 
@@ -52,6 +54,8 @@ private:
     FunctionRegister *function_register_;
     std::unordered_set<Declaration *> emitted_;
     std::unordered_set<std::string> imported_;
+    int type_id_base_ = 0;
+    std::unordered_map<int64_t, int> type_id2index_;
 };
 
 } // namespace mio

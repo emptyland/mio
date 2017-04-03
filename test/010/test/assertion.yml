@@ -1,0 +1,56 @@
+test/010/src/main/init.mio: 
+  - package: main
+  - function_def: main
+    export: no
+    native: no
+    literal: 
+      prototype: function (): void
+      assignment: no
+      body: 
+        block: 
+          - declare_val: m
+            export: no
+            type: [string,[i64]]
+            init: 
+              type: [string,[i64]]
+              pairs: 
+                - key: 
+                    string: name
+                  value: 
+                    i64: 1
+                - key: 
+                    string: age
+                  value: 
+                    i64: 10
+          - declare_val: n
+            export: no
+            type: [string,[i32,f32]]
+            init: 
+              type: [string,[i32,f32]]
+              pairs: 
+                - key: 
+                    string: first
+                  value: 
+                    i32: 1
+                - key: 
+                    string: second
+                  value: 
+                    i32: 1.000000
+          - declare_val: o
+            export: no
+            type: [string,[i64,f64,string]]
+            init: 
+              type: [string,[i64,f64,string]]
+              pairs: 
+                - key: 
+                    string: name
+                  value: 
+                    string: John
+                - key: 
+                    string: factor
+                  value: 
+                    i64: 1.100000
+                - key: 
+                    string: id
+                  value: 
+                    i64: 101

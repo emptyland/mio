@@ -18,68 +18,35 @@ test/005/src/main/init.mio:
             export: no
             type: function (a:i64,b:i64): i64
           - taget: 
-              var: 
-                declare_var: fn
-                export: no
-                type: function (a:i64,b:i64): i64
+              var: ::main::main::<0>::fn
             rval: 
               prototype: function (a:i64,b:i64): i64
               assignment: yes
               body: 
                 op: ADD
                 lhs: 
-                  var: 
-                    declare_val: a
-                    export: no
-                    type: i64
+                  var: ::main::main::<1>::lambda-150::a
                 rhs: 
-                  var: 
-                    declare_val: b
-                    export: no
-                    type: i64
+                  var: ::main::main::<1>::lambda-150::b
           - expression: 
-              var: 
-                function_def: foo
-                export: no
-                native: yes
-                literal: 
-                  prototype: function (fn:function (a:i64,b:i64): i64): void
-                  assignment: no
+              var: ::main::foo
             arguments: 
               - prototype: function (a:i64,b:i64): i64
                 assignment: yes
                 body: 
                   op: SUB
                   lhs: 
-                    var: 
-                      declare_val: a
-                      export: no
-                      type: i64
+                    var: ::main::main::<1>::lambda-182::a
                   rhs: 
-                    var: 
-                      declare_val: b
-                      export: no
-                      type: i64
+                    var: ::main::main::<1>::lambda-182::b
           - expression: 
-              var: 
-                function_def: foo
-                export: no
-                native: yes
-                literal: 
-                  prototype: function (fn:function (a:i64,b:i64): i64): void
-                  assignment: no
+              var: ::main::foo
             arguments: 
               - prototype: function (_1:i64,_2:i64): i64
                 assignment: yes
                 body: 
                   op: MUL
                   lhs: 
-                    var: 
-                      declare_val: _1
-                      export: no
-                      type: i64
+                    var: ::main::main::<1>::lambda-214::_1
                   rhs: 
-                    var: 
-                      declare_val: _2
-                      export: no
-                      type: i64
+                    var: ::main::main::<1>::lambda-214::_2

@@ -4,4 +4,5 @@ var foo = 0
 
 function main: void {
     val a = if (foo) 'string'
+    foo = 100
 }

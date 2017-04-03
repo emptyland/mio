@@ -94,6 +94,14 @@ public:
         return base;
     }
 
+    VMValue MakeObjectValue() {
+        return {
+            .segment = BC_LOCAL_OBJECT_SEGMENT,
+            .offset  = MakeObjectRoom(),
+            .size    = kObjectReferenceSize,
+        };
+    }
+
     VMValue MakePrimitiveValue(int size) {
         return {
             .segment = BC_LOCAL_PRIMITIVE_SEGMENT,
@@ -137,11 +145,13 @@ public:
     virtual void VisitVarDeclaration(VarDeclaration *node) override;
     virtual void VisitIfOperation(IfOperation *node) override;
     virtual void VisitUnaryOperation(UnaryOperation *node) override;
+    virtual void VisitAssignment(Assignment *node) override;
     virtual void VisitBinaryOperation(BinaryOperation *node) override;
     virtual void VisitVariable(Variable *node) override;
     virtual void VisitStringLiteral(StringLiteral *node) override;
     virtual void VisitSmiLiteral(SmiLiteral *node) override;
     virtual void VisitFloatLiteral(FloatLiteral *node) override;
+    virtual void VisitMapInitializer(MapInitializer *node) override;
 
     BitCodeBuilder *builder() { return DCHECK_NOTNULL(current_)->builder(); }
 
@@ -177,6 +187,8 @@ private:
     VMValue EmitFloatingCmp(Type *type, Expression *lhs, Expression *rhs,
                             Operator op);
 
+    void EmitCreateUnion(const VMValue &dest, const VMValue &src, Type *type);
+
     VMValue EmitLoadPrimitiveMakeRoom(VMValue src);
 
     void EmitLoadOrMove(const VMValue &dest, const VMValue &src);
@@ -184,6 +196,7 @@ private:
     VMValue EmitLoadMakeRoom(const VMValue &src);
 
     VMValue EmitStoreMakeRoom(const VMValue &src);
+    void EmitStore(const VMValue &dest, const VMValue &src);
 
     VMValue GetEmptyObject(Type *type);
 
@@ -541,7 +554,8 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
     auto outter = builder()->jz(cond.offset, builder()->pc());
 
     if (node->has_else()) {
-        bool need_union = node->then_type()->id() != node->else_type()->id();
+        bool need_union = node->then_type()->GenerateId() !=
+                          node->else_type()->GenerateId();
 
         VMValue val;
         auto then_val = Emit(node->then_statement());
@@ -549,13 +563,7 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
             val.segment = BC_LOCAL_OBJECT_SEGMENT;
             val.offset  = current_->MakeObjectRoom();
             val.size    = kObjectReferenceSize;
-            if (node->then_type()->IsVoid()) {
-                builder()->oop(OO_UnionVoid, val.offset, 0, 0);
-            } else if (node->then_type()->is_primitive()) {
-                builder()->oop(OO_UnionOrMergePrimitive, val.offset, then_val.offset, 0);
-            } else {
-                builder()->oop(OO_UnionOrMergeObject, val.offset, then_val.offset, 0);
-            }
+            EmitCreateUnion(val, then_val, node->then_type());
         }
         auto leave = builder()->jmp(builder()->pc());
         // bind outter
@@ -563,13 +571,7 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
 
         auto else_val = Emit(node->else_statement());
         if (need_union) {
-            if (node->else_type()->IsVoid()) {
-                builder()->oop(OO_UnionVoid, val.offset, 0, 0);
-            } else if (node->else_type()->is_primitive()) {
-                builder()->oop(OO_UnionOrMergePrimitive, val.offset, else_val.offset, 0);
-            } else {
-                builder()->oop(OO_UnionOrMergeObject, val.offset, else_val.offset, 0);
-            }
+            EmitCreateUnion(val, else_val, node->then_type());
         } else {
             if (node->then_type()->IsVoid()) {
                 val = VMValue::Void();
@@ -589,19 +591,13 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
         val.segment = BC_LOCAL_OBJECT_SEGMENT;
         val.offset  = current_->MakeObjectRoom();
         val.size    = kObjectReferenceSize;
-        if (node->then_type()->IsVoid()) {
-            builder()->oop(OO_UnionVoid, val.offset, 0, 0);
-        } else if (node->then_type()->is_primitive()) {
-            builder()->oop(OO_UnionOrMergePrimitive, val.offset, then_val.offset, 0);
-        } else {
-            builder()->oop(OO_UnionOrMergeObject, val.offset, then_val.offset, 0);
-        }
+        EmitCreateUnion(val, then_val, node->then_type());
         auto leave = builder()->jmp(builder()->pc());
 
         // else
         // bind outter
         builder()->FillPlacement(outter, BitCodeBuilder::Make3AddrBC(BC_jz, 0, cond.offset, builder()->pc() - outter));
-        builder()->oop(OO_UnionVoid, val.offset, 0, 0);
+        EmitCreateUnion(val, {}, emitter_->types_->GetVoid());
 
         // bnd leave
         builder()->FillPlacement(leave, BitCodeBuilder::Make3AddrBC(BC_jmp, 0, 0, builder()->pc() - leave));
@@ -627,18 +623,75 @@ void EmittingAstVisitor::VisitUnaryOperation(UnaryOperation *node) {
     PushValue(value);
 }
 
+void EmittingAstVisitor::VisitAssignment(Assignment *node) {
+    auto src = Emit(node->rval());
+
+    if (node->target()->IsVariable()) {
+        auto var = node->target()->AsVariable();
+        DCHECK(var->is_readwrite());
+
+        if (var->bind_kind() == Variable::UNBINDED) {
+            DCHECK_EQ(MODULE_SCOPE, var->scope()->type());
+            Emit(var->declaration());
+        }
+        DCHECK_NE(Variable::UNBINDED, var->bind_kind());
+
+        VMValue dest;
+        dest.size   = var->type()->placement_size();
+        dest.offset = var->offset();
+
+        DCHECK(!var->type()->IsVoid());
+        if (var->type()->is_primitive()) {
+            switch (var->bind_kind()) {
+                case Variable::GLOBAL:
+                    dest.segment = BC_GLOBAL_PRIMITIVE_SEGMENT;
+                    break;
+                case Variable::LOCAL:
+                    dest.segment = BC_LOCAL_PRIMITIVE_SEGMENT;
+                    break;
+                case Variable::UP_VALUE:
+                    // TODO:
+                default:
+                    DLOG(FATAL) << "noreached!";
+                    break;
+            }
+        } else {
+            switch (var->bind_kind()) {
+                case Variable::GLOBAL:
+                    dest.segment = BC_GLOBAL_OBJECT_SEGMENT;
+                    break;
+                case Variable::LOCAL:
+                    dest.segment = BC_LOCAL_OBJECT_SEGMENT;
+                    break;
+                case Variable::UP_VALUE:
+                    // TODO:
+                default:
+                    DLOG(FATAL) << "noreached!";
+                    break;
+            }
+        }
+        EmitStore(dest, src);
+    } else {
+        // TODO:
+    }
+
+    PushValue(VMValue::Void());
+}
+
 void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
 
     switch (node->op()) {
         case OP_ADD:
             if (node->lhs_type()->IsIntegral()) {
-                DCHECK_EQ(node->lhs_type()->id(), node->rhs_type()->id());
+                DCHECK_EQ(node->lhs_type()->GenerateId(),
+                          node->rhs_type()->GenerateId());
 
                 PushValue(EmitIntegralAdd(node->lhs_type(), node->lhs(),
                                           node->rhs()));
             } else if (node->lhs_type()->IsFloating()) {
 
-                DCHECK_EQ(node->lhs_type()->id(), node->rhs_type()->id());
+                DCHECK_EQ(node->lhs_type()->GenerateId(),
+                          node->rhs_type()->GenerateId());
 
                 PushValue(EmitFloatingAdd(node->lhs_type(), node->lhs(),
                                           node->rhs()));
@@ -647,13 +700,15 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
 
         case OP_SUB:
             if (node->lhs_type()->IsIntegral()) {
-                DCHECK_EQ(node->lhs_type()->id(), node->rhs_type()->id());
+                DCHECK_EQ(node->lhs_type()->GenerateId(),
+                          node->rhs_type()->GenerateId());
 
                 PushValue(EmitIntegralSub(node->lhs_type(), node->lhs(),
                                           node->rhs()));
             } else if (node->lhs_type()->IsFloating()) {
 
-                DCHECK_EQ(node->lhs_type()->id(), node->rhs_type()->id());
+                DCHECK_EQ(node->lhs_type()->GenerateId(),
+                          node->rhs_type()->GenerateId());
 
                 PushValue(EmitFloatingSub(node->lhs_type(), node->lhs(),
                                           node->rhs()));
@@ -667,13 +722,15 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
         case OP_GT:
         case OP_GE:
             if (node->lhs_type()->IsIntegral()) {
-                DCHECK_EQ(node->lhs_type()->id(), node->rhs_type()->id());
+                DCHECK_EQ(node->lhs_type()->GenerateId(),
+                          node->rhs_type()->GenerateId());
 
                 PushValue(EmitIntegralCmp(node->lhs_type(), node->lhs(),
                                           node->rhs(), node->op()));
             } else if (node->lhs_type()->IsFloating()) {
 
-                DCHECK_EQ(node->lhs_type()->id(), node->rhs_type()->id());
+                DCHECK_EQ(node->lhs_type()->GenerateId(),
+                          node->rhs_type()->GenerateId());
 
                 PushValue(EmitFloatingCmp(node->lhs_type(), node->lhs(),
                                           node->rhs(), node->op()));
@@ -781,6 +838,33 @@ void EmittingAstVisitor::VisitFloatLiteral(FloatLiteral *node) {
             break;
     }
     PushValue(EmitLoadMakeRoom(src));
+}
+
+void EmittingAstVisitor::VisitMapInitializer(MapInitializer *node) {
+    auto dest = current_->MakeObjectValue();
+
+    auto type = node->map_type();
+    DCHECK(type->key()->CanBeKey());
+
+    builder()->oop(OO_Map, dest.offset, 0, 0);
+
+    for (int i = 0; i < node->mutable_pairs()->size(); ++i) {
+        auto pair = node->mutable_pairs()->At(i);
+        auto key = Emit(pair->key());
+        if (key.segment == BC_LOCAL_OBJECT_SEGMENT) {
+            key.offset = -key.offset;
+        }
+
+        auto value = Emit(pair->value());
+        if (type->value()->IsUnion()) {
+            auto tmp = current_->MakeObjectValue();
+            EmitCreateUnion(tmp, value, type->value());
+            value = tmp;
+        }
+        builder()->oop(OO_MapPut, dest.offset, key.offset, value.offset);
+    }
+
+    PushValue(dest);
 }
 
 VMValue EmittingAstVisitor::EmitIntegralAdd(Type *type, Expression *lhs,
@@ -918,6 +1002,21 @@ VMValue EmittingAstVisitor::EmitFloatingCmp(Type *type, Expression *lhs,
     return result;
 }
 
+void EmittingAstVisitor::EmitCreateUnion(const VMValue &dest, const VMValue &src,
+                                         Type *type) {
+    auto iter = emitter_->type_id2index_.find(type->GenerateId());
+    DCHECK(iter != emitter_->type_id2index_.end()) << "has call BitCodeEmitter::Init() ?";
+
+    auto index = iter->second;
+    if (type->IsVoid()) {
+        builder()->oop(OO_UnionVoid,    dest.offset,  0,          index);
+    } else if (type->is_primitive()) {
+        builder()->oop(OO_UnionOrMerge, dest.offset,  src.offset, index);
+    } else {
+        builder()->oop(OO_UnionOrMerge, dest.offset, -src.offset, index);
+    }
+}
+
 void EmittingAstVisitor::EmitLoadOrMove(const VMValue &dest, const VMValue &src) {
     if (src.segment == BC_LOCAL_OBJECT_SEGMENT) {
         DCHECK_EQ(BC_LOCAL_OBJECT_SEGMENT, dest.segment);
@@ -1032,12 +1131,45 @@ VMValue EmittingAstVisitor::EmitStoreMakeRoom(const VMValue &src) {
     return { .segment = MAX_BC_SEGMENTS, .size = -1, .offset = -1 };
 }
 
+void EmittingAstVisitor::EmitStore(const VMValue &dest, const VMValue &src) {
+    switch (src.segment) {
+        case BC_LOCAL_PRIMITIVE_SEGMENT: {
+
+    #define DEFINE_CASE(byte, bit) \
+        case byte: \
+            builder()->store_##byte##b(dest.offset, src.segment, src.offset); \
+            break;
+
+            MIO_INT_BYTES_SWITCH(src.size, DEFINE_CASE)
+    #undef DEFINE_CASE
+        } break;
+
+        case BC_LOCAL_OBJECT_SEGMENT: {
+            builder()->store_o(dest.offset, src.offset);
+        } break;
+
+        default:
+            DLOG(FATAL) << "noreached! bad segment: " << src.segment;
+            break;
+    }
+}
 
 VMValue EmittingAstVisitor::GetEmptyObject(Type *type) {
     if (type->IsString()) {
         return GetOrNewString("", 0, nullptr);
-    } else if (type->IsUnion()) {
-        // TODO:
+    }
+
+    VMValue result = {
+        .segment = BC_LOCAL_OBJECT_SEGMENT,
+        .offset  = current_->MakeObjectRoom(),
+        .size    = kObjectReferenceSize,
+    };
+    if (type->IsUnion()) {
+        EmitCreateUnion(result, {}, emitter_->types_->GetVoid());
+        return result;
+    } else if (type->IsMap()) {
+        builder()->oop(OO_Map, result.offset, 0, 0);
+        return result;
     }
 
     // TODO:
@@ -1088,11 +1220,26 @@ BitCodeEmitter::BitCodeEmitter(MemorySegment *constants,
     , types_(DCHECK_NOTNULL(types))
     , object_factory_(DCHECK_NOTNULL(object_factory))
     , function_register_(DCHECK_NOTNULL(function_register)) {
-    // fill zero number area.
-    memset(constants_->AlignAdvance(8), 0, 8);
 }
 
 BitCodeEmitter::~BitCodeEmitter() {
+}
+
+void BitCodeEmitter::Init() {
+    // fill zero number area.
+    memset(constants_->AlignAdvance(8), 0, 8);
+    DCHECK(type_id2index_.empty());
+
+    std::set<int64_t> all_id;
+    types_->GetAllTypeId(&all_id);
+    DCHECK_LT(all_id.size(), 0x7fff);
+
+    type_id_base_ = constants_->size();
+    int index = 0;
+    for (auto tid : all_id) {
+        type_id2index_.emplace(tid, index++);
+        constants_->Add(tid);
+    }
 }
 
 bool BitCodeEmitter::Run(RawStringRef module_name, RawStringRef unit_name,

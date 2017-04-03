@@ -113,9 +113,10 @@ namespace mio {
     M(GE)
 
 #define OBJECT_OPERATOR(M) \
-    M(UnionOrMergeObject) \
-    M(UnionOrMergePrimitive) \
-    M(UnionVoid)
+    M(UnionOrMerge) \
+    M(UnionVoid) \
+    M(Map) \
+    M(MapPut)
 
 enum BCInstruction : uint8_t {
 #define BitCode_ENUM_DEFINE(name) BC_##name,

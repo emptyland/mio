@@ -24,6 +24,8 @@ namespace mio {
     M(TypeCast) \
     M(SmiLiteral) \
     M(FloatLiteral) \
+    M(MapInitializer) \
+    M(Pair) \
     M(Variable) \
     M(Symbol) \
     M(Call) \
@@ -67,6 +69,8 @@ class AstNode;
                 class FloatLiteral;
                 class StringLiteral;
                 class FunctionLiteral;
+                class MapInitializer;
+                class Pair;
             class UnaryOperation;
             class BinaryOperation;
             class TypeTest;
@@ -87,6 +91,7 @@ class Type;
     class Array;
     class Void;
     class Union;
+    class Map;
 
 class AstVisitor;
 class AstNodeFactory;
@@ -438,6 +443,58 @@ private:
 }; // class FunctionLiteral
 
 
+class Pair : public Literal {
+public:
+    Expression *key() const { return key_; }
+    void set_key(Expression *key) { key_ = DCHECK_NOTNULL(key); }
+
+    Expression *value() const { return value_; }
+    void set_value(Expression *value) { value_ = DCHECK_NOTNULL(value_); }
+
+    Type *value_type() const { return DCHECK_NOTNULL(value_type_); }
+    void set_value_type(Type *type) { value_type_ = DCHECK_NOTNULL(type); }
+
+    DECLARE_AST_NODE(Pair)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Pair)
+private:
+    Pair(Expression *key, Expression *value, int position)
+        : Literal(position)
+        , key_(DCHECK_NOTNULL(key))
+        , value_(DCHECK_NOTNULL(value)) {}
+
+    Expression *key_;
+    Expression *value_;
+    Type *value_type_ = nullptr;
+}; // class MapPair
+
+class MapInitializer : public Literal {
+public:
+    Map *map_type() const { return map_type_; }
+
+    RawStringRef annotation() const { return annotation_; }
+
+    ZoneVector<Pair *> *mutable_pairs() { return pairs_; }
+
+    DECLARE_AST_NODE(MapInitializer)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MapInitializer)
+private:
+    MapInitializer(Map *map_type,
+                   ZoneVector<Pair *> *pairs,
+                   RawStringRef annotation,
+                   int start_position,
+                   int end_position)
+        : Literal(start_position)
+        , map_type_(DCHECK_NOTNULL(map_type))
+        , pairs_(DCHECK_NOTNULL(pairs))
+        , annotation_(DCHECK_NOTNULL(annotation))
+        , end_position_(end_position) {}
+
+    Map *map_type_;
+    RawStringRef annotation_;
+    ZoneVector<Pair *> *pairs_;
+    int end_position_;
+}; // MapLiteral
+
 #define DEFINE_SIMPLE_ARITH_OPS(M) \
     M(MUL, 10, 10, TOKEN_STAR) \
     M(DIV, 10, 10, TOKEN_SLASH) \
@@ -597,6 +654,7 @@ private:
     Expression *expression_;
     Type *type_;
 }; // class TypeCast
+
 
 class Variable : public Expression {
 public:
@@ -928,6 +986,22 @@ public:
     StringLiteral *CreateStringLiteral(std::string value, int position) {
         return new (zone_) StringLiteral(RawString::Create(value, zone_),
                                          position);
+    }
+
+    Pair *CreatePair(Expression *key, Expression *value, int position) {
+        return new (zone_) Pair(key, value, position);
+    }
+
+    MapInitializer *CreateMapInitializer(Map *map_type,
+                                         ZoneVector<Pair *> *pairs,
+                                         RawStringRef annotation,
+                                         int start_position,
+                                         int end_position){
+        return new (zone_) MapInitializer(map_type,
+                                          pairs,
+                                          annotation,
+                                          start_position,
+                                          end_position);
     }
 
     Symbol *CreateSymbol(const std::string &name,
