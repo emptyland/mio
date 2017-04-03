@@ -129,4 +129,18 @@ TEST_F(BitCodeEmitterTest, P009_RecursiveFunctionCall) {
     printf("%s\n", dasm.c_str());
 }
 
+TEST_F(BitCodeEmitterTest, P010_MapInitializer) {
+    std::string dasm;
+    ParseProject("010", &dasm);
+
+    printf("%s\n", dasm.c_str());
+}
+
+TEST_F(BitCodeEmitterTest, P011_MapAccessor) {
+    std::string dasm;
+    ParseProject("011", &dasm);
+
+    printf("%s\n", dasm.c_str());
+}
+
 } // namespace mio

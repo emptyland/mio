@@ -276,7 +276,7 @@ int FunctionPrototype::ToString(TextOutputStream *stream) const {
 
 /*virtual*/
 int Map::ToString(TextOutputStream *stream) const {
-    auto rv = stream->Write("[");
+    auto rv = stream->Write("map[");
     rv += key_->ToString(stream);
     rv += stream->Write(",");
     rv += value_->ToString(stream);

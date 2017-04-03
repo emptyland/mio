@@ -97,6 +97,8 @@ public:
     bool is_empty() const { return size_ == 0; }
     bool is_not_empty() const { return !is_empty(); }
 
+    inline ZoneHashMapPair<K, V> *first();
+
     typedef ZoneHashMapPair<K, V>     Pair;
     typedef ZoneHashMapIterator<K, V> Iterator;
 
@@ -171,7 +173,9 @@ public:
 //    void set_value(const V &other) { current_->set_value(other); }
 //    V *mutable_value() { current_->mutable_value(); }
 
-    Pair *operator -> () const { return DCHECK_NOTNULL(current_); }
+    Pair *operator -> () const { return get(); }
+
+    Pair *get() const { return DCHECK_NOTNULL(current_); }
 
 private:
     Pair **slots_;
@@ -212,6 +216,13 @@ ZoneHashMap<K, V>::CreateSlots(int size) {
     }
     memset(chunk, 0, sizeof(Pair*) * size);
     return static_cast<Pair **>(chunk);
+}
+
+template<class K, class V>
+inline ZoneHashMapPair<K, V> *ZoneHashMap<K, V>::first() {
+    Iterator iter(this);
+    iter.Init();
+    return iter.get();
 }
 
 template<class K, class V>

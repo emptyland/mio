@@ -10,9 +10,9 @@ test/010/src/main/init.mio:
         block: 
           - declare_val: m
             export: no
-            type: [string,[i64]]
+            type: map[string,i64]
             init: 
-              type: [string,[i64]]
+              type: map[string,i64]
               pairs: 
                 - key: 
                     string: name
@@ -24,9 +24,9 @@ test/010/src/main/init.mio:
                     i64: 10
           - declare_val: n
             export: no
-            type: [string,[i32,f32]]
+            type: map[string,[i32,f32]]
             init: 
-              type: [string,[i32,f32]]
+              type: map[string,[i32,f32]]
               pairs: 
                 - key: 
                     string: first
@@ -38,9 +38,9 @@ test/010/src/main/init.mio:
                     i32: 1.000000
           - declare_val: o
             export: no
-            type: [string,[i64,f64,string]]
+            type: map[string,[i64,f64,string]]
             init: 
-              type: [string,[i64,f64,string]]
+              type: map[string,[i64,f64,string]]
               pairs: 
                 - key: 
                     string: name

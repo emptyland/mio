@@ -451,8 +451,8 @@ public:
     Expression *value() const { return value_; }
     void set_value(Expression *value) { value_ = DCHECK_NOTNULL(value_); }
 
-    Type *value_type() const { return DCHECK_NOTNULL(value_type_); }
-    void set_value_type(Type *type) { value_type_ = DCHECK_NOTNULL(type); }
+//    Type *value_type() const { return DCHECK_NOTNULL(value_type_); }
+//    void set_value_type(Type *type) { value_type_ = DCHECK_NOTNULL(type); }
 
     DECLARE_AST_NODE(Pair)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Pair)
@@ -464,7 +464,7 @@ private:
 
     Expression *key_;
     Expression *value_;
-    Type *value_type_ = nullptr;
+    //Type *value_type_ = nullptr;
 }; // class MapPair
 
 class MapInitializer : public Literal {
@@ -756,6 +756,10 @@ class FieldAccessing : public Expression {
 public:
     RawStringRef field_name() const { return field_name_; }
     Expression *expression() const { return expression_; }
+    void set_expression(Expression *expr) { expression_ = DCHECK_NOTNULL(expr); }
+
+    Type *callee_type() const { return DCHECK_NOTNULL(callee_type_); }
+    void set_callee_type(Type *type) { callee_type_ = DCHECK_NOTNULL(type); }
 
     DECLARE_AST_NODE(FieldAccessing)
     DISALLOW_IMPLICIT_CONSTRUCTORS(FieldAccessing)
@@ -769,6 +773,7 @@ private:
 
     RawStringRef field_name_;
     Expression *expression_;
+    Type *callee_type_ = nullptr;
 }; // class FieldAccessing
 
 
@@ -823,6 +828,9 @@ public:
     Expression *rval() const { return rval_; }
     void set_rval(Expression *rval) { rval_ = DCHECK_NOTNULL(rval); }
 
+    Type *rval_type() const { return DCHECK_NOTNULL(rval_type_); }
+    void set_rval_type(Type *type) { rval_type_ = DCHECK_NOTNULL(type); }
+
     DECLARE_AST_NODE(Assignment)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Assignment)
 private:
@@ -834,6 +842,7 @@ private:
 
     Expression *target_;
     Expression *rval_;
+    Type *rval_type_ = nullptr;
 }; // class Assignment
 
 class Block : public Expression {

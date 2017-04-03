@@ -116,7 +116,8 @@ namespace mio {
     M(UnionOrMerge) \
     M(UnionVoid) \
     M(Map) \
-    M(MapPut)
+    M(MapPut) \
+    M(MapGet)
 
 enum BCInstruction : uint8_t {
 #define BitCode_ENUM_DEFINE(name) BC_##name,
@@ -135,6 +136,39 @@ enum BCSegment : int {
     BC_LOCAL_OBJECT_SEGMENT,
     MAX_BC_SEGMENTS,
 };
+
+/**
+ * Object Operators:
+ *
+ * OO_UnionOrMerge
+ * -- desc: Create or merge union.
+ * -- params:
+ *    * result: Offset of union object.
+ *    * val1:   Value for inbox.
+ *    * val2:   Index of value type id.
+ *
+ * OO_Map
+ * -- desc: Create a new map object.
+ * -- params:
+ *    * result: Offset of created map.
+ *    * val1:   Type of kind code(Type::Kind) in key
+ *    * val2:   Type of kind code(Type::Kind) in value
+ *
+ * OO_MapPut
+ * -- desc: Put a key and value pair into map object.
+ * -- params:
+ *    * result: Offset of map for putting.
+ *    * val1:   Key for putting.
+ *    * val2:   Value for putting.
+ *
+ * OO_MapGet
+ * -- desc: Get value by key, if not exists, return error.
+ *          return type is [`key-type', error].
+ * -- params:
+ *    * result: Offset of map for getting.
+ *    * val1:   Offset of key.
+ *    * val2:   Offset of return union object.
+ */
 
 enum BCObjectOperatorId : int {
 #define ObjectOperator_ENUM_DEFINE(name) OO_##name,

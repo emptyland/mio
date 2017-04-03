@@ -152,6 +152,7 @@ public:
     virtual void VisitSmiLiteral(SmiLiteral *node) override;
     virtual void VisitFloatLiteral(FloatLiteral *node) override;
     virtual void VisitMapInitializer(MapInitializer *node) override;
+    virtual void VisitFieldAccessing(FieldAccessing *node) override;
 
     BitCodeBuilder *builder() { return DCHECK_NOTNULL(current_)->builder(); }
 
@@ -188,6 +189,10 @@ private:
                             Operator op);
 
     void EmitCreateUnion(const VMValue &dest, const VMValue &src, Type *type);
+    void EmitFunctionCall(const VMValue &callee, Call *node);
+    void EmitMapAccessor(const VMValue &callee, Call *node);
+    void EmitMapPut(const VMValue &map, VMValue key, VMValue value,
+                    Map *map_ty, Type *val_ty);
 
     VMValue EmitLoadPrimitiveMakeRoom(VMValue src);
 
@@ -385,69 +390,12 @@ void EmittingAstVisitor::VisitCall(Call *node) {
     auto expr = Emit(node->expression());
     DCHECK_EQ(BC_LOCAL_OBJECT_SEGMENT, expr.segment);
 
-    auto proto = DCHECK_NOTNULL(node->callee_type()->AsFunctionPrototype());
-    if (!proto->return_type()->IsVoid()) {
-        auto result_size = proto->return_type()->placement_size();
-        if (proto->return_type()->is_primitive()) {
-            if (current_->p_stack_size() == 0) {
-                current_->MakePrimitiveRoom(result_size);
-            }
-        } else {
-            if (current_->o_stack_size() == 0) {
-                current_->MakeObjectRoom();
-            }
-        }
-    }
-
-    std::vector<VMValue> arguments;
-    for (int i = 0; i < node->mutable_arguments()->size(); ++i) {
-        auto argument = node->mutable_arguments()->At(i);
-        arguments.push_back(Emit(argument));
-    }
-    auto p_base = current_->p_stack_size(), o_base = current_->o_stack_size();
-    for (const auto &value : arguments) {
-        switch (value.segment) {
-            case BC_CONSTANT_SEGMENT:
-            case BC_GLOBAL_PRIMITIVE_SEGMENT:
-            case BC_LOCAL_PRIMITIVE_SEGMENT:
-                EmitLoadPrimitiveMakeRoom(value);
-                break;
-
-            case BC_GLOBAL_OBJECT_SEGMENT:
-                builder()->load_o(current_->MakeObjectRoom(), value.offset);
-                break;
-
-            case BC_LOCAL_OBJECT_SEGMENT:
-                builder()->mov_o(current_->MakeObjectRoom(), value.offset);
-                break;
-
-            default:
-                break;
-        }
-    }
-
-    VMValue result;
-    if (!proto->return_type()->IsVoid()) {
-        auto result_size = proto->return_type()->placement_size();
-        if (proto->return_type()->is_primitive()) {
-            result = {
-                .segment = BC_LOCAL_PRIMITIVE_SEGMENT,
-                .offset  = p_base - result_size,
-                .size    = result_size,
-            };
-        } else {
-            result = {
-                .segment = BC_LOCAL_OBJECT_SEGMENT,
-                .offset  = o_base - result_size,
-                .size    = result_size,
-            };
-        }
-    }
-    builder()->call_val(p_base, o_base, expr.offset);
-    if (proto->return_type()->IsVoid()) {
-        PushValue(VMValue::Void());
+    if (node->callee_type()->IsFunctionPrototype()) {
+        EmitFunctionCall(expr, node);
+    } else if (node->callee_type()->IsMap()) {
+        EmitMapAccessor(expr, node);
     } else {
-        PushValue(result);
+        DLOG(FATAL) << "noreached! callee: " << node->callee_type()->ToString();
     }
 }
 
@@ -624,7 +572,7 @@ void EmittingAstVisitor::VisitUnaryOperation(UnaryOperation *node) {
 }
 
 void EmittingAstVisitor::VisitAssignment(Assignment *node) {
-    auto src = Emit(node->rval());
+    auto rval = Emit(node->rval());
 
     if (node->target()->IsVariable()) {
         auto var = node->target()->AsVariable();
@@ -670,9 +618,28 @@ void EmittingAstVisitor::VisitAssignment(Assignment *node) {
                     break;
             }
         }
-        EmitStore(dest, src);
-    } else {
-        // TODO:
+        EmitStore(dest, rval);
+    } else if (node->target()->IsCall()) {
+        auto target = node->target()->AsCall();
+        DCHECK(target->callee_type()->IsMap());
+        DCHECK_EQ(1, target->mutable_arguments()->size());
+
+        auto map = Emit(target->expression());
+        auto key = Emit(target->mutable_arguments()->first());
+
+        EmitMapPut(map, key, rval, target->callee_type()->AsMap(),
+                   node->rval_type());
+    } else if (node->target()->IsFieldAccessing()) {
+        auto target = node->target()->AsFieldAccessing();
+        DCHECK(target->callee_type()->IsMap());
+
+        auto map_ty = target->callee_type()->AsMap();
+        DCHECK(map_ty->key()->IsString());
+
+        auto map = Emit(target->expression());
+        auto key = EmitLoadMakeRoom(GetOrNewString(target->field_name(), nullptr));
+
+        EmitMapPut(map, key, rval, map_ty, node->rval_type());
     }
 
     PushValue(VMValue::Void());
@@ -846,7 +813,8 @@ void EmittingAstVisitor::VisitMapInitializer(MapInitializer *node) {
     auto type = node->map_type();
     DCHECK(type->key()->CanBeKey());
 
-    builder()->oop(OO_Map, dest.offset, 0, 0);
+    builder()->oop(OO_Map, dest.offset, type->key()->type_kind(),
+                   type->value()->type_kind());
 
     for (int i = 0; i < node->mutable_pairs()->size(); ++i) {
         auto pair = node->mutable_pairs()->At(i);
@@ -865,6 +833,22 @@ void EmittingAstVisitor::VisitMapInitializer(MapInitializer *node) {
     }
 
     PushValue(dest);
+}
+
+void EmittingAstVisitor::VisitFieldAccessing(FieldAccessing *node) {
+    auto callee_ty = node->callee_type();
+
+    if (callee_ty->IsMap()) {
+        auto callee = Emit(node->expression());
+        auto key = EmitLoadMakeRoom(GetOrNewString(node->field_name(), nullptr));
+        auto result = current_->MakeObjectValue();
+
+        builder()->oop(OO_MapGet, callee.offset, -key.offset, -result.offset);
+        PushValue(result);
+    } else {
+        DLOG(FATAL) << "noreached! type: " << callee_ty->ToString();
+    }
+    // TODO: other types
 }
 
 VMValue EmittingAstVisitor::EmitIntegralAdd(Type *type, Expression *lhs,
@@ -1015,6 +999,112 @@ void EmittingAstVisitor::EmitCreateUnion(const VMValue &dest, const VMValue &src
     } else {
         builder()->oop(OO_UnionOrMerge, dest.offset, -src.offset, index);
     }
+}
+
+void EmittingAstVisitor::EmitFunctionCall(const VMValue &callee, Call *node) {
+    auto proto = DCHECK_NOTNULL(node->callee_type()->AsFunctionPrototype());
+    if (!proto->return_type()->IsVoid()) {
+        auto result_size = proto->return_type()->placement_size();
+        if (proto->return_type()->is_primitive()) {
+            if (current_->p_stack_size() == 0) {
+                current_->MakePrimitiveRoom(result_size);
+            }
+        } else {
+            if (current_->o_stack_size() == 0) {
+                current_->MakeObjectRoom();
+            }
+        }
+    }
+
+    std::vector<VMValue> arguments;
+    for (int i = 0; i < node->mutable_arguments()->size(); ++i) {
+        auto argument = node->mutable_arguments()->At(i);
+        arguments.push_back(Emit(argument));
+    }
+    auto p_base = current_->p_stack_size(), o_base = current_->o_stack_size();
+    for (const auto &value : arguments) {
+        switch (value.segment) {
+            case BC_CONSTANT_SEGMENT:
+            case BC_GLOBAL_PRIMITIVE_SEGMENT:
+            case BC_LOCAL_PRIMITIVE_SEGMENT:
+                EmitLoadPrimitiveMakeRoom(value);
+                break;
+
+            case BC_GLOBAL_OBJECT_SEGMENT:
+                builder()->load_o(current_->MakeObjectRoom(), value.offset);
+                break;
+
+            case BC_LOCAL_OBJECT_SEGMENT:
+                builder()->mov_o(current_->MakeObjectRoom(), value.offset);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    VMValue result;
+    if (!proto->return_type()->IsVoid()) {
+        auto result_size = proto->return_type()->placement_size();
+        if (proto->return_type()->is_primitive()) {
+            result = {
+                .segment = BC_LOCAL_PRIMITIVE_SEGMENT,
+                .offset  = p_base - result_size,
+                .size    = result_size,
+            };
+        } else {
+            result = {
+                .segment = BC_LOCAL_OBJECT_SEGMENT,
+                .offset  = o_base - result_size,
+                .size    = result_size,
+            };
+        }
+    }
+    builder()->call_val(p_base, o_base, callee.offset);
+    if (proto->return_type()->IsVoid()) {
+        PushValue(VMValue::Void());
+    } else {
+        PushValue(result);
+    }
+}
+
+void EmittingAstVisitor::EmitMapAccessor(const VMValue &callee, Call *node) {
+    auto map_ty = DCHECK_NOTNULL(node->callee_type()->AsMap());
+    auto map = Emit(node->expression());
+
+    DCHECK_EQ(node->mutable_arguments()->size(), 1);
+    if (node->mutable_arguments()->size() == 1) {
+        auto key = Emit(node->mutable_arguments()->At(0));
+        auto result = current_->MakeObjectValue();
+
+        if (map_ty->key()->is_object()) {
+            builder()->oop(OO_MapGet, map.offset, -key.offset, -result.offset);
+        } else {
+            builder()->oop(OO_MapGet, map.offset,  key.offset, -result.offset);
+        }
+        PushValue(result);
+    }
+}
+
+void EmittingAstVisitor::EmitMapPut(const VMValue &map, VMValue key, VMValue value,
+                                    Map *map_ty, Type *val_ty) {
+    if (map_ty->key()->is_object()) {
+        DCHECK_EQ(BC_LOCAL_OBJECT_SEGMENT, key.segment);
+        key.offset = -key.offset;
+    }
+
+    if (map_ty->value()->IsUnion()) {
+        auto tmp = current_->MakeObjectValue();
+        EmitCreateUnion(tmp, value, val_ty);
+        value = tmp;
+    }
+
+    if (val_ty->is_object()) {
+        DCHECK_EQ(BC_LOCAL_OBJECT_SEGMENT, value.segment);
+        value.offset = -value.offset;
+    }
+
+    builder()->oop(OO_MapPut, map.offset, key.offset, value.offset);
 }
 
 void EmittingAstVisitor::EmitLoadOrMove(const VMValue &dest, const VMValue &src) {
@@ -1168,7 +1258,10 @@ VMValue EmittingAstVisitor::GetEmptyObject(Type *type) {
         EmitCreateUnion(result, {}, emitter_->types_->GetVoid());
         return result;
     } else if (type->IsMap()) {
-        builder()->oop(OO_Map, result.offset, 0, 0);
+        auto map = type->AsMap();
+        builder()->oop(OO_Map, result.offset,
+                       map->key()->type_kind(),
+                       map->value()->type_kind());
         return result;
     }
 

@@ -1,0 +1,15 @@
+package main
+
+function main: void {
+    val m = map 'weak' {
+        'name' <- 'Cake',
+        'id'   <- 110,
+        'cost' <- 100.1F
+    }
+
+    val a = m('name')
+    m('id') = 100
+
+    val b = m.id
+    m.name = 'bkb'
+}

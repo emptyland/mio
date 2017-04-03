@@ -1,0 +1,56 @@
+test/011/src/main/init.mio: 
+  - package: main
+  - function_def: main
+    export: no
+    native: no
+    literal: 
+      prototype: function (): void
+      assignment: no
+      body: 
+        block: 
+          - declare_val: m
+            export: no
+            type: map[string,[f32,i64,string]]
+            init: 
+              type: map[string,[f32,i64,string]]
+              pairs: 
+                - key: 
+                    string: name
+                  value: 
+                    string: Cake
+                - key: 
+                    string: id
+                  value: 
+                    i64: 110
+                - key: 
+                    string: cost
+                  value: 
+                    i32: 100.099998
+          - declare_val: a
+            export: no
+            type: [void,string,i64,f32]
+            init: 
+              expression: 
+                var: ::main::main::<0>::m
+              arguments: 
+                - string: name
+          - taget: 
+              expression: 
+                var: ::main::main::<0>::m
+              arguments: 
+                - string: id
+            rval: 
+              i64: 100
+          - declare_val: b
+            export: no
+            type: [string,i64,f32,void]
+            init: 
+              expression: 
+                var: ::main::main::<0>::m
+              field_name: id
+          - taget: 
+              expression: 
+                var: ::main::main::<0>::m
+              field_name: name
+            rval: 
+              string: bkb

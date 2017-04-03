@@ -157,6 +157,7 @@ public:
     virtual void VisitFunctionDefine(FunctionDefine *node) override;
     virtual void VisitFunctionLiteral(FunctionLiteral *node) override;
     virtual void VisitMapInitializer(MapInitializer *node) override;
+    virtual void VisitFieldAccessing(FieldAccessing *node) override;
 
     Type *AnalysisType() { return type_stack_.top(); };
 
@@ -179,6 +180,9 @@ public:
     bool has_error() { return checker_->has_error(); }
 
 private:
+    void CheckFunctionCall(FunctionPrototype *proto, Call *node);
+    void CheckMapAccessor(Map *map, Call *node);
+
     bool AcceptOrReduceFunctionLiteral(AstNode *node, Type *target_ty,
                                        FunctionLiteral *rval);
 
@@ -252,48 +256,15 @@ private:
     ACCEPT_REPLACE_EXPRESSION(node, expression);
     auto callee_ty = AnalysisType();
     PopEvalType();
-    if (!callee_ty->IsFunctionPrototype()) {
+
+    node->set_callee_type(callee_ty);
+    if (callee_ty->IsFunctionPrototype()) {
+        CheckFunctionCall(callee_ty->AsFunctionPrototype(), node);
+    } else if (callee_ty->IsMap()) {
+        CheckMapAccessor(callee_ty->AsMap(), node);
+    } else {
         ThrowError(node, "this type can not be call.");
-        return;
     }
-
-    auto proto = callee_ty->AsFunctionPrototype();
-    if (proto->mutable_paramters()->size() !=
-        node->mutable_arguments()->size()) {
-        ThrowError(node, "call argument number is not be accept (%d vs %d).",
-                   node->mutable_arguments()->size(),
-                   proto->mutable_paramters()->size());
-        return;
-    }
-    for (int i = 0; i < node->mutable_arguments()->size(); ++i) {
-        auto arg   = node->mutable_arguments()->At(i);
-        auto param = proto->mutable_paramters()->At(i);
-
-        if (arg->IsFunctionLiteral() &&
-            !AcceptOrReduceFunctionLiteral(node, param->param_type(),
-                                           arg->AsFunctionLiteral())) {
-            return;
-        }
-
-        ACCEPT_REPLACE_EXPRESSION_I(node, mutable_arguments, i);
-        auto arg_ty = AnalysisType();
-        PopEvalType();
-
-        if (!param->param_type()->CanAcceptFrom(arg_ty)) {
-            if (param->has_name()) {
-                ThrowError(node, "call paramter: %s(%d) can not accpet this type. %s vs %s",
-                           param->param_name()->c_str(), i,
-                           param->param_type()->ToString().c_str(),
-                           arg_ty->ToString().c_str());
-            } else {
-                ThrowError(node, "call paramter: (%d) can not accpet this type",
-                           i);
-            }
-            return;
-        }
-    }
-    node->set_callee_type(proto);
-    PushEvalType(proto->return_type());
 }
 
 /*virtual*/ void CheckingAstVisitor::VisitUnaryOperation(UnaryOperation *node) {
@@ -339,6 +310,7 @@ private:
         return;
     }
     ACCEPT_REPLACE_EXPRESSION(node, rval);
+    node->set_rval_type(AnalysisType());
     if (!target_ty->CanAcceptFrom(AnalysisType())) {
         ThrowError(node, "assignment taget can not accept rval type. %s vs %s",
                    target_ty->ToString().c_str(),
@@ -675,18 +647,109 @@ void CheckingAstVisitor::VisitMapInitializer(MapInitializer *node) {
                        value->ToString().c_str());
             return;
         }
-
-        pair->set_value_type(value);
         value_types->Put(value->GenerateId(), value);
     }
 
     if (map_type->value()->IsUnknown()) {
-        map_type->set_value(types_->GetUnion(value_types));
+        DCHECK(value_types->is_not_empty());
+        if (value_types->size() > 1) {
+            map_type->set_value(types_->GetUnion(value_types));
+        } else {
+            map_type->set_value(value_types->first()->value());
+        }
     }
 
     DCHECK(!map_type->key()->IsUnknown() &&
            !map_type->value()->IsUnknown());
     PushEvalType(node->map_type());
+}
+
+/*virtual*/
+void CheckingAstVisitor::VisitFieldAccessing(FieldAccessing *node) {
+    ACCEPT_REPLACE_EXPRESSION(node, expression);
+    auto type = AnalysisType();
+    PopEvalType();
+    node->set_callee_type(type);
+
+    if (type->IsMap()) {
+        auto map = type->AsMap();
+        if (!map->key()->IsString()) {
+            ThrowError(node, "map key type is not string, can not use .%s .",
+                       node->field_name()->c_str());
+            return;
+        }
+
+        Type *types[] = {types_->GetVoid(), map->value()};
+        PushEvalType(types_->MergeToFlatUnion(types, arraysize(types)));
+    } else {
+        ThrowError(node, "this type(%s) can not use .%s .",
+                   type->ToString().c_str(),
+                   node->field_name()->c_str());
+    }
+    // TODO: other types:
+}
+
+void CheckingAstVisitor::CheckFunctionCall(FunctionPrototype *proto, Call *node) {
+    if (proto->mutable_paramters()->size() !=
+        node->mutable_arguments()->size()) {
+        ThrowError(node, "call argument number is not be accept (%d vs %d).",
+                   node->mutable_arguments()->size(),
+                   proto->mutable_paramters()->size());
+        return;
+    }
+    for (int i = 0; i < node->mutable_arguments()->size(); ++i) {
+        auto arg   = node->mutable_arguments()->At(i);
+        auto param = proto->mutable_paramters()->At(i);
+
+        if (arg->IsFunctionLiteral() &&
+            !AcceptOrReduceFunctionLiteral(node, param->param_type(),
+                                           arg->AsFunctionLiteral())) {
+                return;
+            }
+
+        ACCEPT_REPLACE_EXPRESSION_I(node, mutable_arguments, i);
+        auto arg_ty = AnalysisType();
+        PopEvalType();
+
+        if (!param->param_type()->CanAcceptFrom(arg_ty)) {
+            if (param->has_name()) {
+                ThrowError(node, "call paramter: %s(%d) can not accpet this type. %s vs %s",
+                           param->param_name()->c_str(), i,
+                           param->param_type()->ToString().c_str(),
+                           arg_ty->ToString().c_str());
+            } else {
+                ThrowError(node, "call paramter: (%d) can not accpet this type",
+                           i);
+            }
+            return;
+        }
+    }
+    PushEvalType(proto->return_type());
+}
+
+void CheckingAstVisitor::CheckMapAccessor(Map *map, Call *node) {
+    if (node->mutable_arguments()->size() != 1) {
+        ThrowError(node, "bad map access calling.");
+        return;
+    }
+
+    if (node->mutable_arguments()->size() == 1) {
+        // Getting
+        ACCEPT_REPLACE_EXPRESSION_I(node, mutable_arguments, 0);
+        auto key = AnalysisType();
+        PopEvalType();
+
+        if (!map->key()->CanAcceptFrom(key)) {
+            ThrowError(node->mutable_arguments()->At(0),
+                       "map key can not accept input type, (%s vs %s)",
+                       map->key()->ToString().c_str(),
+                       key->ToString().c_str());
+            return;
+        }
+
+        Type *types[] = {map->value(), types_->GetVoid()};
+        PushEvalType(types_->MergeToFlatUnion(types, arraysize(types)));
+    }
 }
 
 bool CheckingAstVisitor::AcceptOrReduceFunctionLiteral(AstNode *node,

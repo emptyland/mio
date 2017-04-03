@@ -36,15 +36,22 @@ class TypeFactory;
 class TextOutputStream;
 
 #define DECLARE_TYPE(name) \
-    virtual bool Is##name() const override { return true; } \
+    virtual Kind type_kind() const override { return k##name; } \
     virtual int ToString(TextOutputStream *stream) const override; \
     virtual int placement_size() const override; \
     friend class TypeFactory;
 
 class Type : public ManagedObject {
 public:
+    enum Kind: int {
+    #define Type_Kind_ENUM_DEFINE(name) k##name,
+        DEFINE_TYPE_NODES(Type_Kind_ENUM_DEFINE)
+    #undef  Type_Kind_ENUM_DEFINE
+        MAX_KIND,
+    };
+
 #define Type_TYPE_ASSERT(kind) \
-    virtual bool Is##kind () const { return false; } \
+    bool Is##kind () const { return type_kind() == k##kind; } \
     kind *As##kind() { \
         return Is##kind() ? reinterpret_cast<kind *>(this) : nullptr; \
     } \
@@ -55,6 +62,8 @@ public:
     DEFINE_TYPE_NODES(Type_TYPE_ASSERT)
 
 #undef Type_TYPE_ASSERT
+
+    virtual Kind type_kind() const = 0;
 
     virtual bool CanAcceptFrom(Type *type) const;
 
@@ -72,6 +81,10 @@ public:
     bool is_numeric() const { return IsIntegral() || IsFloating(); }
 
     bool is_primitive() const { return is_numeric(); }
+
+    bool is_object() const {
+        return IsString() || IsMap() || IsUnion() || IsFunctionPrototype();
+    }
 
     friend class TypeFactory;
     DISALLOW_IMPLICIT_CONSTRUCTORS(Type);
