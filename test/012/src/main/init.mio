@@ -1,0 +1,7 @@
+package main
+
+native function print(s:string): void
+
+function main: void {
+    print('hello, world\n')
+}

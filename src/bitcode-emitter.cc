@@ -306,6 +306,7 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
             var->set_offset(info.MakeObjectRoom());
         }
     }
+    auto object_argument_size = info.o_stack_size();
 
     if (prototype->return_type()->IsVoid()) {
         node->body()->Accept(this);
@@ -332,11 +333,11 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
     }
 
     // refill frame instruction
-    auto frame = BitCodeBuilder::MakeS2AddrBC(BC_frame, info.p_stack_size(),
-                                              info.o_stack_size());
-    memcpy(builder()->code()->offset(frame_placement * sizeof(uint64_t)),
-           &frame,
-           sizeof(frame));
+    auto frame = BitCodeBuilder::Make4OpBC(BC_frame,
+                                           info.p_stack_size(),
+                                           info.o_stack_size(),
+                                           0, object_argument_size);
+    builder()->code()->Set(frame_placement * sizeof(uint64_t), frame);
 
     auto obj = emitter_->object_factory_->CreateNormalFunction(builder()->code()->offset(0),
                                                                builder()->code()->size());
@@ -1346,16 +1347,26 @@ bool BitCodeEmitter::Run(RawStringRef module_name, RawStringRef unit_name,
     return true;
 }
 
-bool BitCodeEmitter::Run(CompiledModuleMap *all_modules) {
+bool BitCodeEmitter::Run(ParsedModuleMap *all_modules, CompiledInfo *info) {
+    DCHECK_NOTNULL(all_modules);
     DLOG(INFO) << "max number of instructions: " << MAX_BC_INSTRUCTIONS;
 
     auto pair = DCHECK_NOTNULL(all_modules->Get(kMainValue)); // "main"
-    return EmitModule(pair->key(), pair->value(), all_modules);
+    auto ok = EmitModule(pair->key(), pair->value(), all_modules);
+
+    if (info) {
+        info->type_id_base  = type_id_base_;
+        info->type_id_bytes = static_cast<int>(type_id2index_.size() * sizeof(int64_t));
+        info->constatns_segment_bytes        = constants_->size();
+        info->global_primitive_segment_bytes = p_global_->size();
+        info->global_object_segment_bytes    = o_global_->size();
+    }
+    return ok;
 }
 
 bool BitCodeEmitter::EmitModule(RawStringRef module_name,
-                                CompiledUnitMap *all_units,
-                                CompiledModuleMap *all_modules) {
+                                ParsedUnitMap *all_units,
+                                ParsedModuleMap *all_modules) {
     auto zone = types_->zone();
     auto proto = types_->GetFunctionPrototype(new (zone) ZoneVector<Paramter *>(zone),
                                               types_->GetVoid());
@@ -1366,7 +1377,7 @@ bool BitCodeEmitter::EmitModule(RawStringRef module_name,
     // placement frame instruction
     auto frame_placement = visitor.builder()->debug();
 
-    CompiledUnitMap::Iterator iter(all_units);
+    ParsedUnitMap::Iterator iter(all_units);
     for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
         visitor.set_unit_name(iter->key());
 
@@ -1382,14 +1393,7 @@ bool BitCodeEmitter::EmitModule(RawStringRef module_name,
         }
     }
 
-    // refill frame instruction
-    auto frame = BitCodeBuilder::MakeS2AddrBC(BC_frame, info.p_stack_size(),
-                                              info.o_stack_size());
-
     auto builder = info.builder();
-    memcpy(builder->code()->offset(frame_placement * sizeof(uint64_t)),
-           &frame,
-           sizeof(frame));
     auto main_name = TextOutputStream::sprintf("::%s::main", module_name->c_str());
     auto entry = function_register_->FindOrNull(main_name.c_str());
     if (entry) {
@@ -1398,6 +1402,12 @@ bool BitCodeEmitter::EmitModule(RawStringRef module_name,
         info.builder()->call_val(0, 0, local);
     }
     builder->ret();
+
+    // refill frame instruction
+    auto frame = BitCodeBuilder::Make4OpBC(BC_frame, info.p_stack_size(),
+                                           info.o_stack_size(),
+                                           0, 0);
+    builder->code()->Set(frame_placement * sizeof(uint64_t), frame);
 
     auto boot_name = TextOutputStream::sprintf("::%s::bootstrap", module_name->c_str());
     auto obj = object_factory_->CreateNormalFunction(builder->code()->offset(0),
@@ -1416,7 +1426,7 @@ bool BitCodeEmitter::EmitModule(RawStringRef module_name,
 
 bool BitCodeEmitter::ProcessImportList(PackageImporter *pkg,
                                        EmittedScope *info,
-                                       CompiledModuleMap *all_modules) {
+                                       ParsedModuleMap *all_modules) {
     DCHECK_NOTNULL(pkg);
 
     PackageImporter::ImportList::Iterator iter(pkg->mutable_import_list());

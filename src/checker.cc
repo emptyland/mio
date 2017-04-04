@@ -819,11 +819,11 @@ bool CheckingAstVisitor::AcceptOrReduceFunctionLiteral(AstNode *node,
 ////////////////////////////////////////////////////////////////////////////////
 //// class Checker
 ////////////////////////////////////////////////////////////////////////////////
-Checker::Checker(TypeFactory *types, CompiledUnitMap *all_units, Scope *global,
+Checker::Checker(TypeFactory *types, ParsedUnitMap *all_units, Scope *global,
                  Zone *zone)
     : types_(DCHECK_NOTNULL(types))
     , all_units_(DCHECK_NOTNULL(all_units))
-    , all_modules_(DCHECK_NOTNULL(zone))
+    , all_modules_(new (DCHECK_NOTNULL(zone)) ParsedModuleMap(zone))
     , global_(DCHECK_NOTNULL(global))
     , zone_(DCHECK_NOTNULL(zone)) {
     DCHECK_EQ(GLOBAL_SCOPE, global_->type());
@@ -839,7 +839,7 @@ bool Checker::Run() {
         return false;
     }
 
-    auto found = all_modules_.Get(kMainValue);
+    auto found = all_modules_->Get(kMainValue);
     if (!found) {
         ThrowError(nullptr, nullptr, "`main' module not found!");
         return false;
@@ -851,7 +851,7 @@ bool Checker::Run() {
 }
 
 bool Checker::CheckPackageImporter() {
-    CompiledUnitMap::Iterator iter(all_units_);
+    ParsedUnitMap::Iterator iter(all_units_);
 
     // key   : unit name
     // value : statements of unit
@@ -893,14 +893,14 @@ RawStringRef Checker::CheckImportList(RawStringRef module_name,
     return module_name;
 }
 
-CompiledUnitMap *Checker::CheckModule(RawStringRef name,
-                                      CompiledUnitMap *all_units,
+ParsedUnitMap *Checker::CheckModule(RawStringRef name,
+                                      ParsedUnitMap *all_units,
                                       bool *ok) {
     auto scope = DCHECK_NOTNULL(global_->FindInnerScopeOrNull(name));
     DCHECK_EQ(MODULE_SCOPE, scope->type());
     scope->MergeInnerScopes();
 
-    CompiledUnitMap::Iterator iter(all_units);
+    ParsedUnitMap::Iterator iter(all_units);
     // key   : unit name
     // value : statements of unit
     check_state_.emplace(name->ToString(), MODULE_CHECKING);
@@ -913,7 +913,7 @@ CompiledUnitMap *Checker::CheckModule(RawStringRef name,
         auto pkg_stmt = stmts->At(0)->AsPackageImporter();
         PackageImporter::ImportList::Iterator jter(pkg_stmt->mutable_import_list());
         for (jter.Init(); jter.HasNext(); jter.MoveNext()) {
-            auto pair = all_modules_.Get(jter->key());
+            auto pair = all_modules_->Get(jter->key());
 
             CheckImportList(jter->key(), iter->key(), ok);
             if (!ok) {
@@ -964,13 +964,13 @@ int Checker::CheckUnit(RawStringRef name,
     return 0;
 }
 
-CompiledUnitMap *Checker::GetOrInsertModule(RawStringRef name) {
+ParsedUnitMap *Checker::GetOrInsertModule(RawStringRef name) {
     bool has_insert = false;
 
-    auto pair = all_modules_.GetOrInsert(name, &has_insert);
+    auto pair = all_modules_->GetOrInsert(name, &has_insert);
     if (has_insert) {
         check_state_.emplace(name->ToString(), MODULE_READY);
-        pair->set_value(new (zone_) CompiledUnitMap(zone_));
+        pair->set_value(new (zone_) ParsedUnitMap(zone_));
     }
     return pair->value();
 }

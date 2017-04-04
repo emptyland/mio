@@ -11,7 +11,7 @@ class HeapObject;
 class MallocedObjectFactory : public ObjectFactory {
 public:
     MallocedObjectFactory();
-    virtual ~MallocedObjectFactory();
+    virtual ~MallocedObjectFactory() override;
 
     virtual Local<MIOString> CreateString(const char *z, int n) override;
 
@@ -27,6 +27,10 @@ public:
 
     virtual Local<MIOHashMap>
     CreateHashMap(int seed, uint32_t flags) override;
+
+    virtual
+    Local<MIOError> CreateError(const char *message, int position,
+                                Local<MIOError> linked) override;
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MallocedObjectFactory)
 private:

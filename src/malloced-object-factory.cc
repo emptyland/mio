@@ -74,11 +74,25 @@ Local<MIOHashMap> MallocedObjectFactory::CreateHashMap(int seed, uint32_t flags)
     obj->SetSeed(seed);
     obj->SetSize(0);
     obj->SetFlags(flags);
-    obj->SetSlots(static_cast<MapPair*>(malloc(MapPair::kPayloadOffset * MIOHashMap::kDefaultInitialSlots)));
+    // TODO: slots
 
     objects_.push_back(obj);
     return make_local(obj);
 }
 
+/*virtual*/
+Local<MIOError>
+MallocedObjectFactory::CreateError(const char *message, int position,
+                                   Local<MIOError> linked) {
+    auto obj = static_cast<MIOError *>(malloc(MIOError::kMIOErrorOffset));
+    obj->SetKind(HeapObject::kError);
+    obj->SetPosition(position);
+    obj->SetMessage(GetOrNewString(message, static_cast<int>(strlen(message)),
+                                   nullptr).get());
+    obj->SetLinkedError(linked.get());
+
+    objects_.push_back(obj);
+    return make_local(obj);
+}
 
 } // namespace mio

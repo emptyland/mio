@@ -109,7 +109,8 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
             break;
 
         case BC_frame:
-            stream_->Printf("+%d +%d", GetVal1(bc), GetVal2(bc));
+            stream_->Printf("+%u +%u %d %d", GetOp1(bc), GetOp2(bc),
+                            GetVal1(bc), GetVal2(bc));
             break;
 
         case BC_ret:

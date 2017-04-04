@@ -301,17 +301,17 @@ void AstPrinter::ToYamlString(AstNode *ast, int indent_wide, TextOutputStream *s
     ast->Accept(&printer);
 }
 
-/*static*/ void AstPrinter::ToYamlString(CompiledUnitMap *all_units,
+/*static*/ void AstPrinter::ToYamlString(ParsedUnitMap *all_units,
                                          int indent_wide,
                                          TextOutputStream *stream) {
     YamlPrinterVisitor printer(stream, indent_wide);
-    CompiledUnitMap::Iterator iter(all_units);
+    ParsedUnitMap::Iterator iter(all_units);
     for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
         printer.WriteMapPair(iter->key()->c_str(), iter->value());
     }
 }
 
-/*static*/ void AstPrinter::ToYamlString(CompiledUnitMap *all_units,
+/*static*/ void AstPrinter::ToYamlString(ParsedUnitMap *all_units,
                                          int indent_wide,
                                          std::string *buf) {
     MemoryOutputStream stream(buf);

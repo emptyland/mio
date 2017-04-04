@@ -16,11 +16,11 @@ public:
     static void ToYamlString(AstNode *ast, int indent_wide,
                              TextOutputStream *stream);
 
-    static void ToYamlString(CompiledUnitMap *all_units,
+    static void ToYamlString(ParsedUnitMap *all_units,
                              int indent_wide,
                              TextOutputStream *stream);
 
-    static void ToYamlString(CompiledUnitMap *all_units,
+    static void ToYamlString(ParsedUnitMap *all_units,
                              int indent_wide,
                              std::string *buf);
     AstPrinter() = delete;

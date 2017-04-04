@@ -16,7 +16,6 @@ class SimpleFunctionRegister : public FunctionRegister {
 public:
     SimpleFunctionRegister(MemorySegment *global)
         : global_(DCHECK_NOTNULL(global)) {}
-
     virtual ~SimpleFunctionRegister() override;
 
     virtual FunctionEntry *FindOrInsert(const char *name) override;
@@ -26,7 +25,8 @@ public:
     virtual bool RegisterNativeFunction(const char *name,
                                         MIOFunctionPrototype pointer) override;
 
-    int GetAllFunctions(std::vector<Local<MIONormalFunction>> *all_functions);
+    virtual
+    int GetAllFunctions(std::vector<Local<MIONormalFunction>> *all_functions) override;
 
 private:
     std::unordered_map<std::string, FunctionEntry *> functions_;

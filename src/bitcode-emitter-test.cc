@@ -69,7 +69,7 @@ public:
                                object_factory_,
                                function_register_);
         emitter.Init();
-        ASSERT_TRUE(emitter.Run(checker.mutable_all_modules()));
+        ASSERT_TRUE(emitter.Run(checker.all_modules(), nullptr));
 
         std::vector<Local<MIONormalFunction>> all_functions;
         function_register_->GetAllFunctions(&all_functions);

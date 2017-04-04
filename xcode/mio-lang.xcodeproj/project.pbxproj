@@ -365,8 +365,8 @@
 				23E3D5AD1E6D004C00C51DDE /* scopes-test.cc */,
 				232434721E7A203D0054C385 /* vm-memory-segment-test.cc */,
 				232434781E7A77020054C385 /* vm-bitcode-builder-test.cc */,
-				232434851E7B935B0054C385 /* vm-thread-test.cc */,
 				231378E71E8B563D009384DF /* bitcode-emitter-test.cc */,
+				232434851E7B935B0054C385 /* vm-thread-test.cc */,
 			);
 			name = Tests;
 			path = ../src;

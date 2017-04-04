@@ -1,12 +1,14 @@
 #ifndef MIO_VM_THREAD_H_
 #define MIO_VM_THREAD_H_
 
+#include "handles.h"
 #include "base.h"
 
 namespace mio {
 
 class VM;
 class Stack;
+class HeapObject;
 
 struct CallContext {
     int p_stack_base;
@@ -38,6 +40,8 @@ public:
     Stack *o_stack() const { return o_stack_; }
 
     void Execute(MIONormalFunction *callee, bool *ok);
+
+    Local<HeapObject> GetObject(int addr);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Thread)
 private:

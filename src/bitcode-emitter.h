@@ -32,19 +32,19 @@ public:
     bool Run(RawStringRef module_name, RawStringRef unit_name,
              ZoneVector<Statement *> *stmts);
 
-    bool Run(CompiledModuleMap *all_modules);
+    bool Run(ParsedModuleMap *all_modules, CompiledInfo *info);
 
     friend class EmittingAstVisitor;
     DISALLOW_IMPLICIT_CONSTRUCTORS(BitCodeEmitter);
 
 private:
     bool EmitModule(RawStringRef module_name,
-                    CompiledUnitMap *all_units,
-                    CompiledModuleMap *all_modules);
+                    ParsedUnitMap *all_units,
+                    ParsedModuleMap *all_modules);
 
     bool ProcessImportList(PackageImporter *pkg,
                            EmittedScope *info,
-                           CompiledModuleMap *all_modules);
+                           ParsedModuleMap *all_modules);
 
     MemorySegment *constants_;
     MemorySegment *p_global_;

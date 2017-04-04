@@ -11,6 +11,7 @@ class MIOString;
 class MIONativeFunction;
 class MIONormalFunction;
 class MIOHashMap;
+class MIOError;
 
 class ObjectFactory {
 public:
@@ -27,6 +28,9 @@ public:
     virtual Local<MIONormalFunction> CreateNormalFunction(const void *code, int size) = 0;
 
     virtual Local<MIOHashMap> CreateHashMap(int seed, uint32_t flags) = 0;
+
+    virtual Local<MIOError> CreateError(const char *message, int position,
+                                        Local<MIOError> linked) = 0;
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(ObjectFactory)
 };

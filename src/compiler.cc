@@ -1,4 +1,6 @@
 #include "compiler.h"
+#include "bitcode-emitter.h"
+#include "checker.h"
 #include "parser.h"
 #include "ast.h"
 #include "types.h"
@@ -47,7 +49,7 @@ std::string ParsingError::ToString() const {
 //                 bar/
 //
 
-/*static*/ CompiledUnitMap *
+/*static*/ ParsedUnitMap *
 Compiler::ParseProject(const char *project_dir,
                        SimpleFileSystem *sfs,
                        TypeFactory *types,
@@ -73,7 +75,7 @@ Compiler::ParseProject(const char *project_dir,
     auto text_streams = CreateFileStreamFactory();
     Parser parser(types, text_streams, global, zone);
 
-    auto all_units = new (zone) CompiledUnitMap(zone);
+    auto all_units = new (zone) ParsedUnitMap(zone);
     std::vector<std::string> names;
     for (const auto &dir_name : module_dirs) {
         std::string module_path(src_path);
@@ -131,6 +133,38 @@ Compiler::ParseProject(const char *project_dir,
         }
     }
     return all_units;
+}
+
+/*static*/ ParsedModuleMap *Compiler::Check(ParsedUnitMap *all_units,
+                                              TypeFactory *types,
+                                              Scope *global,
+                                              Zone *zone,
+                                              ParsingError *error) {
+    Checker checker(types, all_units, global, zone);
+    if (!checker.Run()) {
+        *error = checker.last_error();
+        return nullptr;
+    }
+
+    return checker.all_modules();
+}
+
+/*static*/ void Compiler::AstEmitToBitCode(ParsedModuleMap *all_modules,
+                                           MemorySegment *constants,
+                                           MemorySegment *p_global,
+                                           MemorySegment *o_global,
+                                           TypeFactory *types,
+                                           ObjectFactory *object_factory,
+                                           FunctionRegister *function_register,
+                                           CompiledInfo *info) {
+    BitCodeEmitter emitter(constants,
+                           p_global,
+                           o_global,
+                           types,
+                           object_factory,
+                           function_register);
+    emitter.Init();
+    emitter.Run(all_modules, info);
 }
 
 } // namespace mio

@@ -60,7 +60,7 @@ TEST(BitCodeBuilderTest, MoveInstruction) {
     MemorySegment code;
     BitCodeBuilder builder(&code);
 
-    builder.frame(8, 0);
+    builder.frame(8, 0, 0);
     builder.mov_8b(-8, 0);
 
     auto bc = static_cast<const uint64_t *>(code.offset(0));

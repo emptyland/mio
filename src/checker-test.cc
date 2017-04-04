@@ -42,7 +42,7 @@ public:
         return scope->Declare(raw_name, declaration);
     }
 
-    CompiledUnitMap *ParseProject(const char *project_dir, ParsingError *error) {
+    ParsedUnitMap *ParseProject(const char *project_dir, ParsingError *error) {
         std::string dir("test/");
         dir.append(project_dir);
         return Compiler::ParseProject(dir.c_str(),
@@ -53,7 +53,7 @@ public:
                                       error);
     }
 
-    void AssertProjectAST(const char *project_dir, CompiledUnitMap *all_units) {
+    void AssertProjectAST(const char *project_dir, ParsedUnitMap *all_units) {
         std::string dir("test/");
         dir.append(project_dir);
 
@@ -101,7 +101,7 @@ protected:
 
 
 TEST_F(CheckerTest, Sanity) {
-    CompiledUnitMap *all_units = new (zone_) CompiledUnitMap(zone_);
+    ParsedUnitMap *all_units = new (zone_) ParsedUnitMap(zone_);
 
     auto unit_stmts = new (zone_) ZoneVector<Statement *>(zone_);
     auto pkg_stmt = factory_->CreatePackageImporter("main", 0);
@@ -125,7 +125,7 @@ TEST_F(CheckerTest, Sanity) {
 }
 
 TEST_F(CheckerTest, BinaryOperationTypeReduction) {
-    CompiledUnitMap *all_units = new (zone_) CompiledUnitMap(zone_);
+    ParsedUnitMap *all_units = new (zone_) ParsedUnitMap(zone_);
 
     auto module = new (zone_) Scope(global_, MODULE_SCOPE, zone_);
     module->set_name(L("main"));
@@ -171,7 +171,7 @@ TEST_F(CheckerTest, BinaryOperationTypeReduction) {
 }
 
 TEST_F(CheckerTest, SymbolBetweenModuleDiscovery) {
-    CompiledUnitMap *all_units = new (zone_) CompiledUnitMap(zone_);
+    ParsedUnitMap *all_units = new (zone_) ParsedUnitMap(zone_);
 
     auto unit_stmts = new (zone_) ZoneVector<Statement *>(zone_);
 
@@ -206,7 +206,7 @@ TEST_F(CheckerTest, SymbolBetweenModuleDiscovery) {
 
     ASSERT_TRUE(checker.Run()) << checker.last_error().message;
 
-    auto pair = checker.mutable_all_modules()->Get(L("main"))->value()->Get(L("main/1.mio"));
+    auto pair = checker.all_modules()->Get(L("main"))->value()->Get(L("main/1.mio"));
     auto node = pair->value()->At(1);
 
     ASSERT_TRUE(node->IsVariable());

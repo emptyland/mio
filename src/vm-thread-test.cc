@@ -4,6 +4,7 @@
 #include "vm-bitcode-disassembler.h"
 #include "vm-objects.h"
 #include "vm.h"
+#include "vm-function-register.h"
 #include "malloced-object-factory.h"
 #include "handles.h"
 #include "code-label.h"
@@ -16,6 +17,7 @@ public:
 
     virtual void SetUp() override {
         vm_ = new VM();
+        ASSERT_TRUE(vm_->Init());
         factory_ = new MallocedObjectFactory;
     }
 
@@ -29,42 +31,24 @@ protected:
     MallocedObjectFactory *factory_ = nullptr;
 };
 
-TEST_F(ThreadTest, Sanity) {
-    BitCodeBuilder builder(vm_->TEST_code());
+int PrintRountine(VM *vm, Thread *thread) {
+    auto ob = thread->GetObject(0);
 
-    builder.frame(8, 0);
-    builder.load_i32_imm(0, 11);
-    builder.load_i32_imm(4, 22);
-    builder.add_i32_imm(0, 4, 33);
-    builder.ret();
-
-    bool ok = true;
-    vm_->TEST_main_thread()->Execute(0, &ok);
-    ASSERT_TRUE(ok) << vm_->TEST_main_thread()->exit_code();
-    ASSERT_EQ(Thread::SUCCESS, vm_->TEST_main_thread()->exit_code());
-}
-
-int FooRoutine(VM *vm, Thread *thread) {
-    printf("call in\n");
+    printf("%s", ob->AsString()->mutable_data());
     return 0;
 }
 
-TEST_F(ThreadTest, CallNativeFunction) {
-    BitCodeBuilder builder(vm_->TEST_code());
+TEST_F(ThreadTest, P012_Sanity) {
+    ParsingError error;
 
-    builder.frame(0, 8);
-    builder.call_val(0, 0, 0);
-    builder.ret();
+    ASSERT_TRUE(vm_->CompileProject("test/012", &error)) << error.ToString();
+    std::string buf;
+    vm_->DisassembleAll(&buf);
 
-    auto nfn = factory_->CreateNativeFunction("foo", FooRoutine);
-    vm_->TEST_main_thread()->o_stack()->Push(nfn.get());
-    ASSERT_EQ(nfn.get(), vm_->TEST_main_thread()->o_stack()->Get<MIONativeFunction*>(0));
-    ASSERT_EQ(HeapObject::kNativeFunction, nfn->GetKind());
+    printf("%s\n", buf.c_str());
 
-    bool ok = true;
-    vm_->TEST_main_thread()->Execute(0, &ok);
-    ASSERT_TRUE(ok) << vm_->TEST_main_thread()->exit_code();
-    ASSERT_EQ(Thread::SUCCESS, vm_->TEST_main_thread()->exit_code());
+    vm_->function_register()->RegisterNativeFunction("::main::print", PrintRountine);
+    ASSERT_EQ(0, vm_->Run());
 }
 
 } // namespace mio

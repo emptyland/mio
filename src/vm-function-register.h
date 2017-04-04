@@ -3,6 +3,7 @@
 
 #include "vm-objects.h"
 #include "base.h"
+#include <vector>
 
 namespace mio {
 
@@ -19,6 +20,8 @@ public:
 
     virtual bool RegisterNativeFunction(const char *name,
                                         MIOFunctionPrototype pointer) = 0;
+
+    virtual int GetAllFunctions(std::vector<Local<MIONormalFunction>> *all_functions) = 0;
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(FunctionRegister)
 }; // class FunctionRegister

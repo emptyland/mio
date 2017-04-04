@@ -24,7 +24,7 @@ public:
     };
 
     Checker(TypeFactory *types,
-            CompiledUnitMap *all_units, Scope *global, Zone *zone);
+            ParsedUnitMap *all_units, Scope *global, Zone *zone);
 
     DEF_GETTER(bool, has_error)
     DEF_GETTER(ParsingError, last_error)
@@ -32,13 +32,13 @@ public:
     bool Run();
     bool CheckPackageImporter();
 
-    CompiledUnitMap *all_units() const { return all_units_; }
-    CompiledModuleMap *mutable_all_modules() { return &all_modules_; }
+    ParsedUnitMap *all_units() const { return all_units_; }
+    ParsedModuleMap *all_modules() { return all_modules_; }
 
     RawStringRef CheckImportList(RawStringRef module_name,
                                  RawStringRef unit_name,
                                  bool *ok);
-    CompiledUnitMap *CheckModule(RawStringRef name, CompiledUnitMap *all_units,
+    ParsedUnitMap *CheckModule(RawStringRef name, ParsedUnitMap *all_units,
                                  bool *ok);
     int CheckUnit(RawStringRef name,
                   PackageImporter *pkg_metadata,
@@ -51,7 +51,7 @@ public:
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Checker);
 private:
-    CompiledUnitMap *GetOrInsertModule(RawStringRef name);
+    ParsedUnitMap *GetOrInsertModule(RawStringRef name);
 
     void ThrowError(RawStringRef file_name, AstNode *node, const char *fmt, ...);
     void VThrowError(RawStringRef file_name, AstNode *node, const char *fmt,
@@ -60,8 +60,8 @@ private:
     // [moduleName, checkingState]
     std::map<std::string, CheckState> check_state_;
     TypeFactory *types_;
-    CompiledUnitMap *all_units_;
-    CompiledModuleMap all_modules_;
+    ParsedUnitMap *all_units_;
+    ParsedModuleMap *all_modules_;
     Scope *global_;
     Zone *zone_;
     bool has_error_ = false;

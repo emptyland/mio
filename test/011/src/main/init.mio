@@ -12,4 +12,5 @@ function main: void {
 
     val b = m.id
     m.name = 'bkb'
+
 }

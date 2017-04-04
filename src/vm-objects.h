@@ -11,6 +11,7 @@ class Thread;
 
 class HeapObject;
 class MIOString;
+class MIOError;
 class MIOFunction;
     class MIONativeFunction;
     class MIONormalFunction;
@@ -21,7 +22,8 @@ class MIOHashMap;
     M(String) \
     M(NativeFunction) \
     M(NormalFunction) \
-    M(HashMap)
+    M(HashMap) \
+    M(Error)
 
 typedef int (*MIOFunctionPrototype)(VM *, Thread *);
 
@@ -146,7 +148,7 @@ public:
 
     DEFINE_HEAP_OBJ_RW(int64_t, TypeId)
 
-    void *GetData() { return reinterpret_cast<uint8_t *>(this) + kDataOffset; }
+    void *data() { return reinterpret_cast<uint8_t *>(this) + kDataOffset; }
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOUnion)
 }; // class MIOUnion
@@ -180,14 +182,14 @@ public:
 static_assert(sizeof(MIOHashMap) == sizeof(HeapObject),
               "MIOHashMap can bigger than HeapObject");
 
-class MapPair {
+class MIOPair {
 public:
     static const int kNextOffset = 0;
     static const int kPrevOffset = kNextOffset + sizeof(MapPair *);
     static const int kPayloadOffset = kPrevOffset + sizeof(MapPair *);
     static const int kKeyOffset = kPayloadOffset;
-    static const int kValueOffset = kKeyOffset + sizeof(HeapObject *);
-    static const int kMIOMapPairOffset = kValueOffset + sizeof(HeapObject *);
+    static const int kValueOffset = kKeyOffset + kObjectReferenceSize;
+    static const int kMIOMapPairOffset = kValueOffset + kObjectReferenceSize;
 
     DEFINE_HEAP_OBJ_RW(MapPair *, Next)
     DEFINE_HEAP_OBJ_RW(MapPair *, Prev)
@@ -203,6 +205,24 @@ public:
         return HeapObjectSet<T>(this, kValueOffset, value);
     }
 }; // class MIOMapPair
+
+
+class MIOError : public HeapObject {
+public:
+    static const int kLinkedErrorOffset = kHeapObjectOffset;
+    static const int kMessageOffset     = kLinkedErrorOffset + kObjectReferenceSize;
+    static const int kPositionOffset    = kMessageOffset + sizeof(int);
+    static const int kMIOErrorOffset    = kPositionOffset + kObjectReferenceSize;
+
+    DEFINE_HEAP_OBJ_RW(MIOError *, LinkedError)
+    DEFINE_HEAP_OBJ_RW(int, Position)
+    DEFINE_HEAP_OBJ_RW(MIOString *, Message)
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOError)
+}; // class MIOError
+
+static_assert(sizeof(MIOError) == sizeof(HeapObject),
+              "MIOError can bigger than HeapObject");
 
 } // namespace mio
 

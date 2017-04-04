@@ -39,16 +39,17 @@ TypeFactory::TypeFactory(Zone *zone)
     // void
     // unknown
     // string
-    simple_types_[0] = new (zone_) Integral(1,  TOKEN_BOOL);
-    simple_types_[1] = new (zone_) Integral(8,  TOKEN_I8);
-    simple_types_[2] = new (zone_) Integral(16, TOKEN_I16);
-    simple_types_[3] = new (zone_) Integral(32, TOKEN_I32);
-    simple_types_[4] = new (zone_) Integral(64, TOKEN_I64);
-    simple_types_[5] = new (zone_) Floating(32, TOKEN_F32);
-    simple_types_[6] = new (zone_) Floating(64, TOKEN_F64);
-    simple_types_[7] = new (zone_) Void(TOKEN_VOID);
-    simple_types_[8] = new (zone_) Unknown(-1);
-    simple_types_[9] = new (zone_) String(TOKEN_STRING);
+    simple_types_[0]  = new (zone_) Integral(1,  TOKEN_BOOL);
+    simple_types_[1]  = new (zone_) Integral(8,  TOKEN_I8);
+    simple_types_[2]  = new (zone_) Integral(16, TOKEN_I16);
+    simple_types_[3]  = new (zone_) Integral(32, TOKEN_I32);
+    simple_types_[4]  = new (zone_) Integral(64, TOKEN_I64);
+    simple_types_[5]  = new (zone_) Floating(32, TOKEN_F32);
+    simple_types_[6]  = new (zone_) Floating(64, TOKEN_F64);
+    simple_types_[7]  = new (zone_) Void(TOKEN_VOID);
+    simple_types_[8]  = new (zone_) Unknown(-1);
+    simple_types_[9]  = new (zone_) String(TOKEN_STRING);
+    simple_types_[10] = new (zone_) Error(TOKEN_ERROR_TYPE);
 
     for (auto type : simple_types_) {
         Record(type);
@@ -289,6 +290,18 @@ int Map::ToString(TextOutputStream *stream) const {
     digest.Step(key_->GenerateId());
     digest.Step(value_->GenerateId());
     return digest.value();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Error
+////////////////////////////////////////////////////////////////////////////////
+/*virtual*/ int Error::placement_size() const {
+    return kObjectReferenceSize;
+}
+
+/*virtual*/
+int Error::ToString(TextOutputStream *stream) const {
+    return stream->Write("error");
 }
 
 } // namespace mio

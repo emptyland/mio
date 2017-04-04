@@ -14,12 +14,15 @@ class TypeFactory;
 class Scope;
 class SimpleFileSystem;
 class FunctionEntry;
+class MemorySegment;
+class ObjectFactory;
+class FunctionRegister;
 
 // [unitName, [statement]]
-typedef ZoneHashMap<RawStringRef, ZoneVector<Statement *> *> CompiledUnitMap;
+typedef ZoneHashMap<RawStringRef, ZoneVector<Statement *> *> ParsedUnitMap;
 
 // [moduleName [unitName, statements]]
-typedef ZoneHashMap<RawStringRef, CompiledUnitMap *> CompiledModuleMap;
+typedef ZoneHashMap<RawStringRef, ParsedUnitMap *> ParsedModuleMap;
 
 struct ParsingError {
     int column;
@@ -34,6 +37,14 @@ struct ParsingError {
 
     std::string ToString() const;
 }; // struct ParsingError
+
+struct CompiledInfo {
+    int type_id_base;
+    int type_id_bytes;
+    int constatns_segment_bytes;
+    int global_primitive_segment_bytes;
+    int global_object_segment_bytes;
+};
 
 class FunctionEntry {
 public:
@@ -52,12 +63,27 @@ private:
 
 class Compiler {
 public:
-    static CompiledUnitMap *ParseProject(const char *project_dir,
-                                         SimpleFileSystem *sfs,
-                                         TypeFactory *types,
-                                         Scope *global,
-                                         Zone *zone,
-                                         ParsingError *error);
+    static ParsedUnitMap *ParseProject(const char *project_dir,
+                                       SimpleFileSystem *sfs,
+                                       TypeFactory *types,
+                                       Scope *global,
+                                       Zone *zone,
+                                       ParsingError *error);
+
+    static ParsedModuleMap *Check(ParsedUnitMap *all_units,
+                                  TypeFactory *types,
+                                  Scope *global,
+                                  Zone *zone,
+                                  ParsingError *error);
+
+    static void AstEmitToBitCode(ParsedModuleMap *all_modules,
+                                 MemorySegment *constants,
+                                 MemorySegment *p_global,
+                                 MemorySegment *o_global,
+                                 TypeFactory *types,
+                                 ObjectFactory *object_factory,
+                                 FunctionRegister *function_register,
+                                 CompiledInfo *info);
 
     Compiler() = delete;
     ~Compiler() = delete;

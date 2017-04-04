@@ -18,6 +18,7 @@ namespace mio {
     M(Floating) \
     M(String) \
     M(Void) \
+    M(Error) \
     M(Unknown)
 
 class Type;
@@ -30,6 +31,7 @@ class Type;
     class Array;
     class Void;
     class Union;
+    class Error;
     class Unknown;
 
 class TypeFactory;
@@ -246,6 +248,15 @@ private:
 }; // class Union
 
 
+class Error : public Type {
+public:
+
+    DECLARE_TYPE(Error)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Error)
+private:
+    Error(int id) : Type(id) {}
+}; // class Error
+
 class TypeFactory {
 public:
     static const int kNumberOfIntegralTypes = 5;
@@ -254,6 +265,7 @@ public:
                                      + kNumberOfFloatingTypes
                                      + 1  // String
                                      + 1  // Void
+                                     + 1  // Error
                                      + 1; // Unknown
 
     TypeFactory(Zone *zone);
@@ -272,6 +284,7 @@ public:
     Void *GetVoid() const { return simple_types_[7]->AsVoid(); }
     Unknown *GetUnknown() const { return simple_types_[8]->AsUnknown(); }
     String *GetString() const { return simple_types_[9]->AsString(); }
+    Error *GetError() const { return simple_types_[10]->AsError(); }
 
     FunctionPrototype *GetFunctionPrototype(ZoneVector<Paramter *> *paramters,
                                             Type *return_type) {

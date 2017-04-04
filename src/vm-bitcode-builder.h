@@ -53,8 +53,6 @@ public:
         return Emit3Addr(BC_load_i32_imm, dest, 0, imm);
     }
 
-    int load(CodeLabel *label);
-
     int load_o(uint16_t dest, int32_t offset) {
         return Emit3Addr(BC_load_o, dest, BC_GLOBAL_OBJECT_SEGMENT, offset);
     }
@@ -202,8 +200,8 @@ public:
         return EmitInstOnly(BC_ret);
     }
 
-    int frame(int16_t size1, int16_t size2) {
-        return EmitS2Addr(BC_frame, size1, size2);
+    int frame(uint16_t size1, uint16_t size2, int16_t clean2) {
+        return Emit4Op(BC_frame, size1, size2, 0, clean2);
     }
 
     int oop(BCObjectOperatorId id, uint16_t result, int16_t val1, int16_t val2) {

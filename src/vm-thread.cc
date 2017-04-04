@@ -56,11 +56,27 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 exit_code_ = DEBUGGING;
                 return;
 
+            case BC_load_o: {
+                auto dest = BitCodeDisassembler::GetOp1(bc);
+                auto offset = BitCodeDisassembler::GetImm32(bc);
+
+                auto ob = vm_->o_global_->Get<HeapObject *>(offset);
+                o_stack_->Set(dest, ob);
+            } break;
+
             case BC_load_i32_imm: {
                 auto dest = BitCodeDisassembler::GetOp1(bc);
                 auto imm32 = BitCodeDisassembler::GetImm32(bc);
 
                 p_stack_->Set(dest, imm32);
+            } break;
+
+            case BC_mov_o: {
+                auto dest = BitCodeDisassembler::GetVal1(bc);
+                auto src  = BitCodeDisassembler::GetVal2(bc);
+
+                auto ob = o_stack_->Get<HeapObject *>(src);
+                o_stack_->Set(dest, ob);
             } break;
 
             case BC_add_i32_imm: {
@@ -72,11 +88,16 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
             } break;
 
             case BC_frame: {
-                auto size1 = BitCodeDisassembler::GetVal1(bc);
-                auto size2 = BitCodeDisassembler::GetVal2(bc);
+                auto size1 = BitCodeDisassembler::GetOp1(bc);
+                auto size2 = BitCodeDisassembler::GetOp2(bc);
 
                 p_stack_->AdjustFrame(0, size1);
                 o_stack_->AdjustFrame(0, size2);
+
+                auto clean2 = BitCodeDisassembler::GetVal2(bc);
+                if (clean2) {
+                    memset(o_stack_->offset(clean2), 0, size2 - clean2);
+                }
             } break;
 
             case BC_ret: {
@@ -146,7 +167,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                     auto base1 = BitCodeDisassembler::GetOp1(bc);
                     auto base2 = BitCodeDisassembler::GetOp2(bc);
                     p_stack_->AdjustFrame(base1, 0);
-                    o_stack_->AdjustFrame(base2, 0);
+                    o_stack_->AdjustFrame(base2, 0); // TODO
 
                     (*func->GetNativePointer())(vm_, this);
                 } else {
@@ -175,6 +196,10 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 return;
         }
     }
+}
+
+Local<HeapObject> Thread::GetObject(int addr) {
+    return make_local(o_stack_->Get<HeapObject *>(addr));
 }
 
 } // namespace mio

@@ -168,6 +168,9 @@ enum BCSegment : int {
  *    * result: Offset of map for getting.
  *    * val1:   Offset of key.
  *    * val2:   Offset of return union object.
+ *
+ * OO_ToString
+ * -- desc:
  */
 
 enum BCObjectOperatorId : int {
