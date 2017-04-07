@@ -71,7 +71,7 @@ int VM::Run() {
         return -1;
     }
 
-    auto main_ob = make_local(o_global_->Get<HeapObject *>(entry->offset()));
+    auto main_ob = make_handle(o_global_->Get<HeapObject *>(entry->offset()));
     auto main_fn = main_ob->AsNormalFunction();
     if (!main_fn) {
         LOG(ERROR) << "::main::main symbol is not function!";
@@ -87,7 +87,7 @@ int VM::Run() {
 }
 
 void VM::DisassembleAll(TextOutputStream *stream) {
-    std::vector<Local<MIONormalFunction>> all_functions;
+    std::vector<Handle<MIONormalFunction>> all_functions;
     function_register_->GetAllFunctions(&all_functions);
 
     BitCodeDisassembler dasm(stream);

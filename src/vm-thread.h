@@ -41,7 +41,7 @@ public:
 
     void Execute(MIONormalFunction *callee, bool *ok);
 
-    Local<HeapObject> GetObject(int addr);
+    Handle<HeapObject> GetObject(int addr);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Thread)
 private:

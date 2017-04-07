@@ -41,7 +41,7 @@ bool SimpleFunctionRegister::RegisterNativeFunction(const char *name,
     auto entry = iter->second;
     if (entry->is_native()) {
         auto heap_obj = global_->Get<HeapObject *>(entry->offset());
-        auto func = make_local(heap_obj->AsNativeFunction());
+        auto func = make_handle(heap_obj->AsNativeFunction());
         DCHECK(!func.empty());
 
         func->SetNativePointer(pointer);
@@ -51,14 +51,14 @@ bool SimpleFunctionRegister::RegisterNativeFunction(const char *name,
 }
 
 int
-SimpleFunctionRegister::GetAllFunctions(std::vector<Local<MIONormalFunction>> *all_functions) {
+SimpleFunctionRegister::GetAllFunctions(std::vector<Handle<MIONormalFunction>> *all_functions) {
     int result = 0;
     for (const auto &pair : functions_) {
         auto obj = global_->Get<HeapObject *>(pair.second->offset());
         auto func = obj->AsNormalFunction();
 
         if (func) {
-            all_functions->push_back(make_local(func));
+            all_functions->push_back(make_handle(func));
             ++result;
         }
     }

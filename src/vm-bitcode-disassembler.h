@@ -16,7 +16,7 @@ public:
     BitCodeDisassembler(TextOutputStream *stream)
         : stream_(DCHECK_NOTNULL(stream)) {}
 
-    void Run(Local<MIONormalFunction> func);
+    void Run(Handle<MIONormalFunction> func);
     void Run(const void *bc, int size);
     void Disassemble(uint64_t inst);
 

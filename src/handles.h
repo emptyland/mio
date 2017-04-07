@@ -4,14 +4,23 @@
 namespace mio {
 
 template<class T>
-class Local {
+class Handle {
 public:
-    Local() : object_(nullptr) {}
-    explicit Local(T *object) : object_(object) {}
-    Local(const Local &other) : object_(other.object_) {}
-    Local(Local &&other) : object_(other.object_) { other.object_ = nullptr; }
+    Handle() : object_(nullptr) {}
 
-    ~Local() {/*TODO*/}
+    template<class U>
+    explicit Handle(U *object) : object_(object) {}
+
+    explicit Handle(T *object) : object_(object) {}
+
+    template<class U>
+    Handle(const Handle<U> &other) : object_(other.get()) {}
+
+    Handle(const Handle<T> &other) : object_(other.object_) {}
+
+    Handle(Handle &&other) : object_(other.object_) { other.object_ = nullptr; }
+
+    ~Handle() {/*TODO*/}
 
     T *get() const { return object_; }
 
@@ -19,22 +28,34 @@ public:
 
     T *operator -> () const { return get(); }
 
+    template<class U>
+    void operator = (U *object) { object_ = object; }
+
     void operator = (T *object) { object_ = object; }
 
-    void operator = (const Local<T> &other) { object_ = other.object_; }
+    template<class U>
+    void operator = (const Handle<U> &other) { object_ = other.get(); }
 
-    void operator = (Local<T> &&other) {
+    void operator = (const Handle<T> &other) { object_ = other.object_; }
+
+    void operator = (Handle<T> &&other) {
         object_ = other.object_;
         other.object_ = nullptr;
     }
+
+//    template<class U>
+//    void assign(const Handle<U> &other) {
+//        object_ = other.object_;
+//    }
 
 private:
     T *object_;
 };
 
+
 template<class T>
-inline Local<T> make_local(T *obj) {
-    return Local<T>(obj);
+inline Handle<T> make_handle(T *obj) {
+    return Handle<T>(obj);
 }
 
 } // namespace mio

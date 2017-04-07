@@ -26,7 +26,7 @@ public:
                                         MIOFunctionPrototype pointer) override;
 
     virtual
-    int GetAllFunctions(std::vector<Local<MIONormalFunction>> *all_functions) override;
+    int GetAllFunctions(std::vector<Handle<MIONormalFunction>> *all_functions) override;
 
 private:
     std::unordered_map<std::string, FunctionEntry *> functions_;

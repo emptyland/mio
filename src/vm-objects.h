@@ -3,6 +3,7 @@
 
 #include "handles.h"
 #include "base.h"
+#include "glog/logging.h"
 
 namespace mio {
 
@@ -17,13 +18,30 @@ class MIOFunction;
     class MIONormalFunction;
 class MIOUnion;
 class MIOHashMap;
+class MIOReflectionType;
+    class MIOReflectionVoid;
+    class MIOReflectionIntegral;
+    class MIOReflectionFloating;
+    class MIOReflectionString;
+    class MIOReflectionError;
+    class MIOReflectionUnion;
+    class MIOReflectionMap;
+    class MIOReflectionFunction;
 
 #define MIO_OBJECTS(M) \
     M(String) \
     M(NativeFunction) \
     M(NormalFunction) \
     M(HashMap) \
-    M(Error)
+    M(Error) \
+    M(ReflectionVoid) \
+    M(ReflectionIntegral) \
+    M(ReflectionFloating) \
+    M(ReflectionString) \
+    M(ReflectionError) \
+    M(ReflectionUnion) \
+    M(ReflectionMap) \
+    M(ReflectionFunction)
 
 typedef int (*MIOFunctionPrototype)(VM *, Thread *);
 
@@ -112,10 +130,14 @@ static_assert(sizeof(MIOFunction) == sizeof(HeapObject),
 class MIONativeFunction : public MIOFunction {
 public:
     static const int kSignatureOffset = kMIOFunctionOffset;
-    static const int kNativePointerOffset = kMIOFunctionOffset + sizeof(HeapObject *);
+    static const int kPrimitiveArgumentsSizeOffset = kSignatureOffset + sizeof(int);
+    static const int kObjectArgumentsSizeOffset = kPrimitiveArgumentsSizeOffset + sizeof(int);
+    static const int kNativePointerOffset = kObjectArgumentsSizeOffset + sizeof(HeapObject *);
     static const int kMIONativeFunctionOffset = kNativePointerOffset + sizeof(MIOFunctionPrototype);
 
     DEFINE_HEAP_OBJ_RW(MIOString *, Signature)
+    DEFINE_HEAP_OBJ_RW(int, PrimitiveArgumentsSize)
+    DEFINE_HEAP_OBJ_RW(int, ObjectArgumentsSize)
     DEFINE_HEAP_OBJ_RW(MIOFunctionPrototype, NativePointer)
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIONativeFunction)
@@ -223,6 +245,104 @@ public:
 
 static_assert(sizeof(MIOError) == sizeof(HeapObject),
               "MIOError can bigger than HeapObject");
+
+////////////////////////////////////////////////////////////////////////////////
+/// Reflection Objects
+////////////////////////////////////////////////////////////////////////////////
+class MIOReflectionType : public HeapObject {
+public:
+    static const int kTidOffset = kHeapObjectOffset;
+    static const int kReferencedSizeOffset = kTidOffset + sizeof(int64_t);
+    static const int kMIOReflectionTypeOffset = kReferencedSizeOffset + sizeof(int);
+
+    DEFINE_HEAP_OBJ_RW(int64_t, Tid)
+    DEFINE_HEAP_OBJ_RW(int, ReferencedSize)
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionType)
+}; // class MIOReflectionType
+
+class MIOReflectionVoid final : public MIOReflectionType {
+public:
+    static const int kMIOReflectionVoidOffset = kMIOReflectionTypeOffset;
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionVoid)
+}; // class MIOReflectionVoid
+
+class MIOReflectionIntegral final : public MIOReflectionType {
+public:
+    static const int kBitWideOffset = kMIOReflectionTypeOffset;
+    static const int kMIOReflectionIntegralOffset = kBitWideOffset + sizeof(int);
+
+    DEFINE_HEAP_OBJ_RW(int, BitWide)
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionIntegral)
+}; // class MIOReflectionIntegral
+
+class MIOReflectionFloating final : public MIOReflectionType {
+public:
+    static const int kBitWideOffset = kMIOReflectionTypeOffset;
+    static const int kMIOReflectionFloatingOffset = kBitWideOffset + sizeof(int);
+
+    DEFINE_HEAP_OBJ_RW(int, BitWide)
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionFloating)
+}; // class MIOReflectionFloating
+
+class MIOReflectionString final : public MIOReflectionType {
+public:
+    static const int kMIOReflectionStringOffset = kMIOReflectionTypeOffset;
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionString)
+}; // class MIOReflectionString
+
+class MIOReflectionError final : public MIOReflectionType {
+public:
+    static const int kMIOReflectionErrorOffset = kMIOReflectionTypeOffset;
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionError)
+}; // class MIOReflectionError
+
+class MIOReflectionUnion final : public MIOReflectionType {
+public:
+    static const int kMIOReflectionUnionOffset = kMIOReflectionTypeOffset;
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionUnion)
+}; // class MIOReflectionUnion
+
+class MIOReflectionMap final : public MIOReflectionType {
+public:
+    static const int kKeyOffset = kMIOReflectionTypeOffset;
+    static const int kValueOffset = kKeyOffset + sizeof(MIOReflectionType *);
+    static const int kMIOReflectionMapOffset = kValueOffset + sizeof(MIOReflectionType *);
+
+    DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Key)
+    DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Value)
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionMap)
+}; // class MIOReflectionMap
+
+class MIOReflectionFunction final : public MIOReflectionType {
+public:
+    static const int kReturnOffset = kMIOReflectionTypeOffset;
+    static const int kNumberOfParametersOffset = kReturnOffset + sizeof(MIOReflectionType *);
+    static const int kParamtersOffset = kNumberOfParametersOffset + sizeof(int);
+
+    DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Return)
+    DEFINE_HEAP_OBJ_RW(int, NumberOfParameters)
+
+    MIOReflectionType **GetParamters() {
+        auto base = reinterpret_cast<uint8_t *>(this) + kParamtersOffset;
+        return reinterpret_cast<MIOReflectionType **>(base);
+    }
+
+    inline MIOReflectionType *GetParamter(int index) {
+        DCHECK_GE(index, 0);
+        DCHECK_LT(index, GetNumberOfParameters());
+        return GetParamters()[index];
+    }
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionFunction)
+}; // class MIOReflectionFunction
 
 } // namespace mio
 

@@ -117,7 +117,8 @@ namespace mio {
     M(UnionVoid) \
     M(Map) \
     M(MapPut) \
-    M(MapGet)
+    M(MapGet) \
+    M(ToString)
 
 enum BCInstruction : uint8_t {
 #define BitCode_ENUM_DEFINE(name) BC_##name,
@@ -145,14 +146,14 @@ enum BCSegment : int {
  * -- params:
  *    * result: Offset of union object.
  *    * val1:   Value for inbox.
- *    * val2:   Index of value type id.
+ *    * val2:   Index of type info.
  *
  * OO_Map
  * -- desc: Create a new map object.
  * -- params:
  *    * result: Offset of created map.
- *    * val1:   Type of kind code(Type::Kind) in key
- *    * val2:   Type of kind code(Type::Kind) in value
+ *    * val1:   Index of type info in key.
+ *    * val2:   Index of type info in value.
  *
  * OO_MapPut
  * -- desc: Put a key and value pair into map object.
@@ -170,7 +171,10 @@ enum BCSegment : int {
  *    * val2:   Offset of return union object.
  *
  * OO_ToString
- * -- desc:
+ * -- desc: Make a value to string object
+ *    * result: Offset of string result.
+ *    * val1:   Offset of input.
+ *    * val2:   Index of type info.
  */
 
 enum BCObjectOperatorId : int {

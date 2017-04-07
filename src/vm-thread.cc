@@ -153,7 +153,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 }
 
                 auto obj_addr = BitCodeDisassembler::GetImm32(bc);
-                Local<HeapObject> obj(o_stack_->Get<HeapObject *>(obj_addr));
+                Handle<HeapObject> obj(o_stack_->Get<HeapObject *>(obj_addr));
                 DCHECK(obj->IsNativeFunction() || obj->IsNormalFunction());
 
                 if (obj->IsNativeFunction()) {
@@ -166,8 +166,8 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
 
                     auto base1 = BitCodeDisassembler::GetOp1(bc);
                     auto base2 = BitCodeDisassembler::GetOp2(bc);
-                    p_stack_->AdjustFrame(base1, 0);
-                    o_stack_->AdjustFrame(base2, 0); // TODO
+                    p_stack_->AdjustFrame(base1, func->GetPrimitiveArgumentsSize());
+                    o_stack_->AdjustFrame(base2, func->GetObjectArgumentsSize());
 
                     (*func->GetNativePointer())(vm_, this);
                 } else {
@@ -198,8 +198,8 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
     }
 }
 
-Local<HeapObject> Thread::GetObject(int addr) {
-    return make_local(o_stack_->Get<HeapObject *>(addr));
+Handle<HeapObject> Thread::GetObject(int addr) {
+    return make_handle(o_stack_->Get<HeapObject *>(addr));
 }
 
 } // namespace mio

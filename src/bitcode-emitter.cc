@@ -169,15 +169,15 @@ public:
 
     VMValue EmitLoadIfNeeded(const VMValue value);
 
-    VMValue GetOrNewString(RawStringRef raw, Local<MIOString> *obj) {
+    VMValue GetOrNewString(RawStringRef raw, Handle<MIOString> *obj) {
         return GetOrNewString(raw->c_str(), raw->size(), obj);
     }
 
-    VMValue GetOrNewString(const std::string &s, Local<MIOString> *obj) {
+    VMValue GetOrNewString(const std::string &s, Handle<MIOString> *obj) {
         return GetOrNewString(s.c_str(), static_cast<int>(s.size()), obj);
     }
 
-    VMValue GetOrNewString(const char *z, int n, Local<MIOString> *obj);
+    VMValue GetOrNewString(const char *z, int n, Handle<MIOString> *obj);
 private:
     VMValue EmitIntegralAdd(Type *type, Expression *lhs, Expression *rhs);
     VMValue EmitFloatingAdd(Type *type, Expression *lhs, Expression *rhs);
@@ -204,6 +204,13 @@ private:
     void EmitStore(const VMValue &dest, const VMValue &src);
 
     VMValue GetEmptyObject(Type *type);
+
+    int TypeInfoIndex(Type *type) {
+        auto iter = emitter_->type_id2index_.find(type->GenerateId());
+        DCHECK(iter != emitter_->type_id2index_.end())
+                << "has call BitCodeEmitter::Init() ?";
+        return iter->second;
+    }
 
     VMValue eval_value() const {
         DCHECK(!value_stack_.empty());
@@ -264,10 +271,23 @@ void EmittingAstVisitor::VisitFunctionDefine(FunctionDefine *node) {
     node->instance()->set_offset(entry->offset());
     node->instance()->set_bind_kind(Variable::GLOBAL);
 
-    Local<MIOString> name;
+    Handle<MIOString> name;
     GetOrNewString(full_name, &name);
     if (node->is_native()) {
+        auto proto = node->function_literal()->prototype();
+        int p_size = 0, o_size = 0;
+        for (int i = 0; i < proto->mutable_paramters()->size(); ++i) {
+            auto param = proto->mutable_paramters()->At(i);
+
+            if (param->param_type()->is_primitive()) {
+                p_size += param->param_type()->placement_size();
+            } else {
+                o_size += param->param_type()->placement_size();
+            }
+        }
         auto obj = emitter_->object_factory_->CreateNativeFunction("::", nullptr);
+        obj->SetPrimitiveArgumentsSize(p_size);
+        obj->SetObjectArgumentsSize(o_size);
         emitter_->o_global_->Set(entry->offset(), obj.get());
 
         obj->SetName(name.get());
@@ -277,7 +297,7 @@ void EmittingAstVisitor::VisitFunctionDefine(FunctionDefine *node) {
         current_->set_preallocated(nullptr);
 
         DCHECK_EQ(BC_GLOBAL_OBJECT_SEGMENT, value.segment);
-        auto func = make_local(emitter_->o_global_->Get<HeapObject *>(value.offset)->AsNormalFunction());
+        auto func = make_handle(emitter_->o_global_->Get<HeapObject *>(value.offset)->AsNormalFunction());
         DCHECK(!func.empty());
 
         func->SetName(name.get());
@@ -705,6 +725,10 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
             }
             break;
 
+        case OP_STRCAT:
+            
+            break;
+
             // TODO: other operator
         default:
             DLOG(FATAL) << "noreached!";
@@ -814,8 +838,9 @@ void EmittingAstVisitor::VisitMapInitializer(MapInitializer *node) {
     auto type = node->map_type();
     DCHECK(type->key()->CanBeKey());
 
-    builder()->oop(OO_Map, dest.offset, type->key()->type_kind(),
-                   type->value()->type_kind());
+    builder()->oop(OO_Map, dest.offset,
+                   TypeInfoIndex(type->key()),
+                   TypeInfoIndex(type->value()));
 
     for (int i = 0; i < node->mutable_pairs()->size(); ++i) {
         auto pair = node->mutable_pairs()->At(i);
@@ -989,10 +1014,7 @@ VMValue EmittingAstVisitor::EmitFloatingCmp(Type *type, Expression *lhs,
 
 void EmittingAstVisitor::EmitCreateUnion(const VMValue &dest, const VMValue &src,
                                          Type *type) {
-    auto iter = emitter_->type_id2index_.find(type->GenerateId());
-    DCHECK(iter != emitter_->type_id2index_.end()) << "has call BitCodeEmitter::Init() ?";
-
-    auto index = iter->second;
+    auto index = TypeInfoIndex(type);
     if (type->IsVoid()) {
         builder()->oop(OO_UnionVoid,    dest.offset,  0,          index);
     } else if (type->is_primitive()) {
@@ -1260,9 +1282,8 @@ VMValue EmittingAstVisitor::GetEmptyObject(Type *type) {
         return result;
     } else if (type->IsMap()) {
         auto map = type->AsMap();
-        builder()->oop(OO_Map, result.offset,
-                       map->key()->type_kind(),
-                       map->value()->type_kind());
+        builder()->oop(OO_Map, result.offset, TypeInfoIndex(map->key()),
+                       TypeInfoIndex(map->value()));
         return result;
     }
 
@@ -1270,7 +1291,7 @@ VMValue EmittingAstVisitor::GetEmptyObject(Type *type) {
     return {};
 }
 
-VMValue EmittingAstVisitor::GetOrNewString(const char *z, int n, Local<MIOString> *rv) {
+VMValue EmittingAstVisitor::GetOrNewString(const char *z, int n, Handle<MIOString> *rv) {
     VMValue value = {
         .segment = BC_GLOBAL_OBJECT_SEGMENT,
         .offset  = 0,
@@ -1302,6 +1323,75 @@ VMValue EmittingAstVisitor::EmitLoadPrimitiveMakeRoom(VMValue src) {
     return value;
 }
 
+Handle<MIOReflectionType>
+TypeToReflection(Type *type, ObjectFactory *factory,
+                 std::map<int64_t, Handle<MIOReflectionType>> *all) {
+    auto tid = type->GenerateId();
+    auto iter = all->find(tid);
+    if (iter != all->end()) {
+        return iter->second;
+    }
+
+    Handle<MIOReflectionType> reft;
+
+    switch (type->type_kind()) {
+
+        case Type::kUnknown:
+            break;
+
+        case Type::kVoid:
+            reft = factory->CreateReflectionVoid(tid);
+            break;
+
+        case Type::kIntegral:
+            reft = factory->CreateReflectionIntegral(tid, type->AsIntegral()->bitwide());
+            break;
+
+        case Type::kFloating:
+            reft = factory->CreateReflectionIntegral(tid, type->AsFloating()->bitwide());
+            break;
+
+        case Type::kString:
+            reft = factory->CreateReflectionString(tid);
+            break;
+
+        case Type::kError:
+            reft = factory->CreateReflectionError(tid);
+            break;
+
+        case Type::kUnion:
+            reft = factory->CreateReflectionUnion(tid);
+            break;
+
+        case Type::kMap: {
+            auto map = type->AsMap();
+            auto key = TypeToReflection(map->key(), factory, all);
+            auto value = TypeToReflection(map->value(), factory, all);
+            reft = factory->CreateReflectionMap(map->GenerateId(), key, value);
+        } break;
+
+        case Type::kFunctionPrototype: {
+            auto func = type->AsFunctionPrototype();
+            auto return_type = TypeToReflection(func->return_type(), factory, all);
+
+            std::vector<Handle<MIOReflectionType>> params;
+            for (int i = 0; i < func->mutable_paramters()->size(); ++i) {
+                auto ty = func->mutable_paramters()->At(i)->param_type();
+                params.emplace_back(TypeToReflection(ty, factory, all));
+            }
+            reft = factory->CreateReflectionFunction(tid, return_type,
+                                                     func->mutable_paramters()->size(), params);
+        } break;
+            
+        default:
+            DLOG(FATAL) << "noreached! type: " << type->ToString();
+            return make_handle<MIOReflectionType>(nullptr);
+    }
+
+    all->emplace(tid, reft);
+    return reft;
+}
+
 BitCodeEmitter::BitCodeEmitter(MemorySegment *constants,
                                MemorySegment *p_global,
                                MemorySegment *o_global,
@@ -1324,17 +1414,27 @@ void BitCodeEmitter::Init() {
     memset(constants_->AlignAdvance(8), 0, 8);
     DCHECK(type_id2index_.empty());
 
-    std::set<int64_t> all_id;
-    types_->GetAllTypeId(&all_id);
-    DCHECK_LT(all_id.size(), 0x7fff);
+    std::map<int64_t, Type *> all_type;
+    auto rv = types_->GetAllType(&all_type);
+    DCHECK_LT(rv, 0x7fff);
 
-    type_id_base_ = constants_->size();
+    std::map<int64_t, Handle<MIOReflectionType>> all_obj;
+    for (const auto &pair : all_type) {
+        if (pair.second->IsUnknown()) {
+            continue;
+        }
+
+        TypeToReflection(pair.second, object_factory_, &all_obj);
+    }
+
+    type_id_base_ = o_global_->size();
     int index = 0;
-    for (auto tid : all_id) {
-        type_id2index_.emplace(tid, index++);
-        constants_->Add(tid);
+    for (const auto &pair : all_obj) {
+        type_id2index_.emplace(pair.first, index++);
+        o_global_->Add(pair.second.get());
     }
 }
+
 
 bool BitCodeEmitter::Run(RawStringRef module_name, RawStringRef unit_name,
                          ZoneVector<Statement *> *stmts) {
@@ -1356,7 +1456,7 @@ bool BitCodeEmitter::Run(ParsedModuleMap *all_modules, CompiledInfo *info) {
 
     if (info) {
         info->type_id_base  = type_id_base_;
-        info->type_id_bytes = static_cast<int>(type_id2index_.size() * sizeof(int64_t));
+        info->type_id_bytes = static_cast<int>(type_id2index_.size() * sizeof(MIOReflectionType *));
         info->constatns_segment_bytes        = constants_->size();
         info->global_primitive_segment_bytes = p_global_->size();
         info->global_object_segment_bytes    = o_global_->size();
@@ -1412,7 +1512,7 @@ bool BitCodeEmitter::EmitModule(RawStringRef module_name,
     auto boot_name = TextOutputStream::sprintf("::%s::bootstrap", module_name->c_str());
     auto obj = object_factory_->CreateNormalFunction(builder->code()->offset(0),
                                                      builder->code()->size());
-    Local<MIOString> inner_name;
+    Handle<MIOString> inner_name;
     visitor.GetOrNewString(boot_name, &inner_name);
     obj->SetName(inner_name.get());
 

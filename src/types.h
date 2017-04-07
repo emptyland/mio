@@ -7,6 +7,7 @@
 #include "zone.h"
 #include "token.h"
 #include <set>
+#include <map>
 
 namespace mio {
 
@@ -308,6 +309,8 @@ public:
     }
 
     int GetAllTypeId(std::set<int64_t> *all_id) const;
+
+    int GetAllType(std::map<int64_t, Type *> *all_type) const;
 
 private:
     template<class T>

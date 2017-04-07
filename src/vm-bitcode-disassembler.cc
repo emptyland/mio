@@ -6,7 +6,7 @@
 
 namespace mio {
 
-void BitCodeDisassembler::Run(Local<MIONormalFunction> func) {
+void BitCodeDisassembler::Run(Handle<MIONormalFunction> func) {
     stream_->Printf("-----[ %s ]-----\n", func->GetName()->GetData());
     Run(func->GetCode(), func->GetCodeSize());
 }

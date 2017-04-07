@@ -4,6 +4,7 @@
 #include "vm.h"
 #include "handles.h"
 #include "base.h"
+#include <vector>
 
 namespace mio {
 
@@ -12,25 +13,64 @@ class MIONativeFunction;
 class MIONormalFunction;
 class MIOHashMap;
 class MIOError;
+class MIOReflectionType;
+class MIOReflectionVoid;
+class MIOReflectionIntegral;
+class MIOReflectionFloating;
+class MIOReflectionString;
+class MIOReflectionError;
+class MIOReflectionUnion;
+class MIOReflectionMap;
+class MIOReflectionFunction;
 
 class ObjectFactory {
 public:
     ObjectFactory() = default;
     virtual  ~ObjectFactory() = default;
 
-    virtual Local<MIOString> CreateString(const char *z, int n) = 0;
+    virtual Handle<MIOString> CreateString(const char *z, int n) = 0;
 
-    virtual Local<MIOString> GetOrNewString(const char *z, int n, int **offset) = 0;
+    virtual Handle<MIOString> GetOrNewString(const char *z, int n, int **offset) = 0;
 
-    virtual Local<MIONativeFunction>
+    virtual Handle<MIONativeFunction>
     CreateNativeFunction(const char *signature, MIOFunctionPrototype pointer) = 0;
 
-    virtual Local<MIONormalFunction> CreateNormalFunction(const void *code, int size) = 0;
+    virtual Handle<MIONormalFunction> CreateNormalFunction(const void *code, int size) = 0;
 
-    virtual Local<MIOHashMap> CreateHashMap(int seed, uint32_t flags) = 0;
+    virtual Handle<MIOHashMap> CreateHashMap(int seed, uint32_t flags) = 0;
 
-    virtual Local<MIOError> CreateError(const char *message, int position,
-                                        Local<MIOError> linked) = 0;
+    virtual Handle<MIOError> CreateError(const char *message, int position,
+                                        Handle<MIOError> linked) = 0;
+
+    //
+    // Reflection Type Objects:
+    //
+    virtual Handle<MIOReflectionVoid> CreateReflectionVoid(int64_t tid) = 0;
+
+    virtual
+    Handle<MIOReflectionIntegral>
+    CreateReflectionIntegral(int64_t tid, int bitwide) = 0;
+
+    virtual
+    Handle<MIOReflectionFloating>
+    CreateReflectionFloating(int64_t tid, int bitwide) = 0;
+
+    virtual Handle<MIOReflectionString> CreateReflectionString(int64_t tid) = 0;
+
+    virtual Handle<MIOReflectionError> CreateReflectionError(int64_t tid) = 0;
+
+    virtual Handle<MIOReflectionUnion> CreateReflectionUnion(int64_t tid) = 0;
+
+    virtual
+    Handle<MIOReflectionMap>
+    CreateReflectionMap(int64_t tid, Handle<MIOReflectionType> key,
+                        Handle<MIOReflectionType> value) = 0;
+
+    virtual
+    Handle<MIOReflectionFunction>
+    CreateReflectionFunction(int64_t tid, Handle<MIOReflectionType> return_type,
+                             int number_of_parameters,
+                             const std::vector<Handle<MIOReflectionType>> &parameters) = 0;
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(ObjectFactory)
 };

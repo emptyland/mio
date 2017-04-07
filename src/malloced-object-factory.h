@@ -13,24 +13,56 @@ public:
     MallocedObjectFactory();
     virtual ~MallocedObjectFactory() override;
 
-    virtual Local<MIOString> CreateString(const char *z, int n) override;
+    virtual Handle<MIOString> CreateString(const char *z, int n) override;
 
-    virtual Local<MIOString>
+    virtual Handle<MIOString>
     GetOrNewString(const char *z, int n, int **offset) override;
 
-    virtual Local<MIONativeFunction>
+    virtual Handle<MIONativeFunction>
     CreateNativeFunction(const char *signature,
                          MIOFunctionPrototype pointer) override;
 
-    virtual Local<MIONormalFunction>
+    virtual Handle<MIONormalFunction>
     CreateNormalFunction(const void *code, int size) override;
 
-    virtual Local<MIOHashMap>
+    virtual Handle<MIOHashMap>
     CreateHashMap(int seed, uint32_t flags) override;
 
     virtual
-    Local<MIOError> CreateError(const char *message, int position,
-                                Local<MIOError> linked) override;
+    Handle<MIOError> CreateError(const char *message, int position,
+                                Handle<MIOError> linked) override;
+
+    virtual
+    Handle<MIOReflectionVoid> CreateReflectionVoid(int64_t tid) override;
+
+    virtual
+    Handle<MIOReflectionIntegral>
+    CreateReflectionIntegral(int64_t tid, int bitwide) override;
+
+    virtual
+    Handle<MIOReflectionFloating>
+    CreateReflectionFloating(int64_t tid, int bitwide) override;
+
+    virtual Handle<MIOReflectionString>
+    CreateReflectionString(int64_t tid) override;
+
+    virtual Handle<MIOReflectionError>
+    CreateReflectionError(int64_t tid) override;
+
+    virtual Handle<MIOReflectionUnion>
+    CreateReflectionUnion(int64_t tid) override;
+
+    virtual
+    Handle<MIOReflectionMap>
+    CreateReflectionMap(int64_t tid,
+                        Handle<MIOReflectionType> key,
+                        Handle<MIOReflectionType> value) override;
+
+    virtual
+    Handle<MIOReflectionFunction>
+    CreateReflectionFunction(int64_t tid, Handle<MIOReflectionType> return_type, 
+                             int number_of_parameters,
+                             const std::vector<Handle<MIOReflectionType>> &parameters) override;
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MallocedObjectFactory)
 private:

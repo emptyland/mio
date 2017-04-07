@@ -5,6 +5,11 @@
 
 namespace mio {
 
+#define NEW_MIO_OBJECT(obj, name) \
+    auto obj = static_cast<MIO##name *>(malloc(MIO##name::kMIO##name##Offset)); \
+    obj->SetKind(HeapObject::k##name); \
+    objects_.push_back(obj)
+
 MallocedObjectFactory::MallocedObjectFactory()
     : offset_stub_(0)
     , offset_pointer_(&offset_stub_) {}
@@ -17,7 +22,7 @@ MallocedObjectFactory::~MallocedObjectFactory() {
 }
 
 /*virtual*/
-Local<MIOString>
+Handle<MIOString>
 MallocedObjectFactory::GetOrNewString(const char *z, int n, int **offset) {
     if (offset) {
         offset_stub_ = -1;
@@ -27,72 +32,156 @@ MallocedObjectFactory::GetOrNewString(const char *z, int n, int **offset) {
 }
 
 /*virtual*/
-Local<MIOString> MallocedObjectFactory::CreateString(const char *z, int n) {
+Handle<MIOString> MallocedObjectFactory::CreateString(const char *z, int n) {
     auto total_size = n + 1 + MIOString::kDataOffset;
     auto obj = static_cast<MIOString *>(malloc(total_size));
     obj->SetKind(HeapObject::kString);
+    objects_.push_back(obj);
+
     obj->SetLength(n);
     memcpy(obj->mutable_data(), z, n);
     obj->mutable_data()[n] = '\0';
-
-    objects_.push_back(obj);
-    return make_local(obj);
+    return make_handle(obj);
 }
 
 /*virtual*/
-Local<MIONativeFunction> MallocedObjectFactory::CreateNativeFunction(const char *signature,
+Handle<MIONativeFunction> MallocedObjectFactory::CreateNativeFunction(const char *signature,
                                                   MIOFunctionPrototype pointer) {
-    Local<MIOString> sign(CreateString(signature,
+    Handle<MIOString> sign(CreateString(signature,
                                        static_cast<int>(strlen(signature))));
-    auto obj = static_cast<MIONativeFunction *>(malloc(MIONativeFunction::kMIONativeFunctionOffset));
-    obj->SetKind(HeapObject::kNativeFunction);
+    NEW_MIO_OBJECT(obj, NativeFunction);
     obj->SetSignature(sign.get());
     obj->SetNativePointer(pointer);
-
-    objects_.push_back(obj);
-    return make_local(obj);
+    return make_handle(obj);
 }
 
 /*virtual*/
-Local<MIONormalFunction> MallocedObjectFactory::CreateNormalFunction(const void *code, int size) {
+Handle<MIONormalFunction> MallocedObjectFactory::CreateNormalFunction(const void *code, int size) {
     DCHECK_EQ(0, size % sizeof(uint64_t));
 
     auto obj = static_cast<MIONormalFunction *>(malloc(MIONormalFunction::kHeadOffset + size));
     obj->SetKind(HeapObject::kNormalFunction);
+    objects_.push_back(obj);
+
     obj->SetName(CreateString("", 0).get());
     obj->SetCodeSize(size / 8);
     memcpy(obj->GetCode(), code, size);
-
-    objects_.push_back(obj);
-    return make_local(obj);
+    return make_handle(obj);
 }
 
 /*virtual*/
-Local<MIOHashMap> MallocedObjectFactory::CreateHashMap(int seed, uint32_t flags) {
-    auto obj = static_cast<MIOHashMap *>(malloc(MIOHashMap::kMIOHashMapOffset));
-    obj->SetKind(HeapObject::kHashMap);
+Handle<MIOHashMap> MallocedObjectFactory::CreateHashMap(int seed, uint32_t flags) {
+    NEW_MIO_OBJECT(obj, HashMap);
     obj->SetSeed(seed);
     obj->SetSize(0);
     obj->SetFlags(flags);
     // TODO: slots
 
-    objects_.push_back(obj);
-    return make_local(obj);
+    return make_handle(obj);
 }
 
 /*virtual*/
-Local<MIOError>
+Handle<MIOError>
 MallocedObjectFactory::CreateError(const char *message, int position,
-                                   Local<MIOError> linked) {
-    auto obj = static_cast<MIOError *>(malloc(MIOError::kMIOErrorOffset));
-    obj->SetKind(HeapObject::kError);
+                                   Handle<MIOError> linked) {
+    NEW_MIO_OBJECT(obj, Error);
     obj->SetPosition(position);
     obj->SetMessage(GetOrNewString(message, static_cast<int>(strlen(message)),
                                    nullptr).get());
     obj->SetLinkedError(linked.get());
+    return make_handle(obj);
+}
 
+/*virtual*/
+Handle<MIOReflectionVoid>
+MallocedObjectFactory::CreateReflectionVoid(int64_t tid) {
+    NEW_MIO_OBJECT(obj, ReflectionVoid);
+    obj->SetTid(tid);
+    obj->SetReferencedSize(kObjectReferenceSize);
+    return make_handle(obj);
+}
+
+/*virtual*/
+Handle<MIOReflectionIntegral>
+MallocedObjectFactory::CreateReflectionIntegral(int64_t tid, int bitwide) {
+    NEW_MIO_OBJECT(obj, ReflectionIntegral);
+    obj->SetTid(tid);
+    obj->SetReferencedSize((bitwide + 7) / 8);
+    obj->SetBitWide(bitwide);
+    return make_handle(obj);
+}
+
+/*virtual*/
+Handle<MIOReflectionFloating>
+MallocedObjectFactory::CreateReflectionFloating(int64_t tid, int bitwide) {
+    NEW_MIO_OBJECT(obj, ReflectionFloating);
+    obj->SetTid(tid);
+    obj->SetReferencedSize((bitwide + 7) / 8);
+    obj->SetBitWide(bitwide);
+    return make_handle(obj);
+}
+
+/*virtual*/
+Handle<MIOReflectionString>
+MallocedObjectFactory::CreateReflectionString(int64_t tid) {
+    NEW_MIO_OBJECT(obj, ReflectionString);
+    obj->SetTid(tid);
+    obj->SetReferencedSize(kObjectReferenceSize);
+    return make_handle(obj);
+}
+
+/*virtual*/
+Handle<MIOReflectionError>
+MallocedObjectFactory::CreateReflectionError(int64_t tid) {
+    NEW_MIO_OBJECT(obj, ReflectionError);
+    obj->SetTid(tid);
+    obj->SetReferencedSize(kObjectReferenceSize);
+    return make_handle(obj);
+}
+
+/*virtual*/
+Handle<MIOReflectionUnion>
+MallocedObjectFactory::CreateReflectionUnion(int64_t tid) {
+    NEW_MIO_OBJECT(obj, ReflectionUnion);
+    obj->SetTid(tid);
+    obj->SetReferencedSize(kObjectReferenceSize);
+    return make_handle(obj);
+}
+
+/*virtual*/
+Handle<MIOReflectionMap>
+MallocedObjectFactory::CreateReflectionMap(int64_t tid,
+                                           Handle<MIOReflectionType> key,
+                                           Handle<MIOReflectionType> value) {
+    NEW_MIO_OBJECT(obj, ReflectionMap);
+    obj->SetTid(tid);
+    obj->SetReferencedSize(kObjectReferenceSize);
+    obj->SetKey(key.get());
+    obj->SetValue(value.get());
+    return make_handle(obj);
+}
+
+/*virtual*/
+Handle<MIOReflectionFunction>
+MallocedObjectFactory::CreateReflectionFunction(int64_t tid, Handle<MIOReflectionType> return_type,
+                                                int number_of_parameters,
+                                                const std::vector<Handle<MIOReflectionType>> &parameters) {
+    int placement_size = MIOReflectionFunction::kParamtersOffset +
+            sizeof(MIOReflectionType *) * number_of_parameters;
+
+    auto obj = static_cast<MIOReflectionFunction *>(malloc(placement_size));
     objects_.push_back(obj);
-    return make_local(obj);
+
+    obj->SetKind(HeapObject::kReflectionFunction);
+    obj->SetTid(tid);
+    obj->SetReferencedSize(kObjectReferenceSize);
+    obj->SetNumberOfParameters(number_of_parameters);
+    obj->SetReturn(return_type.get());
+
+    for (size_t i = 0; i < parameters.size(); ++i) {
+        obj->GetParamters()[i] = parameters[i].get();
+    }
+    return make_handle(obj);
 }
 
 } // namespace mio

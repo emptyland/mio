@@ -71,7 +71,7 @@ public:
         emitter.Init();
         ASSERT_TRUE(emitter.Run(checker.all_modules(), nullptr));
 
-        std::vector<Local<MIONormalFunction>> all_functions;
+        std::vector<Handle<MIONormalFunction>> all_functions;
         function_register_->GetAllFunctions(&all_functions);
 
         MemoryOutputStream stream(text);

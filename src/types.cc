@@ -83,6 +83,15 @@ int TypeFactory::GetAllTypeId(std::set<int64_t> *all_id) const {
     return i;
 }
 
+int TypeFactory::GetAllType(std::map<int64_t, Type *> *all_type) const {
+    int i = 0;
+    for (auto type : all_types_) {
+        all_type->emplace(type->GenerateId(), type);
+        ++i;
+    }
+    return i;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// Type
 ////////////////////////////////////////////////////////////////////////////////
