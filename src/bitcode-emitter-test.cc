@@ -143,4 +143,11 @@ TEST_F(BitCodeEmitterTest, P011_MapAccessor) {
     printf("%s\n", dasm.c_str());
 }
 
+TEST_F(BitCodeEmitterTest, P012_ToStringAndStrCat) {
+    std::string dasm;
+    ParseProject("012", &dasm);
+
+    printf("%s\n", dasm.c_str());
+}
+
 } // namespace mio

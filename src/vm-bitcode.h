@@ -118,7 +118,8 @@ namespace mio {
     M(Map) \
     M(MapPut) \
     M(MapGet) \
-    M(ToString)
+    M(ToString) \
+    M(StrCat)
 
 enum BCInstruction : uint8_t {
 #define BitCode_ENUM_DEFINE(name) BC_##name,
@@ -175,6 +176,12 @@ enum BCSegment : int {
  *    * result: Offset of string result.
  *    * val1:   Offset of input.
  *    * val2:   Index of type info.
+ *
+ * OO_StrCat
+ * -- desc: Connect 2 string objects.
+ *    * result: Offset of string result be connected.
+ *    * val1:   Offset of first one string for connection.
+ *    * val2:   Offset of last one string for connection.
  */
 
 enum BCObjectOperatorId : int {

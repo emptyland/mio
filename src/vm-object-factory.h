@@ -28,9 +28,11 @@ public:
     ObjectFactory() = default;
     virtual  ~ObjectFactory() = default;
 
-    virtual Handle<MIOString> CreateString(const char *z, int n) = 0;
+    inline Handle<MIOString> CreateString(const char *z, int n);
 
     virtual Handle<MIOString> GetOrNewString(const char *z, int n, int **offset) = 0;
+
+    virtual Handle<MIOString> CreateString(const mio_strbuf_t *buf, int n) = 0;
 
     virtual Handle<MIONativeFunction>
     CreateNativeFunction(const char *signature, MIOFunctionPrototype pointer) = 0;
@@ -73,7 +75,12 @@ public:
                              const std::vector<Handle<MIOReflectionType>> &parameters) = 0;
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(ObjectFactory)
-};
+}; // class ObjectFactory
+
+inline Handle<MIOString> ObjectFactory::CreateString(const char *z, int n) {
+    mio_strbuf_t buf = { .z = z, .n = n };
+    return CreateString(&buf, 1);
+}
 
 } // namespace mio
 

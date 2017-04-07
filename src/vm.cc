@@ -61,6 +61,9 @@ bool VM::CompileProject(const char *project_dir, ParsingError *error) {
     DLOG(INFO) << "cs: " << info.constatns_segment_bytes << "\n"
                << "pg: " << info.global_primitive_segment_bytes << "\n"
                << "og: " << info.global_object_segment_bytes;
+
+    type_info_base_ = info.type_id_base;
+    type_info_size_ = info.type_id_bytes;
     return true;
 }
 

@@ -4,4 +4,5 @@ native function print(s:string): void
 
 function main: void {
     print('hello, world\n')
+    print('i = ' .. 100 .. ', j = ' .. 200 ..'\n')
 }

@@ -9,21 +9,9 @@
 #include "types.h"
 #include "ast.h"
 #include "text-output-stream.h"
+#include "base.h"
 #include "glog/logging.h"
 #include <stack>
-
-#define MIO_SMI_BYTES_TO_BITS(M) \
-    M(1, 8) \
-    M(2, 16) \
-    M(4, 32)
-
-#define MIO_INT_BYTES_TO_BITS(M) \
-    MIO_SMI_BYTES_TO_BITS(M) \
-    M(8, 64)
-
-#define MIO_FLOAT_BYTES_TO_BITS(M) \
-    M(4, 32) \
-    M(8, 64)
 
 #define MIO_INT_BYTES_SWITCH(size, M) \
     switch (size) { \
@@ -194,6 +182,7 @@ private:
     void EmitMapPut(const VMValue &map, VMValue key, VMValue value,
                     Map *map_ty, Type *val_ty);
 
+    VMValue EmitToString(const VMValue &input, Type *type);
     VMValue EmitLoadPrimitiveMakeRoom(VMValue src);
 
     void EmitLoadOrMove(const VMValue &dest, const VMValue &src);
@@ -725,9 +714,23 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
             }
             break;
 
-        case OP_STRCAT:
-            
-            break;
+        case OP_STRCAT: {
+            VMValue lhs = Emit(node->lhs());
+            if (!node->lhs_type()->IsString()) {
+                lhs = EmitToString(lhs, node->lhs_type());
+            }
+            DCHECK_EQ(BC_LOCAL_OBJECT_SEGMENT, lhs.segment);
+
+            VMValue rhs = Emit(node->rhs());
+            if (!node->rhs_type()->IsString()) {
+                rhs = EmitToString(rhs, node->rhs_type());
+            }
+            DCHECK_EQ(BC_LOCAL_OBJECT_SEGMENT, rhs.segment);
+
+            VMValue result = current_->MakeObjectValue();
+            builder()->oop(OO_StrCat, result.offset, -lhs.offset, -rhs.offset);
+            PushValue(result);
+        } break;
 
             // TODO: other operator
         default:
@@ -1128,6 +1131,18 @@ void EmittingAstVisitor::EmitMapPut(const VMValue &map, VMValue key, VMValue val
     }
 
     builder()->oop(OO_MapPut, map.offset, key.offset, value.offset);
+}
+
+VMValue EmittingAstVisitor::EmitToString(const VMValue &input, Type *type) {
+    auto result = current_->MakeObjectValue();
+    auto index = TypeInfoIndex(type);
+
+    if (input.segment == BC_LOCAL_OBJECT_SEGMENT) {
+        builder()->oop(OO_ToString, result.offset, -input.offset, index);
+    } else {
+        builder()->oop(OO_ToString, result.offset,  input.offset, index);
+    }
+    return result;
 }
 
 void EmittingAstVisitor::EmitLoadOrMove(const VMValue &dest, const VMValue &src) {

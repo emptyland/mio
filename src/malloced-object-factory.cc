@@ -28,27 +28,37 @@ MallocedObjectFactory::GetOrNewString(const char *z, int n, int **offset) {
         offset_stub_ = -1;
         *offset = offset_pointer_;
     }
-    return CreateString(z, n);
+    return ObjectFactory::CreateString(z, n);
 }
 
 /*virtual*/
-Handle<MIOString> MallocedObjectFactory::CreateString(const char *z, int n) {
-    auto total_size = n + 1 + MIOString::kDataOffset;
+Handle<MIOString> MallocedObjectFactory::CreateString(const mio_strbuf_t *bufs, int n) {
+    auto payload_length = 0;
+    DCHECK_GE(n, 0);
+    for (int i = 0; i < n; ++i) {
+        payload_length += bufs[i].n;
+    }
+
+    auto total_size = payload_length + 1 + MIOString::kDataOffset; // '\0' + MIOStringHeader
     auto obj = static_cast<MIOString *>(malloc(total_size));
     obj->SetKind(HeapObject::kString);
     objects_.push_back(obj);
 
-    obj->SetLength(n);
-    memcpy(obj->mutable_data(), z, n);
-    obj->mutable_data()[n] = '\0';
+    obj->SetLength(payload_length);
+    auto p = obj->mutable_data();
+    for (int i = 0; i < n; ++i) {
+        memcpy(p, bufs[i].z, bufs[i].n);
+        p += bufs[i].n;
+    }
+    obj->mutable_data()[payload_length] = '\0';
     return make_handle(obj);
 }
 
 /*virtual*/
 Handle<MIONativeFunction> MallocedObjectFactory::CreateNativeFunction(const char *signature,
                                                   MIOFunctionPrototype pointer) {
-    Handle<MIOString> sign(CreateString(signature,
-                                       static_cast<int>(strlen(signature))));
+    Handle<MIOString> sign(ObjectFactory::CreateString(signature,
+                                                       static_cast<int>(strlen(signature))));
     NEW_MIO_OBJECT(obj, NativeFunction);
     obj->SetSignature(sign.get());
     obj->SetNativePointer(pointer);
@@ -63,7 +73,7 @@ Handle<MIONormalFunction> MallocedObjectFactory::CreateNormalFunction(const void
     obj->SetKind(HeapObject::kNormalFunction);
     objects_.push_back(obj);
 
-    obj->SetName(CreateString("", 0).get());
+    obj->SetName(ObjectFactory::CreateString("", 0).get());
     obj->SetCodeSize(size / 8);
     memcpy(obj->GetCode(), code, size);
     return make_handle(obj);

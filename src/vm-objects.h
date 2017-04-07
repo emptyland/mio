@@ -28,12 +28,7 @@ class MIOReflectionType;
     class MIOReflectionMap;
     class MIOReflectionFunction;
 
-#define MIO_OBJECTS(M) \
-    M(String) \
-    M(NativeFunction) \
-    M(NormalFunction) \
-    M(HashMap) \
-    M(Error) \
+#define MIO_REFLECTION_TYPES(M) \
     M(ReflectionVoid) \
     M(ReflectionIntegral) \
     M(ReflectionFloating) \
@@ -42,6 +37,14 @@ class MIOReflectionType;
     M(ReflectionUnion) \
     M(ReflectionMap) \
     M(ReflectionFunction)
+
+#define MIO_OBJECTS(M) \
+    M(String) \
+    M(NativeFunction) \
+    M(NormalFunction) \
+    M(HashMap) \
+    M(Error) \
+    MIO_REFLECTION_TYPES(M)
 
 typedef int (*MIOFunctionPrototype)(VM *, Thread *);
 
@@ -89,12 +92,33 @@ public:
     MIO_OBJECTS(HeapObject_TYPE_CAST)
 #undef HeapObject_TYPE_CAST
 
+    bool IsReflectionType() const {
+        switch (GetKind()) {
+    #define HeapObject_REFLECTION_TYPE(name) \
+        case k##name: return true;
+            MIO_REFLECTION_TYPES(HeapObject_REFLECTION_TYPE)
+    #undef  HeapObject_REFLECTION_TYPE
+            default:
+                break;
+        }
+        return false;
+    }
+
+    MIOReflectionType *AsReflectionType() {
+        return IsReflectionType() ? reinterpret_cast<MIOReflectionType *>(this) : nullptr;
+    }
+
+    const MIOReflectionType *AsReflectionType() const {
+        return IsReflectionType() ? reinterpret_cast<const MIOReflectionType *>(this) : nullptr;
+    }
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(HeapObject)
 }; // class HeapObject
 
-
 class MIOString : public HeapObject {
 public:
+    typedef mio_strbuf_t Buffer;
+
     static const int kLengthOffset = kHeapObjectOffset;
     static const int kDataOffset = kLengthOffset + sizeof(int);
 
@@ -102,6 +126,10 @@ public:
 
     const char *GetData() const {
         return reinterpret_cast<const char *>(this) + kDataOffset;
+    }
+
+    Buffer Get() const {
+        return { .z = GetData(), .n = GetLength(), };
     }
 
     char *mutable_data() {
@@ -164,11 +192,11 @@ static_assert(sizeof(MIONormalFunction) == sizeof(HeapObject),
 
 class MIOUnion : public HeapObject {
 public:
-    static const int kTypeIdOffset = kHeapObjectOffset;
-    static const int kDataOffset   = kTypeIdOffset + sizeof(int64_t);
-    static const int kMIOUnionOffset = kDataOffset + kObjectReferenceSize;
+    static const int kTypeInfoOffset = kHeapObjectOffset;
+    static const int kDataOffset   = kTypeInfoOffset + kObjectReferenceSize;
+    static const int kMIOUnionOffset = kDataOffset   + kObjectReferenceSize;
 
-    DEFINE_HEAP_OBJ_RW(int64_t, TypeId)
+    DEFINE_HEAP_OBJ_RW(MIOReflectionType *, TypeInfo)
 
     void *data() { return reinterpret_cast<uint8_t *>(this) + kDataOffset; }
 

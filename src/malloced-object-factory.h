@@ -13,7 +13,7 @@ public:
     MallocedObjectFactory();
     virtual ~MallocedObjectFactory() override;
 
-    virtual Handle<MIOString> CreateString(const char *z, int n) override;
+    virtual Handle<MIOString> CreateString(const mio_strbuf_t *bufs, int n) override;
 
     virtual Handle<MIOString>
     GetOrNewString(const char *z, int n, int **offset) override;

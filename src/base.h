@@ -17,6 +17,18 @@ namespace mio {
  * mio_float_t -> fixed 32 bits floating number
  * mio_double_t -> fixed 64 bits floating number
  */
+#define MIO_SMI_BYTES_TO_BITS(M) \
+    M(1, 8) \
+    M(2, 16) \
+    M(4, 32)
+
+#define MIO_INT_BYTES_TO_BITS(M) \
+    MIO_SMI_BYTES_TO_BITS(M) \
+    M(8, 64)
+
+#define MIO_FLOAT_BYTES_TO_BITS(M) \
+    M(4, 32) \
+    M(8, 64)
 
 typedef int8_t   mio_bool_t;
 typedef int8_t   mio_i8_t;
@@ -26,6 +38,11 @@ typedef int64_t  mio_i64_t;
 typedef int64_t  mio_int_t;
 typedef float    mio_f32_t;
 typedef double   mio_f64_t;
+
+struct mio_strbuf_t {
+    const char *z;
+    int         n;
+}; // struct mio_strbuf_t
 
 #define DISALLOW_IMPLICIT_CONSTRUCTORS(clazz_name) \
     clazz_name (const clazz_name &) = delete;      \

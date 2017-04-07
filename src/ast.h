@@ -503,32 +503,32 @@ private:
     M(SUB,  9,  9, TOKEN_MINUS)
 
 #define DEFINE_BIT_OPS(M) \
-    M(LSHIFT,   7, 7, TOKEN_LSHIFT) \
-    M(RSHIFT_L, 7, 7, TOKEN_RSHIFT_L) \
-    M(RSHIFT_A, 7, 7, TOKEN_RSHIFT_A) \
-    M(BIT_OR,   3, 3, TOKEN_BIT_OR) \
-    M(BIT_AND,  4, 4, TOKEN_BIT_AND) \
-    M(BIT_XOR,  5, 5, TOKEN_BIT_XOR)
+    M(LSHIFT,   80, 80, TOKEN_LSHIFT) \
+    M(RSHIFT_L, 80, 80, TOKEN_RSHIFT_L) \
+    M(RSHIFT_A, 80, 80, TOKEN_RSHIFT_A) \
+    M(BIT_OR,   40, 40, TOKEN_BIT_OR) \
+    M(BIT_AND,  50, 50, TOKEN_BIT_AND) \
+    M(BIT_XOR,  60, 60, TOKEN_BIT_XOR)
 
 #define DEFINE_LOGIC_OPS(M) \
-    M(AND, 2, 2, TOKEN_AND) \
-    M(OR,  1, 1, TOKEN_OR) \
+    M(AND, 30, 30, TOKEN_AND) \
+    M(OR,  20, 20, TOKEN_OR) \
 
 #define DEFINE_CONDITION_OPS(M) \
-    M(EQ, 6, 6, TOKEN_EQ) \
-    M(NE, 6, 6, TOKEN_NE) \
-    M(LT, 6, 6, TOKEN_LT) \
-    M(LE, 6, 6, TOKEN_LE) \
-    M(GT, 6, 6, TOKEN_GT) \
-    M(GE, 6, 6, TOKEN_GE)
+    M(EQ, 70, 70, TOKEN_EQ) \
+    M(NE, 70, 70, TOKEN_NE) \
+    M(LT, 70, 70, TOKEN_LT) \
+    M(LE, 70, 70, TOKEN_LE) \
+    M(GT, 70, 70, TOKEN_GT) \
+    M(GE, 70, 70, TOKEN_GE)
 
 #define DEFINE_STRING_OPS(M) \
-    M(STRCAT, 0, 0, TOKEN_TWO_DOT)
+    M(STRCAT, 10, 10, TOKEN_TWO_DOT)
 
 #define DEFINE_UNARY_OPS(M) \
-    M(MINUS,   11, 11, TOKEN_MINUS) \
-    M(NOT,     11, 11, TOKEN_NOT) \
-    M(BIT_INV, 11, 11, TOKEN_WAVE)
+    M(MINUS,   120, 120, TOKEN_MINUS) \
+    M(NOT,     120, 120, TOKEN_NOT) \
+    M(BIT_INV, 120, 120, TOKEN_WAVE)
 
 #define DEFINE_OPS(M) \
     DEFINE_SIMPLE_ARITH_OPS(M) \
@@ -537,7 +537,7 @@ private:
     DEFINE_CONDITION_OPS(M) \
     DEFINE_UNARY_OPS(M) \
     DEFINE_STRING_OPS(M) \
-    M(OTHER, 11, 11, TOKEN_ERROR)
+    M(OTHER, 120, 120, TOKEN_ERROR)
 
 enum Operator : int {
 #define Operator_ENUM(name, left_proi, right_proi, token) OP_##name,
