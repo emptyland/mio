@@ -33,6 +33,10 @@ public:
                                 Handle<MIOError> linked) override;
 
     virtual
+    Handle<MIOUnion> CreateUnion(const void *data, int size,
+                                 Handle<MIOReflectionType> type_info) override;
+
+    virtual
     Handle<MIOReflectionVoid> CreateReflectionVoid(int64_t tid) override;
 
     virtual

@@ -6,6 +6,7 @@
 #include "vm-bitcode-disassembler.h"
 #include "vm-bitcode.h"
 #include "vm.h"
+#include "memory-output-stream.h"
 #include "handles.h"
 #include "glog/logging.h"
 
@@ -277,51 +278,52 @@ Handle<MIOError> Thread::GetError(int addr, bool *ok) {
     return make_handle(obj->AsError());
 }
 
+Handle<MIOUnion> Thread::GetUnion(int addr, bool *ok) {
+    auto obj = GetObject(addr);
+
+    if (!obj->IsUnion()) {
+        *ok = false;
+        return make_handle<MIOUnion>(nullptr);
+    }
+    return make_handle(obj->AsUnion());
+}
+
 void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                                     int16_t val2, bool *ok) {
     switch (static_cast<BCObjectOperatorId>(id)) {
+        case OO_UnionOrMerge: {
+            auto type_info = GetTypeInfo(val2);
+            auto obj = CreateOrMergeUnion(val1, type_info, ok);
+        } break;
+
         case OO_ToString: {
             auto type_info = GetTypeInfo(val2);
-            Handle<MIOString> rv;
-
-            if (type_info->IsReflectionIntegral()) {
-                auto reflection = type_info->AsReflectionIntegral();
-                rv = IntegralToString(val1, make_handle(reflection));
-            } else if (type_info->IsReflectionFloating()) {
-                auto reflection = type_info->AsReflectionFloating();
-                rv = FloatingToString(val1, make_handle(reflection));
-            } else if (type_info->IsReflectionString()) {
-                rv = GetString(-val1, ok);
-            } else if (type_info->IsReflectionError()) {
-                auto obj = GetError(-val1, ok);
-                if (!*ok) {
-                    return;
-                }
-                rv = obj->GetMessage();
-            } else if (type_info->IsReflectionUnion()) {
-                // TODO:
-            } else if (type_info->IsReflectionMap()) {
-                // TODO:
-            } else if (type_info->IsReflectionFunction()) {
-                // TODO:
+            std::string buf;
+            MemoryOutputStream stream(&buf);
+            ToString(&stream,
+                     type_info->IsPrimitive() ? p_stack_->offset(val1)
+                     : o_stack_->offset(val1), type_info, ok);
+            if (!*ok) {
+                return;
             }
 
+            auto rv = vm_->object_factory_->CreateString(
+                    buf.data(), static_cast<int>(buf.size()));
             o_stack_->Set(result, rv.get());
         } break;
 
         case OO_StrCat: {
-            DCHECK_LE(val1, 0); DCHECK_LE(val2, 0);
-            auto lhs = GetString(-val1, ok);
+            auto lhs = GetString(val1, ok);
             if (lhs.empty()) {
                 exit_code_ = PANIC;
-                DLOG(ERROR) << "object not string. addr: " << -val1;
+                DLOG(ERROR) << "object not string. addr: " << val1;
                 return;
             }
 
-            auto rhs = GetString(-val2, ok);
+            auto rhs = GetString(val2, ok);
             if (rhs.empty()) {
                 exit_code_ = PANIC;
-                DLOG(ERROR) << "object not string. addr: " << -val2;
+                DLOG(ERROR) << "object not string. addr: " << val2;
                 return;
             }
 
@@ -336,50 +338,103 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
     }
 }
 
-Handle<MIOString>
-Thread::IntegralToString(int addr, Handle<MIOReflectionIntegral> reflection) {
-    char raw_buf[64];
-    mio_strbuf_t buf = { .z = raw_buf, .n = arraysize(raw_buf) };
+int Thread::ToString(TextOutputStream *stream, void *addr,
+                     Handle<MIOReflectionType> reflection, bool *ok) {
+    switch (reflection->GetKind()) {
+        case HeapObject::kReflectionIntegral: {
+            switch (reflection->AsReflectionIntegral()->GetBitWide()) {
+            #define DEFINE_CASE(byte, bit) \
+                case bit: return stream->Printf("%" PRId##bit, *static_cast<mio_i##bit##_t *>(addr));
+                MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+            #undef DEFINE_CASE
+                default: goto fail;
+            }
+        } break;
 
-    switch (reflection->GetBitWide()) {
-        case 8:
-            snprintf(raw_buf, buf.n, "%d", GetI8(addr));
+        case HeapObject::kReflectionFloating:
+            switch (reflection->AsReflectionFloating()->GetBitWide()) {
+            #define DEFINE_CASE(byte, bit) \
+                case bit: stream->Printf("%f", *static_cast<mio_f##bit##_t *>(addr));
+                MIO_FLOAT_BYTES_TO_BITS(DEFINE_CASE)
+            #undef DEFINE_CASE
+                default: goto fail;
+            }
             break;
-        case 16:
-            snprintf(raw_buf, buf.n, "%d", GetI16(addr));
-            break;
-        case 32:
-            snprintf(raw_buf, buf.n, "%d", GetI32(addr));
-            break;
-        case 64:
-            snprintf(raw_buf, buf.n, "%lld", GetI64(addr));
-            break;
+
+        case HeapObject::kReflectionUnion: {
+            auto ob = make_handle<MIOUnion>(*static_cast<MIOUnion **>(addr));
+            return ToString(stream, ob->mutable_data(), make_handle(ob->GetTypeInfo()), ok);
+        } break;
+
+        case HeapObject::kReflectionString: {
+            auto ob = make_handle<MIOString>(*static_cast<MIOString **>(addr));
+            return stream->Write(ob->GetData(), ob->GetLength());
+        } break;
+
+        case HeapObject::kReflectionError:
+        case HeapObject::kReflectionMap:
+        case HeapObject::kReflectionFunction:
+
+        fail:
         default:
+            *ok = false;
             break;
-
     }
-    buf.n = static_cast<int>( ::strlen(buf.z));
-    return vm_->object_factory_->CreateString(&buf, 1);
+    return 0;
 }
 
-Handle<MIOString>
-Thread::FloatingToString(int addr, Handle<MIOReflectionFloating> reflection) {
-    char raw_buf[128];
-    mio_strbuf_t buf = { .z = raw_buf, .n = arraysize(raw_buf) };
+Handle<MIOUnion>
+Thread::CreateOrMergeUnion(int inbox, Handle<MIOReflectionType> reflection,
+                           bool *ok) {
+    switch (reflection->GetKind()) {
+        case HeapObject::kReflectionVoid:
+            return vm_->object_factory_->CreateUnion(nullptr, 0, reflection);
 
-    switch (reflection->GetBitWide()) {
-        case 32:
-            snprintf(raw_buf, buf.n, "%0.2f", GetF32(addr));
+        case HeapObject::kReflectionUnion:
+            return GetUnion(inbox, ok);
+
+        case HeapObject::kReflectionIntegral:
+            switch (reflection->AsReflectionIntegral()->GetBitWide()) {
+            #define DEFINE_CASE(byte, bit) \
+                case bit: \
+                    return vm_->object_factory_->CreateUnion(p_stack_->offset(inbox), \
+                            (byte), reflection);
+                MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+            #undef DEFINE_CASE
+                default:
+                    DLOG(ERROR) << "bad integral size.";
+                    goto fail;
+            }
             break;
-        case 64:
-            snprintf(raw_buf, buf.n, "%0.2f", GetF64(addr));
+
+        case HeapObject::kReflectionFloating:
+            switch (reflection->AsReflectionFloating()->GetBitWide()) {
+            #define DEFINE_CASE(byte, bit) \
+                case bit: \
+                    return vm_->object_factory_->CreateUnion(p_stack_->offset(inbox), \
+                            (byte), reflection);
+                MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+            #undef DEFINE_CASE
+                default:
+                    DLOG(ERROR) << "bad integral size.";
+                    goto fail;
+            }
             break;
+
+        case HeapObject::kReflectionString:
+        case HeapObject::kReflectionError:
+        case HeapObject::kReflectionMap:
+        case HeapObject::kReflectionFunction:
+            return vm_->object_factory_->CreateUnion(o_stack_->offset(inbox),
+                                                     kObjectReferenceSize,
+                                                     reflection);
+
+fail:
         default:
+            *ok = false;
             break;
-
     }
-    buf.n = static_cast<int>( ::strlen(buf.z));
-    return vm_->object_factory_->CreateString(&buf, 1);
+    return make_handle<MIOUnion>(nullptr);
 }
 
 Handle<MIOReflectionType> Thread::GetTypeInfo(int index) {

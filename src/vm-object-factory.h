@@ -13,6 +13,7 @@ class MIONativeFunction;
 class MIONormalFunction;
 class MIOHashMap;
 class MIOError;
+class MIOUnion;
 class MIOReflectionType;
 class MIOReflectionVoid;
 class MIOReflectionIntegral;
@@ -43,6 +44,9 @@ public:
 
     virtual Handle<MIOError> CreateError(const char *message, int position,
                                         Handle<MIOError> linked) = 0;
+
+    virtual Handle<MIOUnion> CreateUnion(const void *data, int size,
+                                         Handle<MIOReflectionType> type_info) = 0;
 
     //
     // Reflection Type Objects:

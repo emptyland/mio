@@ -22,10 +22,13 @@ struct CallContext {
 class CallStack;
 class MIOString;
 class MIOError;
+class MIOUnion;
 class MIONormalFunction;
 class MIOReflectionType;
 class MIOReflectionIntegral;
 class MIOReflectionFloating;
+
+class TextOutputStream;
 
 class Thread {
 public:
@@ -60,13 +63,14 @@ public:
     Handle<HeapObject> GetObject(int addr);
     Handle<MIOString>  GetString(int addr, bool *ok);
     Handle<MIOError>   GetError(int addr, bool *ok);
+    Handle<MIOUnion>   GetUnion(int addr, bool *ok);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Thread)
 private:
     void ProcessObjectOperation(int id, uint16_t result, int16_t val1, int16_t val2, bool *ok);
 
-    Handle<MIOString> IntegralToString(int addr, Handle<MIOReflectionIntegral> reflection);
-    Handle<MIOString> FloatingToString(int addr, Handle<MIOReflectionFloating> reflection);
+    int ToString(TextOutputStream *stream, void *addr, Handle<MIOReflectionType> reflection, bool *ok);
+    Handle<MIOUnion> CreateOrMergeUnion(int inbox, Handle<MIOReflectionType> reflection, bool *ok);
     Handle<MIOReflectionType> GetTypeInfo(int index);
 
     VM *vm_;

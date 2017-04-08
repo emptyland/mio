@@ -114,7 +114,6 @@ namespace mio {
 
 #define OBJECT_OPERATOR(M) \
     M(UnionOrMerge) \
-    M(UnionVoid) \
     M(Map) \
     M(MapPut) \
     M(MapGet) \

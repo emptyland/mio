@@ -194,8 +194,15 @@ public:
     void set_type(Type *type) { type_ = DCHECK_NOTNULL(type); }
 
     Expression *initializer() const { return initializer_; }
+
     void set_initializer(Expression *initializer) {
         initializer_ = DCHECK_NOTNULL(initializer);
+    }
+
+    Type *initializer_type() const { return DCHECK_NOTNULL(initializer_type_); }
+
+    void set_initializer_type(Type *type) {
+        initializer_type_ = DCHECK_NOTNULL(type);
     }
 
     DEF_GETTER(bool, is_argument)
@@ -225,6 +232,7 @@ private:
     bool is_export_;
     Type *type_;
     Expression *initializer_;
+    Type *initializer_type_ = nullptr;
     bool is_argument_;
 }; // class ValDeclaration
 
@@ -237,8 +245,15 @@ public:
     void set_type(Type *type) { type_ = DCHECK_NOTNULL(type); }
 
     Expression *initializer() const { return initializer_; }
+
     void set_initializer(Expression *initializer) {
         initializer_ = DCHECK_NOTNULL(initializer);
+    }
+
+    Type *initializer_type() const { return DCHECK_NOTNULL(initializer_type_); }
+
+    void set_initializer_type(Type *type) {
+        initializer_type_ = DCHECK_NOTNULL(type);
     }
 
     DEF_GETTER(bool, is_export)
@@ -264,6 +279,7 @@ private:
     bool is_export_;
     Type *type_;
     Expression *initializer_;
+    Type *initializer_type_ = nullptr;
 }; // class ValDeclaration
 
 

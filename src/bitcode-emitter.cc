@@ -176,13 +176,33 @@ private:
     VMValue EmitFloatingCmp(Type *type, Expression *lhs, Expression *rhs,
                             Operator op);
 
-    void EmitCreateUnion(const VMValue &dest, const VMValue &src, Type *type);
+    void EmitCreateUnion(const VMValue &dest, const VMValue &src,
+                                             Type *type) {
+        builder()->oop(OO_UnionOrMerge, dest.offset,  src.offset,
+                       TypeInfoIndex(type));
+    }
+
     void EmitFunctionCall(const VMValue &callee, Call *node);
     void EmitMapAccessor(const VMValue &callee, Call *node);
-    void EmitMapPut(const VMValue &map, VMValue key, VMValue value,
-                    Map *map_ty, Type *val_ty);
 
-    VMValue EmitToString(const VMValue &input, Type *type);
+    void EmitMapPut(const VMValue &map, VMValue key, VMValue value, Map *map_ty,
+                    Type *val_ty) {
+        if (map_ty->value()->IsUnion()) {
+            auto tmp = current_->MakeObjectValue();
+            EmitCreateUnion(tmp, value, val_ty);
+            value = tmp;
+        }
+        builder()->oop(OO_MapPut, map.offset, key.offset, value.offset);
+    }
+
+    VMValue EmitToString(const VMValue &input, Type *type) {
+        auto result = current_->MakeObjectValue();
+        auto index = TypeInfoIndex(type);
+
+        builder()->oop(OO_ToString, result.offset,  input.offset, index);
+        return result;
+    }
+
     VMValue EmitLoadPrimitiveMakeRoom(VMValue src);
 
     void EmitLoadOrMove(const VMValue &dest, const VMValue &src);
@@ -236,6 +256,8 @@ private:
         }
         return MAX_CC_COMPARATORS;
     }
+
+    //int16_t MakeOOPObjectVal(int16_t val) { return -val - 1; }
 
     RawStringRef module_name_;
     RawStringRef unit_name_ = RawString::kEmpty;
@@ -430,6 +452,11 @@ void EmittingAstVisitor::VisitValDeclaration(ValDeclaration *node) {
         } else {
             if (node->has_initializer()) {
                 tmp = Emit(node->initializer());
+                if (node->type()->IsUnion()) {
+                    auto union_ob = current_->MakeObjectValue();
+                    EmitCreateUnion(union_ob, tmp, node->initializer_type());
+                    tmp = union_ob;
+                }
             } else {
                 tmp = GetEmptyObject(node->type());
             }
@@ -447,6 +474,11 @@ void EmittingAstVisitor::VisitValDeclaration(ValDeclaration *node) {
         } else {
             if (node->has_initializer()) {
                 value = Emit(node->initializer());
+                if (node->type()->IsUnion()) {
+                    auto union_ob = current_->MakeObjectValue();
+                    EmitCreateUnion(union_ob, value, node->initializer_type());
+                    value = union_ob;
+                }
             } else {
                 value = GetEmptyObject(node->type());
             }
@@ -478,6 +510,11 @@ void EmittingAstVisitor::VisitVarDeclaration(VarDeclaration *node) {
         } else {
             if (node->has_initializer()) {
                 tmp = Emit(node->initializer());
+                if (node->type()->IsUnion()) {
+                    auto union_ob = current_->MakeObjectValue();
+                    EmitCreateUnion(union_ob, tmp, node->initializer_type());
+                    tmp = union_ob;
+                }
             } else {
                 tmp = GetEmptyObject(node->type());
             }
@@ -495,6 +532,11 @@ void EmittingAstVisitor::VisitVarDeclaration(VarDeclaration *node) {
         } else {
             if (node->has_initializer()) {
                 value = Emit(node->initializer());
+                if (node->type()->IsUnion()) {
+                    auto union_ob = current_->MakeObjectValue();
+                    EmitCreateUnion(union_ob, value, node->initializer_type());
+                    value = union_ob;
+                }
             } else {
                 value = GetEmptyObject(node->type());
             }
@@ -628,6 +670,11 @@ void EmittingAstVisitor::VisitAssignment(Assignment *node) {
                     break;
             }
         }
+        if (var->type()->IsUnion()) {
+            auto union_ob = current_->MakeObjectValue();
+            EmitCreateUnion(union_ob, rval, node->rval_type());
+            rval = union_ob;
+        }
         EmitStore(dest, rval);
     } else if (node->target()->IsCall()) {
         auto target = node->target()->AsCall();
@@ -728,7 +775,7 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
             DCHECK_EQ(BC_LOCAL_OBJECT_SEGMENT, rhs.segment);
 
             VMValue result = current_->MakeObjectValue();
-            builder()->oop(OO_StrCat, result.offset, -lhs.offset, -rhs.offset);
+            builder()->oop(OO_StrCat, result.offset, lhs.offset, rhs.offset);
             PushValue(result);
         } break;
 
@@ -848,9 +895,6 @@ void EmittingAstVisitor::VisitMapInitializer(MapInitializer *node) {
     for (int i = 0; i < node->mutable_pairs()->size(); ++i) {
         auto pair = node->mutable_pairs()->At(i);
         auto key = Emit(pair->key());
-        if (key.segment == BC_LOCAL_OBJECT_SEGMENT) {
-            key.offset = -key.offset;
-        }
 
         auto value = Emit(pair->value());
         if (type->value()->IsUnion()) {
@@ -872,7 +916,7 @@ void EmittingAstVisitor::VisitFieldAccessing(FieldAccessing *node) {
         auto key = EmitLoadMakeRoom(GetOrNewString(node->field_name(), nullptr));
         auto result = current_->MakeObjectValue();
 
-        builder()->oop(OO_MapGet, callee.offset, -key.offset, -result.offset);
+        builder()->oop(OO_MapGet, callee.offset, key.offset, result.offset);
         PushValue(result);
     } else {
         DLOG(FATAL) << "noreached! type: " << callee_ty->ToString();
@@ -1015,18 +1059,6 @@ VMValue EmittingAstVisitor::EmitFloatingCmp(Type *type, Expression *lhs,
     return result;
 }
 
-void EmittingAstVisitor::EmitCreateUnion(const VMValue &dest, const VMValue &src,
-                                         Type *type) {
-    auto index = TypeInfoIndex(type);
-    if (type->IsVoid()) {
-        builder()->oop(OO_UnionVoid,    dest.offset,  0,          index);
-    } else if (type->is_primitive()) {
-        builder()->oop(OO_UnionOrMerge, dest.offset,  src.offset, index);
-    } else {
-        builder()->oop(OO_UnionOrMerge, dest.offset, -src.offset, index);
-    }
-}
-
 void EmittingAstVisitor::EmitFunctionCall(const VMValue &callee, Call *node) {
     auto proto = DCHECK_NOTNULL(node->callee_type()->AsFunctionPrototype());
     if (!proto->return_type()->IsVoid()) {
@@ -1095,7 +1127,6 @@ void EmittingAstVisitor::EmitFunctionCall(const VMValue &callee, Call *node) {
 }
 
 void EmittingAstVisitor::EmitMapAccessor(const VMValue &callee, Call *node) {
-    auto map_ty = DCHECK_NOTNULL(node->callee_type()->AsMap());
     auto map = Emit(node->expression());
 
     DCHECK_EQ(node->mutable_arguments()->size(), 1);
@@ -1103,46 +1134,9 @@ void EmittingAstVisitor::EmitMapAccessor(const VMValue &callee, Call *node) {
         auto key = Emit(node->mutable_arguments()->At(0));
         auto result = current_->MakeObjectValue();
 
-        if (map_ty->key()->is_object()) {
-            builder()->oop(OO_MapGet, map.offset, -key.offset, -result.offset);
-        } else {
-            builder()->oop(OO_MapGet, map.offset,  key.offset, -result.offset);
-        }
+        builder()->oop(OO_MapGet, map.offset,  key.offset, result.offset);
         PushValue(result);
     }
-}
-
-void EmittingAstVisitor::EmitMapPut(const VMValue &map, VMValue key, VMValue value,
-                                    Map *map_ty, Type *val_ty) {
-    if (map_ty->key()->is_object()) {
-        DCHECK_EQ(BC_LOCAL_OBJECT_SEGMENT, key.segment);
-        key.offset = -key.offset;
-    }
-
-    if (map_ty->value()->IsUnion()) {
-        auto tmp = current_->MakeObjectValue();
-        EmitCreateUnion(tmp, value, val_ty);
-        value = tmp;
-    }
-
-    if (val_ty->is_object()) {
-        DCHECK_EQ(BC_LOCAL_OBJECT_SEGMENT, value.segment);
-        value.offset = -value.offset;
-    }
-
-    builder()->oop(OO_MapPut, map.offset, key.offset, value.offset);
-}
-
-VMValue EmittingAstVisitor::EmitToString(const VMValue &input, Type *type) {
-    auto result = current_->MakeObjectValue();
-    auto index = TypeInfoIndex(type);
-
-    if (input.segment == BC_LOCAL_OBJECT_SEGMENT) {
-        builder()->oop(OO_ToString, result.offset, -input.offset, index);
-    } else {
-        builder()->oop(OO_ToString, result.offset,  input.offset, index);
-    }
-    return result;
 }
 
 void EmittingAstVisitor::EmitLoadOrMove(const VMValue &dest, const VMValue &src) {

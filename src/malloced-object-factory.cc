@@ -103,6 +103,21 @@ MallocedObjectFactory::CreateError(const char *message, int position,
 }
 
 /*virtual*/
+Handle<MIOUnion>
+MallocedObjectFactory::CreateUnion(const void *data, int size,
+                                   Handle<MIOReflectionType> type_info) {
+    DCHECK_GE(size, 0);
+    DCHECK_LT(size, kMaxReferenceValueSize);
+
+    NEW_MIO_OBJECT(obj, Union);
+    obj->SetTypeInfo(type_info.get());
+    if (size > 0) {
+        memcpy(obj->mutable_data(), data, size);
+    }
+    return make_handle(obj);
+}
+
+/*virtual*/
 Handle<MIOReflectionVoid>
 MallocedObjectFactory::CreateReflectionVoid(int64_t tid) {
     NEW_MIO_OBJECT(obj, ReflectionVoid);

@@ -231,6 +231,7 @@ private:
                        node->name()->c_str());
         }
     }
+    node->set_initializer_type(AnalysisType());
     SetEvalType(types_->GetVoid());
 }
 
@@ -249,6 +250,7 @@ private:
                        node->name()->c_str());
         }
     }
+    node->set_initializer_type(AnalysisType());
     SetEvalType(types_->GetVoid());
 }
 

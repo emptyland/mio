@@ -44,6 +44,7 @@ class MIOReflectionType;
     M(NormalFunction) \
     M(HashMap) \
     M(Error) \
+    M(Union) \
     MIO_REFLECTION_TYPES(M)
 
 typedef int (*MIOFunctionPrototype)(VM *, Thread *);
@@ -114,6 +115,14 @@ public:
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(HeapObject)
 }; // class HeapObject
+
+union InternalAllValue {
+    HeapObject *object;
+    mio_f64_t   f64;
+    mio_i64_t   i64;
+};
+
+static const int kMaxReferenceValueSize = sizeof (InternalAllValue);
 
 class MIOString : public HeapObject {
 public:
@@ -190,15 +199,24 @@ public:
 static_assert(sizeof(MIONormalFunction) == sizeof(HeapObject),
               "MIONormalFunction can bigger than HeapObject");
 
-class MIOUnion : public HeapObject {
+class MIOUnion final : public HeapObject {
 public:
     static const int kTypeInfoOffset = kHeapObjectOffset;
-    static const int kDataOffset   = kTypeInfoOffset + kObjectReferenceSize;
-    static const int kMIOUnionOffset = kDataOffset   + kObjectReferenceSize;
+    static const int kDataOffset     = kTypeInfoOffset + kObjectReferenceSize;
+    static const int kMIOUnionOffset = kDataOffset   + kMaxReferenceValueSize;
 
     DEFINE_HEAP_OBJ_RW(MIOReflectionType *, TypeInfo)
 
-    void *data() { return reinterpret_cast<uint8_t *>(this) + kDataOffset; }
+    void *mutable_data() {
+        return reinterpret_cast<uint8_t *>(this) + kDataOffset;
+    }
+
+    const void *data() const {
+        return reinterpret_cast<const uint8_t *>(this) + kDataOffset;
+    }
+
+    template<class T>
+    inline T GetData() const { return *static_cast<const T *>(data()); }
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOUnion)
 }; // class MIOUnion
@@ -285,6 +303,10 @@ public:
 
     DEFINE_HEAP_OBJ_RW(int64_t, Tid)
     DEFINE_HEAP_OBJ_RW(int, ReferencedSize)
+
+    bool IsPrimitive() const { return IsReflectionIntegral() || IsReflectionFloating(); }
+    bool IsVoid() const { return IsReflectionVoid(); }
+    bool IsObject() const { return !IsPrimitive() && !IsVoid(); }
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionType)
 }; // class MIOReflectionType
