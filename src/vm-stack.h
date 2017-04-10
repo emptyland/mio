@@ -41,14 +41,14 @@ public:
 
     template<class T>
     void Set(int delta, T value) {
-        DCHECK_GE(delta, 0);
+        //DCHECK_GE(delta, 0);
         DCHECK_LT(delta, size());
         *static_cast<T *>(offset(delta)) = value;
     }
 
     template<class T>
     T Get(int delta) {
-        DCHECK_GE(delta, 0);
+        //DCHECK_GE(delta, 0);
         DCHECK_LT(delta, size());
         return *static_cast<T *>(offset(delta));
     }

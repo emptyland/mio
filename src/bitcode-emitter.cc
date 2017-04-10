@@ -1060,25 +1060,22 @@ VMValue EmittingAstVisitor::EmitFloatingCmp(Type *type, Expression *lhs,
 }
 
 void EmittingAstVisitor::EmitFunctionCall(const VMValue &callee, Call *node) {
-    auto proto = DCHECK_NOTNULL(node->callee_type()->AsFunctionPrototype());
-    if (!proto->return_type()->IsVoid()) {
-        auto result_size = proto->return_type()->placement_size();
-        if (proto->return_type()->is_primitive()) {
-            if (current_->p_stack_size() == 0) {
-                current_->MakePrimitiveRoom(result_size);
-            }
-        } else {
-            if (current_->o_stack_size() == 0) {
-                current_->MakeObjectRoom();
-            }
-        }
-    }
-
     std::vector<VMValue> arguments;
     for (int i = 0; i < node->mutable_arguments()->size(); ++i) {
         auto argument = node->mutable_arguments()->At(i);
         arguments.push_back(Emit(argument));
     }
+
+    auto proto = DCHECK_NOTNULL(node->callee_type()->AsFunctionPrototype());
+    VMValue result;
+    if (!proto->return_type()->IsVoid()) {
+        if (proto->return_type()->is_primitive()) {
+            result = current_->MakePrimitiveValue(proto->return_type()->placement_size());
+        } else {
+            result = current_->MakeObjectValue();
+        }
+    }
+
     auto p_base = current_->p_stack_size(), o_base = current_->o_stack_size();
     for (const auto &value : arguments) {
         switch (value.segment) {
@@ -1101,23 +1098,6 @@ void EmittingAstVisitor::EmitFunctionCall(const VMValue &callee, Call *node) {
         }
     }
 
-    VMValue result;
-    if (!proto->return_type()->IsVoid()) {
-        auto result_size = proto->return_type()->placement_size();
-        if (proto->return_type()->is_primitive()) {
-            result = {
-                .segment = BC_LOCAL_PRIMITIVE_SEGMENT,
-                .offset  = p_base - result_size,
-                .size    = result_size,
-            };
-        } else {
-            result = {
-                .segment = BC_LOCAL_OBJECT_SEGMENT,
-                .offset  = o_base - result_size,
-                .size    = result_size,
-            };
-        }
-    }
     builder()->call_val(p_base, o_base, callee.offset);
     if (proto->return_type()->IsVoid()) {
         PushValue(VMValue::Void());

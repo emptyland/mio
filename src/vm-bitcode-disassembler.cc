@@ -105,7 +105,7 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
             break;
 
         case BC_call_val:
-            stream_->Printf("%u %u %d", GetOp1(bc), GetOp2(bc), GetImm32(bc));
+            stream_->Printf("%u %u [%d]", GetOp1(bc), GetOp2(bc), GetImm32(bc));
             break;
 
         case BC_frame:

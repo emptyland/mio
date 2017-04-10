@@ -19,6 +19,7 @@ public:
     DEF_GETTER(int, size)
 
     CallContext *Push() {
+        ++size_;
         return static_cast<CallContext *>(core_.AlignAdvance(kSizeofElem));
     }
 
@@ -27,7 +28,10 @@ public:
         return core_.top<CallContext>() - 1;
     }
 
-    void Pop() { core_.AdjustFrame(0, kSizeofElem); }
+    void Pop() {
+        --size_;
+        core_.AdjustFrame(0, kSizeofElem);
+    }
 
 private:
     int size_ = 0;
@@ -79,6 +83,9 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 auto offset = BitCodeDisassembler::GetImm32(bc);
 
                 auto ob = vm_->o_global_->Get<HeapObject *>(offset);
+                if (dest == 16) {
+                    DLOG_IF(INFO, ob->IsString()) << ob->AsString()->GetData();
+                }
                 o_stack_->Set(dest, ob);
             } break;
 
@@ -87,6 +94,13 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 auto imm32 = BitCodeDisassembler::GetImm32(bc);
 
                 p_stack_->Set(dest, imm32);
+            } break;
+
+            case BC_mov_8b: {
+                auto dest = BitCodeDisassembler::GetVal1(bc);
+                auto src  = BitCodeDisassembler::GetVal2(bc);
+
+                memcpy(p_stack_->offset(dest), p_stack_->offset(src), 8);
             } break;
 
             case BC_mov_o: {
@@ -119,10 +133,6 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
             } break;
 
             case BC_ret: {
-                if (call_stack_->size() == 0) {
-                    exit_code_ = SUCCESS;
-                    return;
-                }
                 auto ctx = call_stack_->Top();
                 pc_ = ctx->pc;
                 bc_ = ctx->bc;
@@ -130,6 +140,10 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 p_stack_->SetFrame(ctx->p_stack_base, ctx->p_stack_size);
                 o_stack_->SetFrame(ctx->o_stack_base, ctx->o_stack_size);
                 call_stack_->Pop();
+                if (call_stack_->size() == 0) {
+                    exit_code_ = SUCCESS;
+                    return;
+                }
             } break;
 
                 // [-5] p_stack_base
@@ -151,7 +165,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 ctx->p_stack_size = p_stack_->size();
                 ctx->o_stack_base = o_stack_->base_size();
                 ctx->o_stack_size = o_stack_->size();
-                ctx->pc = pc_ + 1;
+                ctx->pc = pc_;
                 ctx->bc = bc_;
 
                 auto base1 = BitCodeDisassembler::GetOp1(bc);
@@ -164,6 +178,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
             } break;
 
             case BC_call_val: {
+
                 if (call_stack_->size() >= vm_->max_call_deep()) {
                     *ok = false;
                     exit_code_ = STACK_OVERFLOW;
@@ -172,6 +187,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
 
                 auto obj_addr = BitCodeDisassembler::GetImm32(bc);
                 Handle<HeapObject> obj(o_stack_->Get<HeapObject *>(obj_addr));
+                DLOG_IF(INFO, obj->IsString()) << obj->AsString()->GetData();
                 DCHECK(obj->IsNativeFunction() || obj->IsNormalFunction());
 
                 if (obj->IsNativeFunction()) {
@@ -204,7 +220,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                     ctx->p_stack_size = p_stack_->size();
                     ctx->o_stack_base = o_stack_->base_size();
                     ctx->o_stack_size = o_stack_->size();
-                    ctx->pc = pc_ + 1;
+                    ctx->pc = pc_;
                     ctx->bc = bc_;
 
                     auto base1 = BitCodeDisassembler::GetOp1(bc);
