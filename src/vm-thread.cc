@@ -62,31 +62,38 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 exit_code_ = DEBUGGING;
                 return;
 
-            case BC_load_8b: {
-                auto dest = BitCodeDisassembler::GetOp1(bc);
-                auto segment = static_cast<BCSegment>(BitCodeDisassembler::GetOp2(bc));
-                auto offset = BitCodeDisassembler::GetImm32(bc);
-
-                if (segment == BC_CONSTANT_SEGMENT) {
-                    memcpy(p_stack_->offset(dest), vm_->constants_->offset(offset), 8);
-                } else if (segment == BC_GLOBAL_PRIMITIVE_SEGMENT) {
-                    memcpy(p_stack_->offset(dest), vm_->p_global_->offset(offset), 8);
-                } else {
-                    DLOG(ERROR) << "load_8b segment error.";
-                    exit_code_ = BAD_BIT_CODE;
-                    *ok = false;
-                }
+        #define DEFINE_CASE(byte, bit) \
+            case BC_load_##byte##b: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto segment = static_cast<BCSegment>(BitCodeDisassembler::GetOp2(bc)); \
+                auto offset = BitCodeDisassembler::GetImm32(bc); \
+                if (segment == BC_CONSTANT_SEGMENT) { \
+                    memcpy(p_stack_->offset(dest), vm_->constants_->offset(offset), byte); \
+                } else if (segment == BC_GLOBAL_PRIMITIVE_SEGMENT) { \
+                    memcpy(p_stack_->offset(dest), vm_->p_global_->offset(offset), byte); \
+                } else { \
+                    DLOG(ERROR) << "load_xb segment error."; \
+                    exit_code_ = BAD_BIT_CODE; \
+                    *ok = false; \
+                } \
             } break;
+
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
 
             case BC_load_o: {
                 auto dest = BitCodeDisassembler::GetOp1(bc);
                 auto offset = BitCodeDisassembler::GetImm32(bc);
 
                 auto ob = vm_->o_global_->Get<HeapObject *>(offset);
-                if (dest == 16) {
-                    DLOG_IF(INFO, ob->IsString()) << ob->AsString()->GetData();
-                }
                 o_stack_->Set(dest, ob);
+            } break;
+
+            case BC_load_i8_imm: {
+                auto dest = BitCodeDisassembler::GetOp1(bc);
+                auto imm32 = BitCodeDisassembler::GetImm32(bc);
+
+                p_stack_->Set(dest, static_cast<mio_i8_t>(imm32));
             } break;
 
             case BC_load_i32_imm: {
@@ -94,6 +101,13 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 auto imm32 = BitCodeDisassembler::GetImm32(bc);
 
                 p_stack_->Set(dest, imm32);
+            } break;
+
+            case BC_mov_1b: {
+                auto dest = BitCodeDisassembler::GetVal1(bc);
+                auto src  = BitCodeDisassembler::GetVal2(bc);
+
+                memcpy(p_stack_->offset(dest), p_stack_->offset(src), 1);
             } break;
 
             case BC_mov_8b: {
@@ -146,14 +160,29 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 }
             } break;
 
-                // [-5] p_stack_base
-                // [-4] p_stack_size
-                // [-3] o_stack_base
-                // [-2] o_stack_size
-                // [-1] pc
-                // [0]  arg1 <- new frame
-                // [1]  arg2
-                // [3]  arg3
+            case BC_jz: {
+                auto cond = BitCodeDisassembler::GetOp2(bc);
+                auto delta = BitCodeDisassembler::GetImm32(bc);
+
+                if (p_stack_->Get<mio_i8_t>(cond) == 0) {
+                    pc_ += delta - 1;
+                }
+            } break;
+
+            case BC_jnz: {
+                auto cond = BitCodeDisassembler::GetOp2(bc);
+                auto delta = BitCodeDisassembler::GetImm32(bc);
+
+                if (p_stack_->Get<mio_i8_t>(cond) != 0) {
+                    pc_ += delta - 1;
+                }
+            } break;
+
+            case BC_jmp: {
+                auto delta = BitCodeDisassembler::GetImm32(bc);
+                pc_ += delta - 1;
+            } break;
+
             case BC_call: {
                 if (call_stack_->size() >= vm_->max_call_deep()) {
                     *ok = false;
@@ -239,7 +268,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                                        BitCodeDisassembler::GetOp2(bc),
                                        BitCodeDisassembler::GetVal1(bc),
                                        BitCodeDisassembler::GetVal2(bc), ok);
-                if (!ok) {
+                if (!*ok) {
                     DLOG(ERROR) << "oop process fail!";
                     exit_code_ = PANIC;
                 }
@@ -275,33 +304,33 @@ Handle<HeapObject> Thread::GetObject(int addr) {
 }
 
 Handle<MIOString> Thread::GetString(int addr, bool *ok) {
-    auto obj = GetObject(addr);
+    auto ob = GetObject(addr);
 
-    if (!obj->IsString()) {
+    if (!ob->IsString()) {
         *ok = false;
         return make_handle<MIOString>(nullptr);
     }
-    return make_handle(obj->AsString());
+    return make_handle(ob->AsString());
 }
 
 Handle<MIOError> Thread::GetError(int addr, bool *ok) {
-    auto obj = GetObject(addr);
+    auto ob = GetObject(addr);
 
-    if (!obj->IsError()) {
+    if (!ob->IsError()) {
         *ok = false;
         return make_handle<MIOError>(nullptr);
     }
-    return make_handle(obj->AsError());
+    return make_handle(ob->AsError());
 }
 
 Handle<MIOUnion> Thread::GetUnion(int addr, bool *ok) {
-    auto obj = GetObject(addr);
+    auto ob = GetObject(addr);
 
-    if (!obj->IsUnion()) {
+    if (!ob->IsUnion()) {
         *ok = false;
         return make_handle<MIOUnion>(nullptr);
     }
-    return make_handle(obj->AsUnion());
+    return make_handle(ob->AsUnion());
 }
 
 void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
@@ -309,7 +338,41 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
     switch (static_cast<BCObjectOperatorId>(id)) {
         case OO_UnionOrMerge: {
             auto type_info = GetTypeInfo(val2);
-            auto obj = CreateOrMergeUnion(val1, type_info, ok);
+            auto ob = CreateOrMergeUnion(val1, type_info, ok);
+            o_stack_->Set(result, ob.get());
+        } break;
+
+        case OO_UnionTest: {
+            auto type_info = GetTypeInfo(val2);
+            auto ob = GetUnion(val1, ok);
+            if (!*ok) {
+                return;
+            }
+            if (ob->GetTypeInfo() == type_info.get()) {
+                p_stack_->Set<mio_i8_t>(result, 1);
+            } else {
+                p_stack_->Set<mio_i8_t>(result, 0);
+            }
+        } break;
+
+        case OO_UnionUnbox: {
+            auto type_info = GetTypeInfo(val2);
+            auto ob = GetUnion(val1, ok);
+            if (!*ok) {
+                return;
+            }
+
+            if (ob->GetTypeInfo() == type_info.get()) {
+                if (type_info->IsPrimitive()) {
+                    memcpy(p_stack_->offset(result), ob->data(),
+                           type_info->GetPlacementSize());
+                } else {
+                    memcpy(o_stack_->offset(result), ob->data(),
+                           kObjectReferenceSize);
+                }
+            } else {
+                CreateEmptyValue(result, type_info, ok);
+            }
         } break;
 
         case OO_ToString: {
@@ -323,9 +386,9 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                 return;
             }
 
-            auto rv = vm_->object_factory_->CreateString(
-                    buf.data(), static_cast<int>(buf.size()));
-            o_stack_->Set(result, rv.get());
+            auto ob = vm_->object_factory_->GetOrNewString(buf.data(),
+                    static_cast<int>(buf.size()), nullptr);
+            o_stack_->Set(result, ob.get());
         } break;
 
         case OO_StrCat: {
@@ -363,17 +426,23 @@ int Thread::ToString(TextOutputStream *stream, void *addr,
                 case bit: return stream->Printf("%" PRId##bit, *static_cast<mio_i##bit##_t *>(addr));
                 MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
             #undef DEFINE_CASE
-                default: goto fail;
+                default:
+                    DLOG(ERROR) << "bad integral bitwide: " <<
+                        reflection->AsReflectionIntegral()->GetBitWide();
+                    goto fail;
             }
         } break;
 
         case HeapObject::kReflectionFloating:
             switch (reflection->AsReflectionFloating()->GetBitWide()) {
             #define DEFINE_CASE(byte, bit) \
-                case bit: stream->Printf("%f", *static_cast<mio_f##bit##_t *>(addr));
+                case bit: return stream->Printf("%0.5f", *static_cast<mio_f##bit##_t *>(addr));
                 MIO_FLOAT_BYTES_TO_BITS(DEFINE_CASE)
             #undef DEFINE_CASE
-                default: goto fail;
+                default:
+                    DLOG(ERROR) << "bad floating bitwide: " <<
+                            reflection->AsReflectionFloating()->GetBitWide();
+                    goto fail;
             }
             break;
 
@@ -386,6 +455,9 @@ int Thread::ToString(TextOutputStream *stream, void *addr,
             auto ob = make_handle<MIOString>(*static_cast<MIOString **>(addr));
             return stream->Write(ob->GetData(), ob->GetLength());
         } break;
+
+        case HeapObject::kReflectionVoid:
+            return stream->Write("[void]", 6);
 
         case HeapObject::kReflectionError:
         case HeapObject::kReflectionMap:
@@ -451,6 +523,37 @@ fail:
             break;
     }
     return make_handle<MIOUnion>(nullptr);
+}
+
+void Thread::CreateEmptyValue(int result, Handle<MIOReflectionType> reflection,
+                              bool *ok) {
+    switch (reflection->GetKind()) {
+        case HeapObject::kReflectionIntegral:
+        case HeapObject::kReflectionFloating: {
+            memset(p_stack_->offset(result), 0,
+                   AlignDownBounds(kAlignmentSize, reflection->GetPlacementSize()));
+        } break;
+
+        case HeapObject::kReflectionString: {
+            auto ob = vm_->object_factory_->GetOrNewString("", 0, nullptr);
+            o_stack_->Set(result, ob.get());
+        } break;
+
+        case HeapObject::kReflectionUnion: {
+            auto ob = vm_->object_factory_->CreateUnion(
+                    nullptr, 0, GetTypeInfo(vm_->type_void_index));
+            o_stack_->Set(result, ob.get());
+        } break;
+
+        case HeapObject::kReflectionMap:
+        case HeapObject::kReflectionError:
+        case HeapObject::kReflectionFunction:
+        case HeapObject::kReflectionVoid:
+            DLOG(ERROR) << "not support yet.";
+        default:
+            *ok = false;
+            break;
+    }
 }
 
 Handle<MIOReflectionType> Thread::GetTypeInfo(int index) {

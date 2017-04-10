@@ -52,6 +52,7 @@ private:
     Zone *ast_zone_;
     int type_info_base_ = 0;
     int type_info_size_ = 0;
+    int type_void_index = 0;
     ObjectFactory *object_factory_ = nullptr;
     FunctionRegister *function_register_ = nullptr;
     ParsedModuleMap *all_modules_ = nullptr;

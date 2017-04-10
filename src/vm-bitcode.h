@@ -3,38 +3,6 @@
 
 #include <stdint.h>
 
-/*
- load(8bits) result(12bits) constant(24bits)
-
- load_i1
- load_i8
- load_i32
- load_i64
- load_i32_imm
- load_f32
- load_f64
-
- add(8bits) result(12bits) lhs(12bits) rhs(32bits)
-
- add_i8
- add_i16
- add_i32
- add_i64
- add_i8_imm
- add_i16_imm
- add_i32_imm
- 
- test(8bits) cond(12bits) then(12bits) else(32bits)
-
- test
- 
- call(8bits) function(12bits) base_stack(12bits)
- 
- call
- call_native
-
- */
-
 namespace mio {
 
 #define VM_LOAD_BC(M) \
@@ -114,6 +82,8 @@ namespace mio {
 
 #define OBJECT_OPERATOR(M) \
     M(UnionOrMerge) \
+    M(UnionTest) \
+    M(UnionUnbox) \
     M(Map) \
     M(MapPut) \
     M(MapGet) \
@@ -148,6 +118,20 @@ enum BCSegment : int {
  *    * val1:   Value for inbox.
  *    * val2:   Index of type info.
  *
+ * OO_UnionTest
+ * -- desc: Test a union object type.
+ * -- params:
+ *    * result: Result of testing, non-zero: union is this type, zero: not.
+ *    * val1:   Offset of union object for testing.
+ *    * val2:   Index of type info for testing.
+ *
+ * OO_UnionUnbox
+ * -- desc: Unbox a union object.
+ * -- params:
+ *    * result: Result of unboxing.
+ *    * val1:   Offset of union object for unboxing.
+ *    * val2:   Index of type info for unboxing.
+ *
  * OO_Map
  * -- desc: Create a new map object.
  * -- params:
@@ -181,6 +165,8 @@ enum BCSegment : int {
  *    * result: Offset of string result be connected.
  *    * val1:   Offset of first one string for connection.
  *    * val2:   Offset of last one string for connection.
+ *
+ * OO_
  */
 
 enum BCObjectOperatorId : int {

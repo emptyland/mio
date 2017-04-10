@@ -1,0 +1,14 @@
+package main
+
+native function print(s:string): void
+
+function main: void {
+    var n: [int, string, f32]
+    print('assertion: '.. 0 ..', n = '..n..'\n')
+    n = 1
+    print('assertion: '..(n is int)..', n = '..n..'\n')
+    n = 'ok'
+    print('assertion: '..(n is string)..', n = '..n..'\n')
+    n = 1.1F
+    print('assertion: '..(n is f32)..', n = '..n..'\n')
+}

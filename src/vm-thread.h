@@ -71,6 +71,7 @@ private:
 
     int ToString(TextOutputStream *stream, void *addr, Handle<MIOReflectionType> reflection, bool *ok);
     Handle<MIOUnion> CreateOrMergeUnion(int inbox, Handle<MIOReflectionType> reflection, bool *ok);
+    void CreateEmptyValue(int result, Handle<MIOReflectionType> reflection, bool *ok);
     Handle<MIOReflectionType> GetTypeInfo(int index);
 
     VM *vm_;

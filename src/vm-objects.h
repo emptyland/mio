@@ -308,6 +308,8 @@ public:
     bool IsVoid() const { return IsReflectionVoid(); }
     bool IsObject() const { return !IsPrimitive() && !IsVoid(); }
 
+    int GetPlacementSize() const;
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionType)
 }; // class MIOReflectionType
 

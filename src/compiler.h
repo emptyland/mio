@@ -41,6 +41,7 @@ struct ParsingError {
 struct CompiledInfo {
     int type_id_base;
     int type_id_bytes;
+    int type_void_index;
     int constatns_segment_bytes;
     int global_primitive_segment_bytes;
     int global_object_segment_bytes;

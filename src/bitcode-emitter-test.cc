@@ -150,4 +150,11 @@ TEST_F(BitCodeEmitterTest, P012_ToStringAndStrCat) {
     printf("%s\n", dasm.c_str());
 }
 
+TEST_F(BitCodeEmitterTest, P013_UnionOperation) {
+    std::string dasm;
+    ParseProject("013", &dasm);
+
+    printf("%s\n", dasm.c_str());
+}
+
 } // namespace mio

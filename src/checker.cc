@@ -158,6 +158,8 @@ public:
     virtual void VisitFunctionLiteral(FunctionLiteral *node) override;
     virtual void VisitMapInitializer(MapInitializer *node) override;
     virtual void VisitFieldAccessing(FieldAccessing *node) override;
+    virtual void VisitTypeTest(TypeTest *node) override;
+    virtual void VisitTypeCast(TypeCast *node) override;
 
     Type *AnalysisType() { return type_stack_.top(); };
 
@@ -219,6 +221,7 @@ private:
 /*virtual*/ void CheckingAstVisitor::VisitValDeclaration(ValDeclaration *node) {
     if (node->has_initializer()) {
         ACCEPT_REPLACE_EXPRESSION(node, initializer);
+        node->set_initializer_type(AnalysisType());
     }
 
     if (node->type() == types_->GetUnknown()) {
@@ -231,13 +234,13 @@ private:
                        node->name()->c_str());
         }
     }
-    node->set_initializer_type(AnalysisType());
     SetEvalType(types_->GetVoid());
 }
 
 /*virtual*/ void CheckingAstVisitor::VisitVarDeclaration(VarDeclaration *node) {
     if (node->has_initializer()) {
         ACCEPT_REPLACE_EXPRESSION(node, initializer);
+        node->set_initializer_type(AnalysisType());
     }
 
     if (node->type() == types_->GetUnknown()) {
@@ -250,7 +253,6 @@ private:
                        node->name()->c_str());
         }
     }
-    node->set_initializer_type(AnalysisType());
     SetEvalType(types_->GetVoid());
 }
 
@@ -689,6 +691,53 @@ void CheckingAstVisitor::VisitFieldAccessing(FieldAccessing *node) {
                    node->field_name()->c_str());
     }
     // TODO: other types:
+}
+
+/*virtual*/
+void CheckingAstVisitor::VisitTypeTest(TypeTest *node) {
+    ACCEPT_REPLACE_EXPRESSION(node, expression);
+    auto type = AnalysisType();
+    PopEvalType();
+
+    if (type->IsUnion()) {
+        if (!type->AsUnion()->CanBe(node->type())) {
+            ThrowError(node, "union(%s) impossible to be %s",
+                       type->ToString().c_str(),
+                       node->type()->ToString().c_str());
+        }
+    } else {
+        ThrowError(node, "this type(%s) can not use `is' operator.",
+                   type->ToString().c_str());
+    }
+    PushEvalType(types_->GetI1());
+}
+
+/*virtual*/
+void CheckingAstVisitor::VisitTypeCast(TypeCast *node) {
+    ACCEPT_REPLACE_EXPRESSION(node, expression);
+    auto type = AnalysisType();
+    PopEvalType();
+
+    if (type->is_numeric()) {
+        if (!node->type()->is_numeric()) {
+            ThrowError(node, "this type(%s) can not cast to %s.",
+                       type->ToString().c_str(),
+                       node->type()->ToString().c_str());
+        }
+    } else if (type->IsUnion()) {
+        if (!type->AsUnion()->CanBe(node->type())) {
+            ThrowError(node, "union(%s) impossible to be %s",
+                       type->ToString().c_str(),
+                       node->type()->ToString().c_str());
+        }
+    } else {
+        ThrowError(node, "this type(%s) can not cast to %s.",
+                   type->ToString().c_str(),
+                   node->type()->ToString().c_str());
+    }
+
+    node->set_original(type);
+    PushEvalType(node->type());
 }
 
 void CheckingAstVisitor::CheckFunctionCall(FunctionPrototype *proto, Call *node) {

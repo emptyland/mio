@@ -141,6 +141,8 @@ public:
     virtual void VisitFloatLiteral(FloatLiteral *node) override;
     virtual void VisitMapInitializer(MapInitializer *node) override;
     virtual void VisitFieldAccessing(FieldAccessing *node) override;
+    virtual void VisitTypeTest(TypeTest *node) override;
+    virtual void VisitTypeCast(TypeCast *node) override;
 
     BitCodeBuilder *builder() { return DCHECK_NOTNULL(current_)->builder(); }
 
@@ -208,9 +210,10 @@ private:
     void EmitLoadOrMove(const VMValue &dest, const VMValue &src);
 
     VMValue EmitLoadMakeRoom(const VMValue &src);
-
     VMValue EmitStoreMakeRoom(const VMValue &src);
+
     void EmitStore(const VMValue &dest, const VMValue &src);
+    void EmitMove(const VMValue &dest, const VMValue &src);
 
     VMValue GetEmptyObject(Type *type);
 
@@ -675,7 +678,15 @@ void EmittingAstVisitor::VisitAssignment(Assignment *node) {
             EmitCreateUnion(union_ob, rval, node->rval_type());
             rval = union_ob;
         }
-        EmitStore(dest, rval);
+        if (dest.segment == BC_GLOBAL_OBJECT_SEGMENT ||
+            dest.segment == BC_GLOBAL_PRIMITIVE_SEGMENT) {
+            EmitStore(dest, rval);
+        } else if (dest.segment == BC_LOCAL_PRIMITIVE_SEGMENT ||
+                   dest.segment == BC_LOCAL_OBJECT_SEGMENT) {
+            EmitMove(dest, rval);
+        } else {
+            DLOG(FATAL) << "noreached!";
+        }
     } else if (node->target()->IsCall()) {
         auto target = node->target()->AsCall();
         DCHECK(target->callee_type()->IsMap());
@@ -840,6 +851,9 @@ void EmittingAstVisitor::VisitSmiLiteral(SmiLiteral *node) {
     dest.offset = current_->MakePrimitiveRoom(dest.size);
 
     switch (node->bitwide()) {
+        case 1:
+            builder()->load_i8_imm(dest.offset, node->i1());
+            break;
     #define DEFINE_CASE(byte, bit) \
         case bit: \
             builder()->load_i##bit##_imm(dest.offset, node->i##bit ()); \
@@ -922,6 +936,40 @@ void EmittingAstVisitor::VisitFieldAccessing(FieldAccessing *node) {
         DLOG(FATAL) << "noreached! type: " << callee_ty->ToString();
     }
     // TODO: other types
+}
+
+void EmittingAstVisitor::VisitTypeTest(TypeTest *node) {
+    auto val = Emit(node->expression());
+    DCHECK_EQ(BC_LOCAL_OBJECT_SEGMENT, val.segment);
+
+    auto result = current_->MakePrimitiveValue(1);
+    builder()->oop(OO_UnionTest, result.offset, val.offset,
+                   TypeInfoIndex(node->type()));
+    PushValue(result);
+}
+
+void EmittingAstVisitor::VisitTypeCast(TypeCast *node) {
+    auto val = Emit(node->expression());
+
+    VMValue result;
+    if (node->original()->IsUnion()) {
+        DCHECK_EQ(BC_LOCAL_OBJECT_SEGMENT, val.segment);
+        if (node->type()->is_primitive()) {
+            result = current_->MakePrimitiveValue(node->type()->placement_size());
+        } else {
+            result = current_->MakeObjectValue();
+        }
+        builder()->oop(OO_UnionUnbox, result.offset, val.offset,
+                       TypeInfoIndex(node->type()));
+    } else if (node->original()->IsIntegral()) {
+        // TODO:
+    } else if (node->original()->IsFloating()) {
+        // TODO:
+    } else {
+        DLOG(FATAL) << "noreached! type: " << node->original()->ToString()
+                    << " can not cast to " << node->type()->ToString();
+    }
+    PushValue(result);
 }
 
 VMValue EmittingAstVisitor::EmitIntegralAdd(Type *type, Expression *lhs,
@@ -1256,6 +1304,29 @@ void EmittingAstVisitor::EmitStore(const VMValue &dest, const VMValue &src) {
     }
 }
 
+void EmittingAstVisitor::EmitMove(const VMValue &dest, const VMValue &src) {
+    switch (src.segment) {
+        case BC_LOCAL_PRIMITIVE_SEGMENT: {
+
+    #define DEFINE_CASE(byte, bit) \
+        case byte: \
+            builder()->mov_##byte##b(dest.offset, src.offset); \
+            break;
+
+            MIO_INT_BYTES_SWITCH(src.size, DEFINE_CASE)
+    #undef DEFINE_CASE
+        } break;
+
+        case BC_LOCAL_OBJECT_SEGMENT: {
+            builder()->mov_o(dest.offset, src.offset);
+        } break;
+
+        default:
+            DLOG(FATAL) << "noreached! bad segment: " << src.segment;
+            break;
+    }
+}
+
 VMValue EmittingAstVisitor::GetEmptyObject(Type *type) {
     if (type->IsString()) {
         return GetOrNewString("", 0, nullptr);
@@ -1333,11 +1404,15 @@ TypeToReflection(Type *type, ObjectFactory *factory,
             break;
 
         case Type::kIntegral:
-            reft = factory->CreateReflectionIntegral(tid, type->AsIntegral()->bitwide());
+            if (type->AsIntegral()->bitwide() == 1) {
+                reft = factory->CreateReflectionIntegral(tid, 8);
+            } else {
+                reft = factory->CreateReflectionIntegral(tid, type->AsIntegral()->bitwide());
+            }
             break;
 
         case Type::kFloating:
-            reft = factory->CreateReflectionIntegral(tid, type->AsFloating()->bitwide());
+            reft = factory->CreateReflectionFloating(tid, type->AsFloating()->bitwide());
             break;
 
         case Type::kString:
@@ -1412,7 +1487,6 @@ void BitCodeEmitter::Init() {
         if (pair.second->IsUnknown()) {
             continue;
         }
-
         TypeToReflection(pair.second, object_factory_, &all_obj);
     }
 
@@ -1446,6 +1520,7 @@ bool BitCodeEmitter::Run(ParsedModuleMap *all_modules, CompiledInfo *info) {
     if (info) {
         info->type_id_base  = type_id_base_;
         info->type_id_bytes = static_cast<int>(type_id2index_.size() * sizeof(MIOReflectionType *));
+        info->type_void_index = type_id2index_[types_->GetVoid()->GenerateId()];
         info->constatns_segment_bytes        = constants_->size();
         info->global_primitive_segment_bytes = p_global_->size();
         info->global_object_segment_bytes    = o_global_->size();

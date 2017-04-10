@@ -64,6 +64,7 @@ bool VM::CompileProject(const char *project_dir, ParsingError *error) {
 
     type_info_base_ = info.type_id_base;
     type_info_size_ = info.type_id_bytes;
+    type_void_index = info.type_void_index;
     return true;
 }
 

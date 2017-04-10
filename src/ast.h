@@ -639,6 +639,8 @@ private:
 class TypeTest : public Expression {
 public:
     Expression *expression() const { return expression_; }
+    void set_expression(Expression *expr) { expression_ = DCHECK_NOTNULL(expr); }
+
     Type *type() const { return type_; }
 
     DECLARE_AST_NODE(TypeTest)
@@ -657,6 +659,11 @@ private:
 class TypeCast : public Expression {
 public:
     Expression *expression() const { return expression_; }
+    void set_expression(Expression *expr) { expression_ = DCHECK_NOTNULL(expr); }
+
+    Type *original() const { return DCHECK_NOTNULL(original_); }
+    void set_original(Type *type) { original_ = DCHECK_NOTNULL(type); }
+
     Type *type() const { return type_; }
 
     DECLARE_AST_NODE(TypeCast)
@@ -669,6 +676,7 @@ private:
 
     Expression *expression_;
     Type *type_;
+    Type *original_ = nullptr;
 }; // class TypeCast
 
 
@@ -893,8 +901,8 @@ private:
 
 class AstVisitor {
 public:
-    AstVisitor() {}
-    virtual ~AstVisitor() {}
+    AstVisitor() = default;
+    virtual ~AstVisitor() = default;
 
 #define AstVisitor_VISIT_METHOD(name) virtual void Visit##name(name *) = 0;
     DEFINE_AST_NODES(AstVisitor_VISIT_METHOD)
@@ -906,8 +914,8 @@ public:
 
 class DoNothingAstVisitor : public AstVisitor {
 public:
-    DoNothingAstVisitor() {}
-    virtual ~DoNothingAstVisitor() {}
+    DoNothingAstVisitor() = default;
+    virtual ~DoNothingAstVisitor() = default;
 
 #define DoNothingAstVisitor_VISIT_METHOD(name) \
     virtual void Visit##name(name *) override {}
@@ -1128,6 +1136,14 @@ public:
     Variable *CreateVariable(Declaration *declaration, int64_t unique_id,
                              int position) {
         return new (zone_) Variable(declaration, unique_id, position);
+    }
+
+    TypeTest *CreateTypeTest(Expression *expression, Type *type, int position) {
+        return new (zone_) TypeTest(expression, type, position);
+    }
+
+    TypeCast *CreateTypeCast(Expression *expression, Type *type, int position) {
+        return new (zone_) TypeCast(expression, type, position);
     }
 
 private:

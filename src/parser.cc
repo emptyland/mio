@@ -563,6 +563,22 @@ Expression *Parser::ParseSuffixed(bool *ok) {
                 node = factory_->CreateFieldAccessing(field_name, node, position);
             } break;
 
+            // expr as type
+            case TOKEN_AS: {
+                Match(TOKEN_AS, CHECK_OK);
+
+                auto type = ParseType(CHECK_OK);
+                return factory_->CreateTypeCast(node, type, position);
+            } break;
+
+            // expr is type
+            case TOKEN_IS: {
+                Match(TOKEN_IS, CHECK_OK);
+
+                auto type = ParseType(CHECK_OK);
+                return factory_->CreateTypeTest(node, type, position);
+            } break;
+
             default:
                 return node;
         }
@@ -698,6 +714,10 @@ Type *Parser::ParseType(bool *ok) {
         case TOKEN_VOID:
             lexer_->Next(&ahead_);
             return types_->GetVoid();
+
+        case TOKEN_BOOL:
+            lexer_->Next(&ahead_);
+            return types_->GetI1();
 
         case TOKEN_I8:
             lexer_->Next(&ahead_);

@@ -107,7 +107,7 @@ Handle<MIOUnion>
 MallocedObjectFactory::CreateUnion(const void *data, int size,
                                    Handle<MIOReflectionType> type_info) {
     DCHECK_GE(size, 0);
-    DCHECK_LT(size, kMaxReferenceValueSize);
+    DCHECK_LE(size, kMaxReferenceValueSize);
 
     NEW_MIO_OBJECT(obj, Union);
     obj->SetTypeInfo(type_info.get());
