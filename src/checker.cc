@@ -30,18 +30,25 @@ private:
 }; // class ScopeHolder
 
 
-class ReturnTypeHolder {
+class FunctionInfoScope {
 public:
-    ReturnTypeHolder(ReturnTypeHolder **current, Zone *zone)
+    FunctionInfoScope(FunctionInfoScope **current,
+                      ZoneVector<Variable *> *up_values,
+                      Scope *fn_scope,
+                      Zone *zone)
+
         : saved_(*DCHECK_NOTNULL(current))
         , current_(current)
+        , up_values_(DCHECK_NOTNULL(up_values))
+        , fn_scope_(DCHECK_NOTNULL(fn_scope))
         , zone_(DCHECK_NOTNULL(zone)) {
+        DCHECK_EQ(FUNCTION_SCOPE, fn_scope->type());
         DCHECK_NE(this, *current_);
         *current_ = this;
         types_ = new (zone_) Union::TypeMap(zone_);
     }
 
-    ~ReturnTypeHolder() {
+    ~FunctionInfoScope() {
         *current_ = saved_;
         if (types_) {
             types_->~ZoneHashMap();
@@ -71,12 +78,25 @@ public:
         return factory->GetUnion(ReleaseTypes());
     }
 
+    Scope *fn_scope() const { return fn_scope_; }
+
+    Variable *CreateUpValue(RawStringRef name, Variable *for_link, int position) {
+        auto upval = fn_scope_->Declare(name, for_link, position);
+        if (!upval) {
+            return nullptr;
+        }
+        DCHECK_NOTNULL(up_values_)->Add(upval);
+        return upval;
+    }
+
 private:
     Union::TypeMap *types_;
-    ReturnTypeHolder *saved_;
-    ReturnTypeHolder **current_;
+    FunctionInfoScope *saved_;
+    FunctionInfoScope **current_;
+    Scope *fn_scope_;
     Zone *zone_;
-}; // class ReturnTypeHolder
+    ZoneVector<Variable *> *up_values_;
+}; // class FunctionInfoScope
 
 #define ACCEPT_REPLACE_EXPRESSION(node, field) \
     (node)->field()->Accept(this); \
@@ -212,7 +232,7 @@ private:
     Checker *checker_;
     std::stack<Type *> type_stack_;
     std::stack<Expression *> expr_stack_;
-    ReturnTypeHolder *return_types_ = nullptr;
+    FunctionInfoScope *fn_info_scope_ = nullptr;
     std::unique_ptr<AstNodeFactory> factory_;
     Zone *zone_;
 };
@@ -423,9 +443,25 @@ private:
     Scope *owned;
     auto var = scope->FindOrNullRecursive(node->name(), &owned);
     if (!var) {
-        Scope::TEST_PrintAllVariables(2, scope);
         ThrowError(node, "symbol \'%s\' is not found", node->name()->c_str());
         return;
+    }
+
+
+    if (owned->type() != UNIT_SCOPE &&
+        owned->type() != MODULE_SCOPE &&
+        owned->type() != GLOBAL_SCOPE) {
+
+        auto curr = fn_info_scope_->fn_scope()->outter_scope();
+        while (curr) {
+            if (owned == curr) {
+                // is up value.
+                var = fn_info_scope_->CreateUpValue(node->name(), var,
+                                                    node->position());
+                break;
+            }
+            curr = curr->outter_scope();
+        }
     }
 
     if (var->type() == types_->GetUnknown()) {
@@ -540,10 +576,10 @@ void CheckingAstVisitor::VisitFloatLiteral(FloatLiteral *node) {
             ThrowError(node, "return void type.");
             return;
         }
-        DCHECK_NOTNULL(return_types_)->Apply(AnalysisType());
+        DCHECK_NOTNULL(fn_info_scope_)->Apply(AnalysisType());
         PopEvalType();
     } else {
-        DCHECK_NOTNULL(return_types_)->Apply(types_->GetVoid());
+        DCHECK_NOTNULL(fn_info_scope_)->Apply(types_->GetVoid());
     }
     PushEvalType(types_->GetVoid());
 }
@@ -578,7 +614,8 @@ void CheckingAstVisitor::VisitFloatLiteral(FloatLiteral *node) {
 
 /*virtual*/ void CheckingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
     ScopeHolder holder(node->scope(), &scope_);
-    ReturnTypeHolder ret(&return_types_, zone_);
+    FunctionInfoScope info(&fn_info_scope_, node->mutable_up_values(),
+                           node->scope(), zone_);
 
     ACCEPT_REPLACE_EXPRESSION(node, body);
 
@@ -586,7 +623,7 @@ void CheckingAstVisitor::VisitFloatLiteral(FloatLiteral *node) {
     if (node->is_assignment()) {
         return_type = AnalysisType();
     } else {
-        return_type = ret.GenerateType(types_);
+        return_type = info.GenerateType(types_);
     }
     PopEvalType();
 

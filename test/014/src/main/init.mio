@@ -1,0 +1,7 @@
+package main
+
+function main: void {
+    val n = 1
+    
+    function foo (a: int) = a + n
+}

@@ -16,6 +16,8 @@ class MIOError;
 class MIOFunction;
     class MIONativeFunction;
     class MIONormalFunction;
+class MIOUpValue;
+class MIOClosure;
 class MIOUnion;
 class MIOHashMap;
 class MIOReflectionType;
@@ -40,6 +42,8 @@ class MIOReflectionType;
 
 #define MIO_OBJECTS(M) \
     M(String) \
+    M(UpValue) \
+    M(Closure) \
     M(NativeFunction) \
     M(NormalFunction) \
     M(HashMap) \
@@ -185,19 +189,85 @@ static_assert(sizeof(MIONativeFunction) == sizeof(HeapObject),
 
 class MIONormalFunction final: public MIOFunction {
 public:
-    static const int kCodeSizeOffset = kMIOFunctionOffset;
-    static const int kCodeOffset = kCodeSizeOffset + sizeof(int);
-    static const int kHeadOffset = kCodeOffset;
+    static const int kConstantObjectSizeOffset = kMIOFunctionOffset;
+    static const int kConstantPrimitiveSizeOffset = kConstantObjectSizeOffset + sizeof(int);
+    static const int kCodeSizeOffset = kConstantPrimitiveSizeOffset + sizeof(int);
+    static const int kHeaderOffset = kCodeSizeOffset;
 
+    DEFINE_HEAP_OBJ_RW(int, ConstantObjectSize)
+    DEFINE_HEAP_OBJ_RW(int, ConstantPrimitiveSize)
     DEFINE_HEAP_OBJ_RW(int, CodeSize)
 
-    void *GetCode() { return reinterpret_cast<uint8_t *>(this) + kCodeOffset; }
+    HeapObject **GetConstantObjects() {
+        return reinterpret_cast<HeapObject **>(
+                reinterpret_cast<uint8_t *>(this) + GetConstantPrimitiveSize() + kHeaderOffset);
+    }
+
+    HeapObject *GetConstantObject(int index) {
+        DCHECK_GE(index, 0);
+        DCHECK_LT(index, GetConstantObjectSize());
+        return GetConstantObjects()[index];
+    }
+
+    void *GetConstantPrimitive() {
+        return reinterpret_cast<uint8_t *>(this) + kHeaderOffset;
+    }
+
+    void *GetCode() {
+        return reinterpret_cast<uint8_t *>(this) + kHeaderOffset +
+                (sizeof(HeapObject *) * GetConstantPrimitiveSize()) + GetConstantObjectSize();
+    }
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIONormalFunction)
 }; // class NormalFunction
 
 static_assert(sizeof(MIONormalFunction) == sizeof(HeapObject),
               "MIONormalFunction can bigger than HeapObject");
+
+
+class MIOUpValue final : public HeapObject {
+public:
+
+}; // class MIOUpValue;
+
+union UpValDesc {
+    MIOUpValue *val;
+    struct {
+        int32_t unique_id;
+        int32_t offset;
+    } desc;
+};
+
+class MIOClosure final : public MIOFunction {
+public:
+    static const int kFlagsOffset = kMIOFunctionOffset;
+    static const int kFunctionOffset = kFlagsOffset + sizeof(uint32_t);
+    static const int kUpValueSizeOffset = kFunctionOffset + kObjectReferenceSize;
+    static const int kUpValesOffset = kUpValueSizeOffset + sizeof(int);
+
+    DEFINE_HEAP_OBJ_RW(uint32_t, Flags)
+    DEFINE_HEAP_OBJ_RW(MIOFunction *, Function)
+    DEFINE_HEAP_OBJ_RW(int, UpValueSize)
+
+    bool IsOpen() const  { return (GetFlags() & 0x1) == 0; }
+    bool IsClose() const { return (GetFlags() & 0x1) != 0; }
+    void Close() { SetFlags(GetFlags() | 0x1);     }
+
+    UpValDesc **mutable_up_values() {
+        return reinterpret_cast<UpValDesc **>(reinterpret_cast<uint8_t *>(this) + kUpValesOffset);
+    }
+
+    UpValDesc *GetUpValue(int index) {
+        DCHECK_GE(index, 0);
+        DCHECK_LT(index, GetUpValueSize());
+        return mutable_up_values()[index];
+    }
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOClosure)
+}; // class MIOClosure
+
+static_assert(sizeof(MIOClosure) == sizeof(HeapObject),
+              "MIOClosure can bigger than HeapObject");
 
 class MIOUnion final : public HeapObject {
 public:

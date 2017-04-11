@@ -18,12 +18,19 @@ public:
     virtual Handle<MIOString>
     GetOrNewString(const char *z, int n, int **offset) override;
 
+    virtual Handle<MIOClosure>
+    CreateClosure(Handle<MIOFunction> function, int up_values_size) override;
+
     virtual Handle<MIONativeFunction>
     CreateNativeFunction(const char *signature,
                          MIOFunctionPrototype pointer) override;
 
     virtual Handle<MIONormalFunction>
-    CreateNormalFunction(const void *code, int size) override;
+    CreateNormalFunction(const std::vector<Handle<HeapObject>> &constant_objects,
+                         const void *constant_primitive,
+                         int constant_primitive_size,
+                         const void *code,
+                         int code_size) override;
 
     virtual Handle<MIOHashMap>
     CreateHashMap(int seed, uint32_t flags) override;

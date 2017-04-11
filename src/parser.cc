@@ -55,8 +55,8 @@ Scope *Parser::EnterScope(const std::string &name, int scope_type) {
     auto scope = new (zone_) Scope(scope_,
                                    static_cast<ScopeType>(scope_type),
                                    zone_);
-    scope->set_name(RawString::Create(name, zone_));
-    scope_ = DCHECK_NOTNULL(scope);
+    DCHECK_NOTNULL(scope)->set_name(RawString::Create(name, zone_));
+    scope_ = scope;
     return scope;
 }
 
@@ -166,7 +166,8 @@ FunctionDefine *Parser::ParseFunctionDefine(bool is_export, bool is_native,
         is_assignment = Test(TOKEN_ASSIGN); // =
         body = ParseExpression(false, CHECK_OK);
     }
-    auto literal = factory_->CreateFunctionLiteral(prototype, body, scope,
+    auto literal = factory_->CreateFunctionLiteral(prototype, body,
+                                                   scope->outter_scope(),
                                                    is_assignment,
                                                    position,
                                                    ahead_.position());

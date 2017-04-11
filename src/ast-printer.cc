@@ -194,6 +194,9 @@ public:
     virtual void VisitVariable(Variable *node) override {
         auto name = node->scope()->MakeFullName(node->name());
         WriteMapPair("var", name.c_str());
+        if (node->link()) {
+            Indent(); WriteMapPair("link", node->link());
+        }
     }
 
     // block:
@@ -211,6 +214,9 @@ public:
     virtual void VisitFunctionLiteral(FunctionLiteral *node) override {
         WriteMapPair("prototype", node->prototype()->Type::ToString().c_str());
         Indent(); WriteMapPair("assignment", node->is_assignment() ? "yes" : "no");
+        if (node->up_values_size() > 0) {
+            Indent(); WriteMapPair("up_values", node->mutable_up_values());
+        }
         if (node->has_body()) {
             Indent(); WriteMapPair("body", node->body());
         }

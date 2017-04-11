@@ -53,8 +53,8 @@ public:
         return Emit3Addr(BC_load_i32_imm, dest, 0, imm);
     }
 
-    int load_o(uint16_t dest, int32_t offset) {
-        return Emit3Addr(BC_load_o, dest, BC_GLOBAL_OBJECT_SEGMENT, offset);
+    int load_o(uint16_t dest, uint16_t segment, int32_t offset) {
+        return Emit3Addr(BC_load_o, dest, segment, offset);
     }
 
     int store_1b(int32_t dest, uint16_t segment, uint16_t src) {
@@ -73,8 +73,8 @@ public:
         return Emit3Addr(BC_store_8b, src, segment, dest);
     }
 
-    int store_o(int32_t dest, uint16_t src) {
-        return Emit3Addr(BC_store_o, src, BC_GLOBAL_OBJECT_SEGMENT, dest);
+    int store_o(int32_t dest, uint16_t segment, uint16_t src) {
+        return Emit3Addr(BC_store_o, src, segment, dest);
     }
 
     ////////////////////////////////////////////////////////////////////////////

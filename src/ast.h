@@ -428,6 +428,12 @@ public:
 
     Scope *scope() const { return scope_; }
 
+    ZoneVector<Variable *> *mutable_up_values() { return up_values_; }
+
+    int up_values_size() const { return up_values_->size(); }
+
+    Variable *up_value(int index) const { return up_values_->At(index); }
+
     int start_position() const { return position(); }
 
     bool has_body() const { return body_ != nullptr; }
@@ -441,6 +447,7 @@ private:
     FunctionLiteral(FunctionPrototype *prototype,
                     Expression *body,
                     Scope *scope,
+                    ZoneVector<Variable *> *up_values,
                     bool is_assignment,
                     int start_position,
                     int end_position)
@@ -448,12 +455,14 @@ private:
         , prototype_(DCHECK_NOTNULL(prototype))
         , body_(body)
         , scope_(DCHECK_NOTNULL(scope))
+        , up_values_(DCHECK_NOTNULL(up_values))
         , is_assignment_(is_assignment)
         , end_position_(end_position) {}
 
     FunctionPrototype *prototype_;
     Expression *body_;
     Scope *scope_;
+    ZoneVector<Variable *> *up_values_;
     bool is_assignment_;
     int end_position_;
 }; // class FunctionLiteral
@@ -693,6 +702,16 @@ public:
     Variable(Declaration *declaration, int64_t unique_id, int position)
         : Expression(position)
         , declaration_(DCHECK_NOTNULL(declaration))
+        , link_(nullptr)
+        , scope_(nullptr)
+        , unique_id_(unique_id) {
+    }
+
+    Variable(Variable *link, Scope *scope, int64_t unique_id, int position)
+        : Expression(position)
+        , declaration_(DCHECK_NOTNULL(link->declaration()))
+        , link_(DCHECK_NOTNULL(link))
+        , scope_(DCHECK_NOTNULL(scope))
         , unique_id_(unique_id) {
     }
 
@@ -706,22 +725,26 @@ public:
 
     bool is_readwrite() const { return !is_read_only(); }
 
-    bool is_function() const { return declaration_->IsFunctionDefine(); }
+    bool is_function() const { return declaration()->IsFunctionDefine(); }
 
     Declaration *declaration() const { return declaration_; }
 
-    Scope *scope() const { return declaration_->scope(); }
+    Variable *link() const { return link_; }
 
-    Type *type() { return declaration_->type(); }
+    Scope *scope() const { return scope_ ? scope_ : declaration()->scope(); }
 
-    RawStringRef name() const { return declaration_->name(); }
+    Type *type() { return declaration()->type(); }
+
+    RawStringRef name() const { return declaration()->name(); }
 
     int64_t unique_id() const { return unique_id_; }
 
     DECLARE_AST_NODE(Variable)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Variable)
 private:
-    Declaration *declaration_;
+    Declaration *declaration_; // for normal declaration
+    Variable    *link_;        // for upvalue link to
+    Scope       *scope_;
     int64_t      unique_id_;
     BindKind     bind_kind_ = UNBINDED;
     int          offset_    = -1;
@@ -1098,6 +1121,7 @@ public:
         return new (zone_) FunctionLiteral(prototype,
                                            body,
                                            scope,
+                                           new (zone_) ZoneVector<Variable *>(zone_),
                                            is_assignment,
                                            start_position,
                                            end_position);

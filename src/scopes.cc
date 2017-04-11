@@ -98,6 +98,17 @@ Variable *Scope::Declare(RawStringRef name, Declaration *declaration) {
     return var;
 }
 
+Variable *Scope::Declare(RawStringRef name, Variable *link, int position) {
+    bool has_insert = false;
+    auto pair = declarations_.GetOrInsert(name, &has_insert);
+    if (!has_insert) {
+        return nullptr;
+    }
+    auto var = new (zone_) Variable(link, this, zone_->generated_id(), position);
+    pair->set_value(var);
+    return var;
+}
+
 std::string Scope::MakeFullName(RawStringRef name) {
     std::string full_name;
     int i = 0;

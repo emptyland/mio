@@ -47,6 +47,9 @@ public:
 
     Variable *Declare(RawStringRef name, Declaration *declaration);
 
+    // for upvalue declaration
+    Variable *Declare(RawStringRef name, Variable *link, int position);
+
     std::string MakeFullName(RawStringRef name);
 
     typedef std::map<std::string, std::vector<Variable *>> MergingConflicts;
@@ -70,8 +73,13 @@ public:
 
     bool is_global_scope() const { return type_ == GLOBAL_SCOPE; }
     bool is_module_scope() const { return type_ == MODULE_SCOPE; }
+    bool is_unit_scope() const { return type_ == UNIT_SCOPE; }
     bool is_function_scope() const { return type_ == FUNCTION_SCOPE; }
     bool is_block_scope() const { return type_ == BLOCK_SCOPE; }
+
+    bool is_universal() const {
+        return is_global_scope() || is_module_scope() || is_unit_scope();
+    }
 
     static void TEST_PrintAllVariables(int level, Scope *scope);
 
