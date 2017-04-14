@@ -447,10 +447,7 @@ private:
     }
 
 
-    if (owned->type() != UNIT_SCOPE &&
-        owned->type() != MODULE_SCOPE &&
-        owned->type() != GLOBAL_SCOPE) {
-
+    if (owned->is_local()) {
         auto curr = fn_info_scope_->fn_scope()->outter_scope();
         while (curr) {
             if (owned == curr) {

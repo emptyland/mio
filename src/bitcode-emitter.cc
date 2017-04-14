@@ -436,7 +436,16 @@ void EmittingAstVisitor::EmitGlobalFunction(FunctionDefine *node) {
     Handle<MIOString> name;
     GetOrNewString(full_name, &name);
 
-    Handle<MIOFunction> ob;
+    auto entry = emitter_->function_register_->FindOrInsert(full_name.c_str());
+    entry->set_kind(node->is_native() ? FunctionEntry::NATIVE : FunctionEntry::NORMAL);
+
+    Handle<MIOFunction> ob(nullptr);
+    auto value = MakeGlobalObjectValue(ob);
+    entry->set_offset(value.offset);
+
+    node->instance()->set_bind_kind(Variable::GLOBAL);
+    node->instance()->set_offset(value.offset);
+
     if (node->is_native()) {
         auto proto = node->function_literal()->prototype();
         int p_size = 0, o_size = 0;
@@ -464,14 +473,7 @@ void EmittingAstVisitor::EmitGlobalFunction(FunctionDefine *node) {
     }
     ob->SetName(name.get());
 
-    auto entry = emitter_->function_register_->FindOrInsert(full_name.c_str());
-    entry->set_kind(node->is_native() ? FunctionEntry::NATIVE : FunctionEntry::NORMAL);
-
-    auto value = MakeGlobalObjectValue(ob);
-    entry->set_offset(value.offset);
-
-    node->instance()->set_bind_kind(Variable::GLOBAL);
-    node->instance()->set_offset(value.offset);
+    emitter_->o_global_->Set(value.offset, ob.get());
 }
 
 void EmittingAstVisitor::EmitLocalFunction(FunctionDefine *node) {

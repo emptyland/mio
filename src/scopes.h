@@ -81,6 +81,10 @@ public:
         return is_global_scope() || is_module_scope() || is_unit_scope();
     }
 
+    bool is_local() const {
+        return is_function_scope() || is_block_scope();
+    }
+
     static void TEST_PrintAllVariables(int level, Scope *scope);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Scope)

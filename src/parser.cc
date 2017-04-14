@@ -167,12 +167,13 @@ FunctionDefine *Parser::ParseFunctionDefine(bool is_export, bool is_native,
         body = ParseExpression(false, CHECK_OK);
     }
     auto literal = factory_->CreateFunctionLiteral(prototype, body,
-                                                   scope->outter_scope(),
+                                                   scope,
                                                    is_assignment,
                                                    position,
                                                    ahead_.position());
     auto function = factory_->CreateFunctionDefine(name, is_export, is_native,
-                                                   literal, scope_, position);
+                                                   literal, scope->outter_scope(),
+                                                   position);
     scope->set_name(function->name());
     scope->set_function(function);
     LeaveScope();
