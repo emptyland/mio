@@ -6,9 +6,9 @@
 
 namespace mio {
 
-void BitCodeDisassembler::Run(Handle<MIONormalFunction> func) {
-    stream_->Printf("-----[ %s ]-----\n", func->GetName()->GetData());
-    Run(func->GetCode(), func->GetCodeSize());
+void BitCodeDisassembler::Run(Handle<MIONormalFunction> fn) {
+    stream_->Printf("-----[ %s ]-----\n", fn->GetName() ? fn->GetName()->GetData() : "null");
+    Run(fn->GetCode(), fn->GetCodeSize());
 }
 
 void BitCodeDisassembler::Run(const void *buf, int size) {
@@ -45,7 +45,7 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
         case BC_load_4b:
         case BC_load_8b:
         case BC_load_o:
-            stream_->Printf("[%u] %d@(%u)", GetOp1(bc), GetImm32(bc), GetOp2(bc));
+            stream_->Printf("[%u] %d@(%s)", GetOp1(bc), GetImm32(bc), kSegmentText[GetOp2(bc)]);
             break;
 
         case BC_load_i8_imm:
@@ -59,7 +59,7 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
         case BC_store_4b:
         case BC_store_8b:
         case BC_store_o:
-            stream_->Printf("%d@%u [%u]", GetImm32(bc), GetOp2(bc), GetOp1(bc));
+            stream_->Printf("%d@(%s) [%u]", GetImm32(bc), kSegmentText[GetOp2(bc)], GetOp1(bc));
             break;
 
         case BC_cmp_i8:
@@ -97,6 +97,10 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
         case BC_add_i32_imm:
             stream_->Printf("[%u] [%u] %d", GetOp1(bc), GetOp2(bc),
                             GetImm32(bc));
+            break;
+
+        case BC_close_fn:
+            stream_->Printf("[%u]", GetOp1(bc));
             break;
 
         case BC_call:
@@ -152,6 +156,14 @@ void BitCodeDisassembler::Disassemble(MemorySegment *code, int number_of_inst,
                                       std::string *buf) {
     MemoryOutputStream stream(buf);
     Disassemble(code, number_of_inst, &stream);
+}
+
+/*static*/
+void BitCodeDisassembler::Disassemble(Handle<MIONormalFunction> fn,
+                                      std::string *buf) {
+    MemoryOutputStream stream(buf);
+    BitCodeDisassembler dis(&stream);
+    dis.Run(fn);
 }
 
 } // namespace mio

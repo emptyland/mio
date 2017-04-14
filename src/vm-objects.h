@@ -82,7 +82,7 @@ public:
     };
 
     static const int kKindOffset = 0;
-    static const int kHeapObjectOffset = kKindOffset + 4;
+    static const int kHeapObjectOffset = kKindOffset + sizeof(int);
 
     DEFINE_HEAP_OBJ_RW(Kind, Kind)
 
@@ -189,18 +189,18 @@ static_assert(sizeof(MIONativeFunction) == sizeof(HeapObject),
 
 class MIONormalFunction final: public MIOFunction {
 public:
-    static const int kConstantObjectSizeOffset = kMIOFunctionOffset;
-    static const int kConstantPrimitiveSizeOffset = kConstantObjectSizeOffset + sizeof(int);
-    static const int kCodeSizeOffset = kConstantPrimitiveSizeOffset + sizeof(int);
-    static const int kHeaderOffset = kCodeSizeOffset;
+    static const int kConstantPrimitiveSizeOffset = kMIOFunctionOffset;
+    static const int kConstantObjectSizeOffset = kConstantPrimitiveSizeOffset + sizeof(int);
+    static const int kCodeSizeOffset = kConstantObjectSizeOffset + sizeof(int);
+    static const int kHeaderOffset = kCodeSizeOffset + sizeof(int);
 
-    DEFINE_HEAP_OBJ_RW(int, ConstantObjectSize)
     DEFINE_HEAP_OBJ_RW(int, ConstantPrimitiveSize)
+    DEFINE_HEAP_OBJ_RW(int, ConstantObjectSize)
     DEFINE_HEAP_OBJ_RW(int, CodeSize)
 
     HeapObject **GetConstantObjects() {
         return reinterpret_cast<HeapObject **>(
-                reinterpret_cast<uint8_t *>(this) + GetConstantPrimitiveSize() + kHeaderOffset);
+                reinterpret_cast<uint8_t *>(this) + kHeaderOffset + GetConstantPrimitiveSize());
     }
 
     HeapObject *GetConstantObject(int index) {
@@ -209,13 +209,14 @@ public:
         return GetConstantObjects()[index];
     }
 
-    void *GetConstantPrimitive() {
+    void *GetConstantPrimitiveData() {
         return reinterpret_cast<uint8_t *>(this) + kHeaderOffset;
     }
 
     void *GetCode() {
         return reinterpret_cast<uint8_t *>(this) + kHeaderOffset +
-                (sizeof(HeapObject *) * GetConstantPrimitiveSize()) + GetConstantObjectSize();
+                GetConstantPrimitiveSize() +
+                (kObjectReferenceSize * GetConstantObjectSize());
     }
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIONormalFunction)

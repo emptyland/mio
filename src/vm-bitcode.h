@@ -61,7 +61,8 @@ namespace mio {
     M(call_val) \
     M(frame) \
     M(ret) \
-    M(oop)
+    M(oop) \
+    M(close_fn)
 
 #define VM_ALL_BITCODE(M) \
     M(debug) \
@@ -194,6 +195,7 @@ struct InstructionMetadata {
 extern const InstructionMetadata kInstructionMetadata[MAX_BC_INSTRUCTIONS];
 extern const char * const kObjectOperatorText[MAX_OO_OPERATORS];
 extern const char * const kComparatorText[MAX_CC_COMPARATORS];
+extern const char * const kSegmentText[MAX_BC_SEGMENTS];
 
 } // namespace mio
 

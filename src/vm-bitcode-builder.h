@@ -190,7 +190,9 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     // call
     ////////////////////////////////////////////////////////////////////////////
-    int call(uint16_t base1, uint16_t base2, CodeLabel *label);
+    int close_fn(uint16_t fn) {
+        return Emit3Addr(BC_close_fn, fn, 0, 0);
+    }
 
     int call_val(uint16_t base1, uint16_t base2, int32_t obj) {
         return Emit3Addr(BC_call_val, base1, base2, obj);

@@ -6,6 +6,7 @@
 #include "glog/logging.h"
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace mio {
 
@@ -29,6 +30,10 @@ public:
     int GetAllFunctions(std::vector<Handle<MIONormalFunction>> *all_functions) override;
 
 private:
+    int GetAllFnByFn(Handle<MIONormalFunction> fn,
+                     std::vector<Handle<MIONormalFunction>> *all_functions,
+                     std::unordered_set<MIONormalFunction*> *unique_fn);
+
     std::unordered_map<std::string, FunctionEntry *> functions_;
     MemorySegment *global_;
 };

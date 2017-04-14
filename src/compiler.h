@@ -4,7 +4,6 @@
 #include "zone-hash-map.h"
 #include "zone-vector.h"
 #include "zone.h"
-#include "code-label.h"
 #include <unordered_map>
 
 namespace mio {
@@ -17,6 +16,8 @@ class FunctionEntry;
 class MemorySegment;
 class ObjectFactory;
 class FunctionRegister;
+
+class MIOFunction;
 
 // [unitName, [statement]]
 typedef ZoneHashMap<RawStringRef, ZoneVector<Statement *> *> ParsedUnitMap;
@@ -49,17 +50,19 @@ struct CompiledInfo {
 
 class FunctionEntry {
 public:
-    FunctionEntry() : offset_(0), is_native_(false) {}
+    enum Kind {
+        NORMAL,
+        NATIVE,
+    };
+    FunctionEntry() : offset_(0), kind_(NORMAL) {}
 
     DEF_PROP_RW(int, offset)
-    DEF_PROP_RW(bool, is_native)
-    DEF_MUTABLE_GETTER(CodeLabel, label)
+    DEF_PROP_RW(Kind, kind)
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(FunctionEntry)
 private:
-    int offset_;
-    CodeLabel label_;
-    bool is_native_;
+    int  offset_;
+    Kind kind_;
 }; // class FunctionEntry
 
 class Compiler {

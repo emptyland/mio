@@ -84,7 +84,7 @@ MallocedObjectFactory::CreateNativeFunction(const char *signature,
 /*virtual*/
 Handle<MIONormalFunction>
 MallocedObjectFactory::CreateNormalFunction(const std::vector<Handle<HeapObject>> &constant_objects,
-                                            const void *constant_primitive,
+                                            const void *constant_primitive_data,
                                             int constant_primitive_size,
                                             const void *code,
                                             int code_size) {
@@ -100,7 +100,7 @@ MallocedObjectFactory::CreateNormalFunction(const std::vector<Handle<HeapObject>
     ob->SetName(nullptr);
 
     ob->SetConstantPrimitiveSize(constant_primitive_size);
-    memcpy(ob->GetConstantPrimitive(), constant_primitive, constant_primitive_size);
+    memcpy(ob->GetConstantPrimitiveData(), constant_primitive_data, constant_primitive_size);
 
     ob->SetConstantObjectSize(static_cast<int>(constant_objects.size()));
     for (int i = 0; i < ob->GetConstantObjectSize(); ++i) {

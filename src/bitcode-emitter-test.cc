@@ -156,5 +156,111 @@ TEST_F(BitCodeEmitterTest, P013_UnionOperation) {
 
     printf("%s\n", dasm.c_str());
 }
+//
+//    class TypeDigest {
+//    public:
+//        static const int64_t kInitialValue = 1315423911;
+//
+//        TypeDigest() = default;
+//
+//        int64_t value() const { return value_; }
+//
+//        void Step(int64_t atomic) {
+//            value_ ^= ((value_ << 5) + atomic + (value_ >> 2));
+//        }
+//        
+//    private:
+//        int64_t value_ = kInitialValue;
+//    };
+
+struct PrimitiveKey {
+    uint8_t size;
+    uint8_t padding0;
+    uint8_t data[8];
+
+#define KEY_CREATOR(byte, bit) \
+    static PrimitiveKey FromI##bit(mio_i##bit##_t value) { \
+        PrimitiveKey k; \
+        k.size = byte; \
+        memcpy(k.data, &value, k.size); \
+        return k; \
+    }
+
+    MIO_INT_BYTES_TO_BITS(KEY_CREATOR)
+
+#undef KEY_CREATOR
+};
+
+struct PrimitiveKeyFallbackHash {
+    std::size_t operator()(PrimitiveKey const &k) const {
+        std::size_t h = 1315423911;
+        for (int i = 0; i < k.size; ++i) {
+            h ^= ((h << 5) + k.data[i] + (h >> 2));
+        }
+        return h;
+    }
+};
+
+struct PrimitiveKeyFastHash {
+    std::size_t operator()(PrimitiveKey const &k) const {
+        std::size_t h = 1315423911;
+        h ^= ((h << 5) + k.data[0] + (h >> 2));
+        if (k.size == 1) {
+            return h;
+        }
+        h ^= ((h << 5) + k.data[1] + (h >> 2));
+        if (k.size == 2) {
+            return h;
+        }
+        h ^= ((h << 5) + k.data[2] + (h >> 2));
+        h ^= ((h << 5) + k.data[3] + (h >> 2));
+        if (k.size == 4) {
+            return h;
+        }
+        h ^= ((h << 5) + k.data[4] + (h >> 2));
+        h ^= ((h << 5) + k.data[5] + (h >> 2));
+        h ^= ((h << 5) + k.data[6] + (h >> 2));
+        h ^= ((h << 5) + k.data[7] + (h >> 2));
+        return h;
+    }
+};
+
+struct PrimitiveKeyEqualTo {
+    bool operator() (const PrimitiveKey &lhs, const PrimitiveKey &rhs) const {
+        if (lhs.size == rhs.size) {
+            return memcmp(lhs.data, rhs.data, lhs.size) == 0;
+        }
+        return false;
+    }
+};
+
+typedef std::unordered_map<PrimitiveKey, int, PrimitiveKeyFastHash, PrimitiveKeyEqualTo> PrimitiveMap;
+
+TEST_F(BitCodeEmitterTest, PrimitiveHashKey) {
+    printf("sizeof(PrimitiveKey) = %lu\n", sizeof(PrimitiveKey));
+
+
+    PrimitiveKeyFallbackHash fallback;
+    PrimitiveKeyFastHash     fast;
+
+    auto k = PrimitiveKey::FromI8(100);
+    ASSERT_EQ(fallback(k), fast(k));
+
+    k = PrimitiveKey::FromI16(0x3fff);
+    ASSERT_EQ(fallback(k), fast(k));
+
+    k = PrimitiveKey::FromI32(0x7fffffff);
+    ASSERT_EQ(fallback(k), fast(k));
+
+    PrimitiveMap map;
+    auto k100 = PrimitiveKey::FromI8(100);
+    map.emplace(k100, 100);
+
+    auto k110 = PrimitiveKey::FromI32(110);
+    map.emplace(k110, 110);
+
+    ASSERT_EQ(100, map[k100]);
+    ASSERT_EQ(110, map[k110]);
+}
 
 } // namespace mio

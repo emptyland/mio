@@ -48,6 +48,8 @@ public:
     static void Disassemble(MemorySegment *code, int number_of_inst,
                             std::string *buf);
 
+    static void Disassemble(Handle<MIONormalFunction> fn, std::string *buf);
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(BitCodeDisassembler)
 private:
     TextOutputStream *stream_;

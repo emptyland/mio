@@ -5,6 +5,7 @@
 #include "vm-objects.h"
 #include "vm-object-factory.h"
 #include "vm-function-register.h"
+#include "vm-bitcode-disassembler.h"
 #include "scopes.h"
 #include "types.h"
 #include "ast.h"
@@ -39,6 +40,88 @@
 
 namespace mio {
 
+namespace {
+
+struct PrimitiveKey {
+    uint8_t size;
+    uint8_t padding0;
+    uint8_t data[8];
+
+    static PrimitiveKey FromData(const void *p, int n) {
+        PrimitiveKey k;
+        auto d = static_cast<const uint8_t *>(p);
+        k.size = static_cast<uint8_t>(n);
+
+        k.data[0] = d[0];
+        if (k.size == 1) {
+            goto out;
+        }
+        k.data[1] = d[1];
+        if (k.size == 2) {
+            goto out;
+        }
+        k.data[2] = d[2];
+        k.data[3] = d[3];
+        if (k.size == 4) {
+            goto out;
+        }
+        k.data[4] = d[4];
+        k.data[5] = d[5];
+        k.data[6] = d[6];
+        k.data[7] = d[7];
+    out:
+        return k;
+    }
+};
+
+struct PrimitiveKeyFallbackHash {
+    std::size_t operator()(PrimitiveKey const &k) const {
+        std::size_t h = 1315423911;
+        for (int i = 0; i < k.size; ++i) {
+            h ^= ((h << 5) + k.data[i] + (h >> 2));
+        }
+        return h;
+    }
+};
+
+struct PrimitiveKeyFastHash {
+    std::size_t operator()(PrimitiveKey const &k) const {
+        std::size_t h = 1315423911;
+        h ^= ((h << 5) + k.data[0] + (h >> 2));
+        if (k.size == 1) {
+            return h;
+        }
+        h ^= ((h << 5) + k.data[1] + (h >> 2));
+        if (k.size == 2) {
+            return h;
+        }
+        h ^= ((h << 5) + k.data[2] + (h >> 2));
+        h ^= ((h << 5) + k.data[3] + (h >> 2));
+        if (k.size == 4) {
+            return h;
+        }
+        h ^= ((h << 5) + k.data[4] + (h >> 2));
+        h ^= ((h << 5) + k.data[5] + (h >> 2));
+        h ^= ((h << 5) + k.data[6] + (h >> 2));
+        h ^= ((h << 5) + k.data[7] + (h >> 2));
+        return h;
+    }
+};
+
+struct PrimitiveKeyEqualTo {
+    bool operator() (const PrimitiveKey &lhs, const PrimitiveKey &rhs) const {
+        if (lhs.size == rhs.size) {
+            return memcmp(lhs.data, rhs.data, lhs.size) == 0;
+        }
+        return false;
+    }
+};
+
+} // namespace
+
+typedef std::unordered_map<PrimitiveKey, int,
+    PrimitiveKeyFastHash, PrimitiveKeyEqualTo> PrimitiveMap;
+
 struct VMValue {
     BCSegment segment;
     int       offset;
@@ -47,7 +130,6 @@ struct VMValue {
     bool is_void() const { return offset < 0 && size < 0; }
 
     static VMValue Void() { return { MAX_BC_SEGMENTS, -1, -1, }; }
-    static VMValue Zero() { return { BC_FUNCTION_CONSTANT_PRIMITIVE_SEGMENT, 0, 8 }; }
 };
 
 class EmittedScope {
@@ -115,8 +197,19 @@ public:
 
     template<class T>
     VMValue MakeConstantPrimitiveValue(T value) {
+        auto key = PrimitiveKey::FromData(&value, static_cast<int>(sizeof(value)));
+        auto iter = constant_primitive_map_.find(key);
+        if (iter != constant_primitive_map_.end()) {
+            return {
+                .segment = BC_FUNCTION_CONSTANT_PRIMITIVE_SEGMENT,
+                .offset  = iter->second,
+                .size    = sizeof(value),
+            };
+        }
+
         auto offset = constant_primitive_->size();
         constant_primitive_->Add(value);
+        constant_primitive_map_.emplace(key, offset);
         return {
             .segment = BC_FUNCTION_CONSTANT_PRIMITIVE_SEGMENT,
             .offset  = offset,
@@ -124,8 +217,9 @@ public:
         };
     }
 
-    Handle<HeapObject> constant_object(int index) {
-        return constant_objects_[index];
+
+    Handle<HeapObject> constant_object(int offset) {
+        return constant_objects_[offset / kObjectReferenceSize];
     }
 
     const std::vector<Handle<HeapObject>> &constant_objects() const {
@@ -135,7 +229,16 @@ public:
     BitCodeBuilder *builder() { return &builder_; }
     EmittedScope *prev() const { return saved_; }
     MemorySegment *code() const { return code_; }
+
     MemorySegment *constant_primitive() const { return constant_primitive_; }
+
+    void *constant_primitive_data() const {
+        return constant_primitive_size() ? constant_primitive()->offset(0) : nullptr;
+    }
+
+    int constant_primitive_size() const {
+        return constant_primitive()->size();
+    }
 
 private:
     MemorySegment *code_;
@@ -149,6 +252,7 @@ private:
     Scope *scope_;
     std::vector<Variable *> upvalues_;
     std::vector<Handle<HeapObject>> constant_objects_;
+    PrimitiveMap constant_primitive_map_;
 };
 
 class EmittingAstVisitor : public DoNothingAstVisitor {
@@ -247,7 +351,8 @@ private:
     void EmitStore(const VMValue &dest, const VMValue &src);
     void EmitMove(const VMValue &dest, const VMValue &src);
 
-    VMValue GetEmptyObject(Type *type);
+    VMValue EmitEmptyValue(Type *type);
+
     int GetVariableOffset(Variable *var, Scope *scope);
 
     int TypeInfoIndex(Type *type) {
@@ -327,8 +432,6 @@ void EmittingAstVisitor::VisitFunctionDefine(FunctionDefine *node) {
 
 void EmittingAstVisitor::EmitGlobalFunction(FunctionDefine *node) {
     auto full_name = node->scope()->MakeFullName(node->name());
-    auto entry = emitter_->function_register_->FindOrInsert(full_name.c_str());
-    entry->set_is_native(node->is_native());
 
     Handle<MIOString> name;
     GetOrNewString(full_name, &name);
@@ -356,11 +459,17 @@ void EmittingAstVisitor::EmitGlobalFunction(FunctionDefine *node) {
         auto value = Emit(node->function_literal());
 
         DCHECK_EQ(BC_FUNCTION_CONSTANT_OBJECT_SEGMENT, value.segment);
-        ob = static_cast<MIOFunction *>(current_->constant_object(value.offset / 8).get());
+        ob = static_cast<MIOFunction *>(current_->constant_object(value.offset).get());
+        DCHECK(ob->IsNormalFunction()) << ob->GetKind();
     }
     ob->SetName(name.get());
 
+    auto entry = emitter_->function_register_->FindOrInsert(full_name.c_str());
+    entry->set_kind(node->is_native() ? FunctionEntry::NATIVE : FunctionEntry::NORMAL);
+
     auto value = MakeGlobalObjectValue(ob);
+    entry->set_offset(value.offset);
+
     node->instance()->set_bind_kind(Variable::GLOBAL);
     node->instance()->set_offset(value.offset);
 }
@@ -369,7 +478,23 @@ void EmittingAstVisitor::EmitLocalFunction(FunctionDefine *node) {
     auto full_name = node->scope()->MakeFullName(node->name());
     DCHECK(!node->is_native());
 
+    auto value = Emit(node->function_literal());
+    DCHECK_EQ(BC_FUNCTION_CONSTANT_OBJECT_SEGMENT, value.segment);
 
+    auto ob = static_cast<MIOFunction *>(current_->constant_object(value.offset).get());
+
+    Handle<MIOString> name;
+    GetOrNewString(full_name, &name);
+    ob->SetName(name.get());
+
+    auto result = EmitLoadMakeRoom(value);
+    if (ob->IsClosure()) {
+        DCHECK(ob->AsClosure()->IsOpen());
+        builder()->close_fn(result.offset);
+    }
+
+    node->instance()->set_bind_kind(Variable::LOCAL);
+    node->instance()->set_offset(result.offset);
 }
 
 void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
@@ -432,14 +557,14 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
                                            0, object_argument_size);
     builder()->code()->Set(frame_placement * sizeof(uint64_t), frame);
 
-    Handle<MIOFunction> obj =
+    Handle<MIOFunction> ob =
             emitter_->object_factory_->CreateNormalFunction(info.constant_objects(),
-                                                            info.constant_primitive()->offset(0),
-                                                            info.constant_primitive()->size(),
+                                                            info.constant_primitive_data(),
+                                                            info.constant_primitive_size(),
                                                             builder()->code()->offset(0),
                                                             builder()->code()->size());
     if (node->up_values_size() > 0) {
-        auto closure = emitter_->object_factory_->CreateClosure(obj, node->up_values_size());
+        auto closure = emitter_->object_factory_->CreateClosure(ob, node->up_values_size());
         for (int i = 0; i < node->up_values_size(); ++i) {
             auto upval = node->up_value(i);
             auto offset = GetVariableOffset(upval->link(), current_->scope());
@@ -454,9 +579,9 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
                     static_cast<int32_t>((upval->link()->unique_id() & 0x7fffffff) << 1) | 1;
             }
         }
-        obj = closure;
+        ob = closure;
     }
-    PushValue(current_->MakeConstantObjectValue(obj));
+    PushValue(info.prev()->MakeConstantObjectValue(ob));
 }
 
 void EmittingAstVisitor::VisitBlock(Block *node) {
@@ -520,7 +645,7 @@ void EmittingAstVisitor::VisitValDeclaration(ValDeclaration *node) {
             if (node->has_initializer()) {
                 tmp = Emit(node->initializer());
             } else {
-                tmp = VMValue::Zero();
+                tmp = EmitEmptyValue(node->type());
             }
         } else {
             if (node->has_initializer()) {
@@ -531,7 +656,7 @@ void EmittingAstVisitor::VisitValDeclaration(ValDeclaration *node) {
                     tmp = union_ob;
                 }
             } else {
-                tmp = GetEmptyObject(node->type());
+                tmp = EmitEmptyValue(node->type());
             }
         }
         value = EmitStoreMakeRoom(tmp);
@@ -542,7 +667,7 @@ void EmittingAstVisitor::VisitValDeclaration(ValDeclaration *node) {
             if (node->has_initializer()) {
                 value = Emit(node->initializer());
             } else {
-                value = VMValue::Zero();
+                value = EmitEmptyValue(node->type());
             }
         } else {
             if (node->has_initializer()) {
@@ -553,7 +678,7 @@ void EmittingAstVisitor::VisitValDeclaration(ValDeclaration *node) {
                     value = union_ob;
                 }
             } else {
-                value = GetEmptyObject(node->type());
+                value = EmitEmptyValue(node->type());
             }
         }
         DCHECK_NOTNULL(node->instance())->set_bind_kind(Variable::LOCAL);
@@ -578,7 +703,7 @@ void EmittingAstVisitor::VisitVarDeclaration(VarDeclaration *node) {
             if (node->has_initializer()) {
                 tmp = Emit(node->initializer());
             } else {
-                tmp = VMValue::Zero();
+                tmp = EmitEmptyValue(node->type());
             }
         } else {
             if (node->has_initializer()) {
@@ -589,7 +714,7 @@ void EmittingAstVisitor::VisitVarDeclaration(VarDeclaration *node) {
                     tmp = union_ob;
                 }
             } else {
-                tmp = GetEmptyObject(node->type());
+                tmp = EmitEmptyValue(node->type());
             }
         }
         value = EmitStoreMakeRoom(tmp);
@@ -600,7 +725,7 @@ void EmittingAstVisitor::VisitVarDeclaration(VarDeclaration *node) {
             if (node->has_initializer()) {
                 value = Emit(node->initializer());
             } else {
-                value = VMValue::Zero();
+                value = EmitEmptyValue(node->type());
             }
         } else {
             if (node->has_initializer()) {
@@ -611,7 +736,7 @@ void EmittingAstVisitor::VisitVarDeclaration(VarDeclaration *node) {
                     value = union_ob;
                 }
             } else {
-                value = GetEmptyObject(node->type());
+                value = EmitEmptyValue(node->type());
             }
         }
         DCHECK_NOTNULL(node->instance())->set_bind_kind(Variable::LOCAL);
@@ -625,7 +750,6 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
     DCHECK(cond.segment == BC_LOCAL_PRIMITIVE_SEGMENT);
 
     auto outter = builder()->jz(cond.offset, builder()->pc());
-
     if (node->has_else()) {
         bool need_union = node->then_type()->GenerateId() !=
                           node->else_type()->GenerateId();
@@ -661,6 +785,7 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
         VMValue val;
         // then
         auto then_val = Emit(node->then_statement());
+
         val.segment = BC_LOCAL_OBJECT_SEGMENT;
         val.offset  = current_->MakeObjectRoom();
         val.size    = kObjectReferenceSize;
@@ -1373,19 +1498,48 @@ void EmittingAstVisitor::EmitMove(const VMValue &dest, const VMValue &src) {
     }
 }
 
-VMValue EmittingAstVisitor::GetEmptyObject(Type *type) {
-    if (type->IsString()) {
-        return GetOrNewString("", 0, nullptr);
-    }
+VMValue EmittingAstVisitor::EmitEmptyValue(Type *type) {
+    DCHECK(!type->IsVoid());
 
-    VMValue result = current_->MakeObjectValue();
-    if (type->IsUnion()) {
-        EmitCreateUnion(result, {}, emitter_->types_->GetVoid());
-        return result;
-    } else if (type->IsMap()) {
-        auto map = type->AsMap();
-        builder()->oop(OO_Map, result.offset, TypeInfoIndex(map->key()),
-                       TypeInfoIndex(map->value()));
+    if (type->is_primitive()) {
+        auto result = current_->MakePrimitiveValue(type->placement_size());
+
+        if (type->IsIntegral()) {
+            switch (type->placement_size()) {
+            #define DEFINE_CASE(byte, bit) \
+                case byte: \
+                    builder()->load_i##bit##_imm(result.offset, 0);
+                MIO_SMI_BYTES_TO_BITS(DEFINE_CASE)
+            #undef DEFINE_CASE
+                case 8: {
+                    auto tmp = current_->MakeConstantPrimitiveValue(static_cast<mio_i64_t>(0));
+                    EmitLoad(result, tmp);
+                } break;
+                default:
+                    DLOG(FATAL) << "noreached, bad integral size: " << type->placement_size();
+                    break;
+            }
+        } else if (type->IsFloating()) {
+            #define DEFINE_CASE(byte, bit) \
+                case byte: { \
+                    auto tmp = current_->MakeConstantPrimitiveValue(static_cast<mio_f##bit##_t>(0)); \
+                    EmitLoad(result, tmp); \
+                } break;
+            MIO_FLOAT_BYTES_SWITCH(type->placement_size(), DEFINE_CASE)
+            #undef DEFINE_CASE
+        }
+    } else {
+        auto result = current_->MakeObjectValue();
+
+        if (type->IsString()) {
+            EmitLoad(result, GetOrNewString("", 0, nullptr));
+        } else if (type->IsUnion()) {
+            EmitCreateUnion(result, {}, emitter_->types_->GetVoid());
+        } else if (type->IsMap()) {
+            auto map = type->AsMap();
+            builder()->oop(OO_Map, result.offset, TypeInfoIndex(map->key()),
+                           TypeInfoIndex(map->value()));
+        }
         return result;
     }
 
@@ -1428,22 +1582,11 @@ int EmittingAstVisitor::GetVariableOffset(Variable *var, Scope *scope) {
 }
 
 VMValue EmittingAstVisitor::GetOrNewString(const char *z, int n, Handle<MIOString> *rv) {
-    VMValue value = {
-        .segment = BC_GLOBAL_OBJECT_SEGMENT,
-        .offset  = 0,
-        .size    = kObjectReferenceSize,
-    };
-
-    int *offset;
-    auto obj = emitter_->object_factory_->GetOrNewString(z, n, &offset);
-    if (*offset < 0) {
-        *offset = emitter_->o_global_->size();
-        emitter_->o_global_->Add(obj.get());
-    }
-    value.offset = *offset;
+    auto ob = emitter_->object_factory_->GetOrNewString(z, n, nullptr);
+    auto value = current_->MakeConstantObjectValue(ob);
 
     if (rv) {
-        *rv = std::move(obj);
+        *rv = std::move(ob);
     }
     return value;
 }
@@ -1639,17 +1782,17 @@ bool BitCodeEmitter::EmitModule(RawStringRef module_name,
     builder->code()->Set(frame_placement * sizeof(uint64_t), frame);
 
     auto boot_name = TextOutputStream::sprintf("::%s::bootstrap", module_name->c_str());
-    auto obj = object_factory_->CreateNormalFunction(info.constant_objects(),
-                                                     info.constant_primitive()->offset(0),
-                                                     info.constant_primitive()->size(),
-                                                     builder->code()->offset(0),
-                                                     builder->code()->size());
+    auto ob = object_factory_->CreateNormalFunction(info.constant_objects(),
+                                                    info.constant_primitive_data(),
+                                                    info.constant_primitive_size(),
+                                                    builder->code()->offset(0),
+                                                    builder->code()->size());
     Handle<MIOString> inner_name;
     visitor.GetOrNewString(boot_name, &inner_name);
-    obj->SetName(inner_name.get());
+    ob->SetName(inner_name.get());
 
     auto offset = o_global_->size();
-    o_global_->Add(obj.get());
+    o_global_->Add(ob.get());
     entry = function_register_->FindOrInsert(boot_name.c_str());
     entry->set_offset(offset);
 

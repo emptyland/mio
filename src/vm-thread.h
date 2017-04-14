@@ -10,15 +10,6 @@ class VM;
 class Stack;
 class HeapObject;
 
-struct CallContext {
-    int p_stack_base;
-    int p_stack_size;
-    int o_stack_base;
-    int o_stack_size;
-    int pc;
-    uint64_t *bc;
-};
-
 class CallStack;
 class MIOString;
 class MIOError;

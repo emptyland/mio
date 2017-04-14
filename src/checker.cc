@@ -42,7 +42,6 @@ public:
         , up_values_(DCHECK_NOTNULL(up_values))
         , fn_scope_(DCHECK_NOTNULL(fn_scope))
         , zone_(DCHECK_NOTNULL(zone)) {
-        DCHECK_EQ(FUNCTION_SCOPE, fn_scope->type());
         DCHECK_NE(this, *current_);
         *current_ = this;
         types_ = new (zone_) Union::TypeMap(zone_);

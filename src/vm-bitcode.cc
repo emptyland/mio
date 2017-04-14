@@ -20,4 +20,15 @@ const char * const kComparatorText[MAX_CC_COMPARATORS] = {
 #undef ComparatorText_ELEM_DEFINE
 };
 
+const char * const kSegmentText[MAX_BC_SEGMENTS] = {
+    "gp", // BC_GLOBAL_PRIMITIVE_SEGMENT,
+    "go", // BC_GLOBAL_OBJECT_SEGMENT,
+    "cp", // BC_FUNCTION_CONSTANT_PRIMITIVE_SEGMENT,
+    "co", // BC_FUNCTION_CONSTANT_OBJECT_SEGMENT,
+    "up", // BC_UP_PRIMITIVE_SEGMENT,
+    "uo", // BC_UP_OBJECT_SEGMENT,
+    "lp", // BC_LOCAL_PRIMITIVE_SEGMENT,
+    "lo", // BC_LOCAL_OBJECT_SEGMENT,
+};
+
 } // namespace mio
