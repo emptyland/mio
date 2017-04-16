@@ -15,12 +15,11 @@ class ObjectFactory;
 class FunctionRegister;
 class Declaration;
 class PackageImporter;
-    class EmittedScope;
+class EmittedScope;
 
 class BitCodeEmitter {
 public:
-    BitCodeEmitter(MemorySegment *constants,
-                   MemorySegment *p_global,
+    BitCodeEmitter(MemorySegment *p_global,
                    MemorySegment *o_global,
                    TypeFactory *types,
                    ObjectFactory *object_factory,
@@ -46,7 +45,6 @@ private:
                            EmittedScope *info,
                            ParsedModuleMap *all_modules);
 
-    MemorySegment *constants_;
     MemorySegment *p_global_;
     MemorySegment *o_global_;
     TypeFactory *types_;
@@ -54,7 +52,7 @@ private:
     FunctionRegister *function_register_;
     std::unordered_set<Declaration *> emitted_;
     std::unordered_set<std::string> imported_;
-    int type_id_base_ = 0;
+    int all_type_base_ = 0;
     std::unordered_map<int64_t, int> type_id2index_;
 };
 

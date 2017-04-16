@@ -10,6 +10,7 @@ class VM;
 class Stack;
 class HeapObject;
 
+struct CallContext;
 class CallStack;
 class MIOString;
 class MIOError;
@@ -58,11 +59,21 @@ public:
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Thread)
 private:
-    void ProcessObjectOperation(int id, uint16_t result, int16_t val1, int16_t val2, bool *ok);
+    void ProcessLoadPrimitive(CallContext *top, int bytes, uint16_t dest,
+                              uint16_t segment, int32_t offset, bool *ok);
+    void ProcessLoadObject(CallContext *top, uint16_t dest, uint16_t segment,
+                           int32_t offset, bool *ok);
+    void ProcessObjectOperation(int id, uint16_t result, int16_t val1,
+                                int16_t val2, bool *ok);
 
-    int ToString(TextOutputStream *stream, void *addr, Handle<MIOReflectionType> reflection, bool *ok);
-    Handle<MIOUnion> CreateOrMergeUnion(int inbox, Handle<MIOReflectionType> reflection, bool *ok);
-    void CreateEmptyValue(int result, Handle<MIOReflectionType> reflection, bool *ok);
+    int ToString(TextOutputStream *stream, void *addr,
+                 Handle<MIOReflectionType> reflection, bool *ok);
+
+    Handle<MIOUnion> CreateOrMergeUnion(int inbox,
+                                        Handle<MIOReflectionType> reflection,
+                                        bool *ok);
+    void CreateEmptyValue(int result,
+                          Handle<MIOReflectionType> reflection, bool *ok);
     Handle<MIOReflectionType> GetTypeInfo(int index);
 
     VM *vm_;

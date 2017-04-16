@@ -40,9 +40,8 @@ struct ParsingError {
 }; // struct ParsingError
 
 struct CompiledInfo {
-    int type_id_base;
-    int type_id_bytes;
-    int type_void_index;
+    int all_type_base;
+    int void_type_index;
     int constatns_segment_bytes;
     int global_primitive_segment_bytes;
     int global_object_segment_bytes;
@@ -81,7 +80,6 @@ public:
                                   ParsingError *error);
 
     static void AstEmitToBitCode(ParsedModuleMap *all_modules,
-                                 MemorySegment *constants,
                                  MemorySegment *p_global,
                                  MemorySegment *o_global,
                                  TypeFactory *types,

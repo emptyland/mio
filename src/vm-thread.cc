@@ -23,14 +23,22 @@ struct CallContext {
     int pc;
     uint64_t *bc;
 
-//    void        *constant_primitive;
-//    int          constant_primitive_size;
-//
-//    HeapObject **constant_objects;
-//    int          constant_objects_size;
-//
-//    MIOUpValue **up_values_;
-//    int          up_values_size_;
+    inline MIONormalFunction *normal_function() {
+        auto fn = callee->AsNormalFunction();
+        return fn ? fn : DCHECK_NOTNULL(callee->AsClosure())->GetFunction()->AsNormalFunction();
+    }
+
+    inline mio_buf_t<uint8_t> const_primitive_buf() {
+        return DCHECK_NOTNULL(normal_function())->GetConstantPrimitiveBuf();
+    }
+
+    inline mio_buf_t<HeapObject *> const_object_buf() {
+        return DCHECK_NOTNULL(normal_function())->GetConstantObjectBuf();
+    }
+
+    inline mio_buf_t<UpValDesc> upvalue_buf() {
+        return DCHECK_NOTNULL(callee->AsClosure())->GetUpValuesBuf();
+    }
 };
 
 class CallStack {
@@ -76,6 +84,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
     bc_ = static_cast<uint64_t *>(callee->GetCode());
     while (!should_exit_) {
         auto bc = bc_[pc_++];
+        auto top = call_stack_->size() ? call_stack_->Top() : nullptr;
 
         switch (BitCodeDisassembler::GetInst(bc)) {
             case BC_debug:
@@ -83,78 +92,46 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 exit_code_ = DEBUGGING;
                 return;
 
-            case BC_load_8b: {
-                auto dest = BitCodeDisassembler::GetOp1(bc);
-                auto segment = static_cast<BCSegment>(BitCodeDisassembler::GetOp2(bc));
-                auto offset = BitCodeDisassembler::GetImm32(bc);
-                if (segment == BC_FUNCTION_CONSTANT_PRIMITIVE_SEGMENT) {
-                    // TODO:
-                } else if (segment == BC_UP_PRIMITIVE_SEGMENT) {
-                    // TODO:
-                } else if (segment == BC_GLOBAL_PRIMITIVE_SEGMENT) {
-                    memcpy(p_stack_->offset(dest), vm_->p_global_->offset(offset), 8);
-                } else {
-                    DLOG(ERROR) << "load_xb segment error.";
-                    exit_code_ = BAD_BIT_CODE;
-                    *ok = false;
-                }
+        #define DEFINE_CASE(byte, bit) \
+            case BC_load_##byte##b: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto segment = BitCodeDisassembler::GetOp2(bc); \
+                auto offset = BitCodeDisassembler::GetImm32(bc); \
+                ProcessLoadPrimitive(top, byte, dest, segment, offset, ok); \
+                if (!*ok) { \
+                    return; \
+                } \
             } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
 
             case BC_load_o: {
                 auto dest = BitCodeDisassembler::GetOp1(bc);
-                auto segment = static_cast<BCSegment>(BitCodeDisassembler::GetOp2(bc));
+                auto segment = BitCodeDisassembler::GetOp2(bc);
                 auto offset = BitCodeDisassembler::GetImm32(bc);
-
-                Handle<HeapObject> ob;
-                switch (segment) {
-                    case BC_FUNCTION_CONSTANT_OBJECT_SEGMENT:
-                        // TODO:
-                        break;
-
-                    case BC_UP_OBJECT_SEGMENT:
-                        // TODO:
-                        break;
-
-                    case BC_GLOBAL_OBJECT_SEGMENT:
-                        ob = vm_->o_global_->Get<HeapObject *>(offset);
-                        break;
-
-                    default:
-                        DLOG(ERROR) << "load_o segment error.";
-                        exit_code_ = BAD_BIT_CODE;
-                        *ok = false;
-                        return;
+                ProcessLoadObject(top, dest, segment, offset, ok);
+                if (!*ok) {
+                    return;
                 }
-                o_stack_->Set(dest, ob.get());
             } break;
 
-            case BC_load_i8_imm: {
-                auto dest = BitCodeDisassembler::GetOp1(bc);
-                auto imm32 = BitCodeDisassembler::GetImm32(bc);
-
-                p_stack_->Set(dest, static_cast<mio_i8_t>(imm32));
+        #define DEFINE_CASE(byte, bit) \
+            case BC_load_i##bit##_imm: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto imm32 = BitCodeDisassembler::GetImm32(bc); \
+                p_stack_->Set(dest, static_cast<mio_i##bit##_t>(imm32)); \
             } break;
+            MIO_SMI_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
 
-            case BC_load_i32_imm: {
-                auto dest = BitCodeDisassembler::GetOp1(bc);
-                auto imm32 = BitCodeDisassembler::GetImm32(bc);
-
-                p_stack_->Set(dest, imm32);
+        #define DEFINE_CASE(byte, bit) \
+            case BC_mov_##byte##b: { \
+                auto dest = BitCodeDisassembler::GetVal1(bc); \
+                auto src  = BitCodeDisassembler::GetVal2(bc); \
+                memcpy(p_stack_->offset(dest), p_stack_->offset(src), byte); \
             } break;
-
-            case BC_mov_1b: {
-                auto dest = BitCodeDisassembler::GetVal1(bc);
-                auto src  = BitCodeDisassembler::GetVal2(bc);
-
-                memcpy(p_stack_->offset(dest), p_stack_->offset(src), 1);
-            } break;
-
-            case BC_mov_8b: {
-                auto dest = BitCodeDisassembler::GetVal1(bc);
-                auto src  = BitCodeDisassembler::GetVal2(bc);
-
-                memcpy(p_stack_->offset(dest), p_stack_->offset(src), 8);
-            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
 
             case BC_mov_o: {
                 auto dest = BitCodeDisassembler::GetVal1(bc);
@@ -164,13 +141,15 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 o_stack_->Set(dest, ob);
             } break;
 
-            case BC_add_i32_imm: {
-                auto dest = BitCodeDisassembler::GetOp1(bc);
-                auto lhs  = BitCodeDisassembler::GetOp2(bc);
-                auto imm32 = BitCodeDisassembler::GetImm32(bc);
-
-                p_stack_->Set(dest, GetI32(lhs) + imm32);
+        #define DEFINE_CASE(byte, bit) \
+            case BC_add_i##bit##_imm: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs  = BitCodeDisassembler::GetOp2(bc); \
+                auto imm32 = BitCodeDisassembler::GetImm32(bc); \
+                p_stack_->Set(dest, GetI##bit(lhs) + static_cast<mio_i##bit##_t>(imm32)); \
             } break;
+            MIO_SMI_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
 
             case BC_frame: {
                 auto size1 = BitCodeDisassembler::GetOp1(bc);
@@ -246,7 +225,6 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
             } break;
 
             case BC_call_val: {
-
                 if (call_stack_->size() >= vm_->max_call_deep()) {
                     *ok = false;
                     exit_code_ = STACK_OVERFLOW;
@@ -254,13 +232,22 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 }
 
                 auto obj_addr = BitCodeDisassembler::GetImm32(bc);
-                Handle<HeapObject> obj(o_stack_->Get<HeapObject *>(obj_addr));
-                DLOG_IF(INFO, obj->IsString()) << obj->AsString()->GetData();
-                DCHECK(obj->IsNativeFunction() || obj->IsNormalFunction());
+                Handle<HeapObject> ob(o_stack_->Get<HeapObject *>(obj_addr));
+                DLOG_IF(INFO, ob->IsString()) << ob->AsString()->GetData();
+                DCHECK(ob->IsNativeFunction() || ob->IsNormalFunction() ||
+                       ob->IsClosure());
 
-                if (obj->IsNativeFunction()) {
-                    auto func = obj->AsNativeFunction();
-                    if (!func->GetNativePointer()) {
+                Handle<MIOFunction> fn;
+                if (ob->IsClosure()) {
+                    auto closure = ob->AsClosure();
+                    fn = DCHECK_NOTNULL(closure->GetFunction());
+                } else {
+                    fn = static_cast<MIOFunction *>(ob.get());
+                }
+
+                if (fn->IsNativeFunction()) {
+                    auto native = fn->AsNativeFunction();
+                    if (!native->GetNativePointer()) {
                         *ok = false;
                         exit_code_ = NULL_NATIVE_FUNCTION;
                         return;
@@ -271,18 +258,19 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                         .p_stack_size = p_stack_->size(),
                         .o_stack_base = o_stack_->base_size(),
                         .o_stack_size = o_stack_->size(),
+                        .callee       = static_cast<MIOFunction*>(ob.get()),
                     };
 
                     auto base1 = BitCodeDisassembler::GetOp1(bc);
                     auto base2 = BitCodeDisassembler::GetOp2(bc);
-                    p_stack_->AdjustFrame(base1, func->GetPrimitiveArgumentsSize());
-                    o_stack_->AdjustFrame(base2, func->GetObjectArgumentsSize());
+                    p_stack_->AdjustFrame(base1, native->GetPrimitiveArgumentsSize());
+                    o_stack_->AdjustFrame(base2, native->GetObjectArgumentsSize());
 
-                    (*func->GetNativePointer())(vm_, this);
+                    (*native->GetNativePointer())(vm_, this);
 
                     p_stack_->SetFrame(ctx.p_stack_base, ctx.p_stack_size);
                     o_stack_->SetFrame(ctx.o_stack_base, ctx.o_stack_size);
-                } else if (obj->IsNormalFunction()) {
+                } else {
                     auto ctx = call_stack_->Push();
                     ctx->p_stack_base = p_stack_->base_size();
                     ctx->p_stack_size = p_stack_->size();
@@ -290,31 +278,16 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                     ctx->o_stack_size = o_stack_->size();
                     ctx->pc = pc_;
                     ctx->bc = bc_;
+                    ctx->callee = static_cast<MIOFunction*>(ob.get());
 
-                    auto func = DCHECK_NOTNULL(obj->AsNormalFunction());
-                    ctx->callee = func;
-
+                    auto normal = DCHECK_NOTNULL(fn->AsNormalFunction());
                     auto base1 = BitCodeDisassembler::GetOp1(bc);
                     auto base2 = BitCodeDisassembler::GetOp2(bc);
                     p_stack_->AdjustFrame(base1, 0);
                     o_stack_->AdjustFrame(base2, 0);
 
                     pc_ = 0;
-                    bc_ = static_cast<uint64_t *>(func->GetCode());
-                } else if (obj->IsClosure()) {
-//                    auto ctx = call_stack_->Push();
-//                    ctx->p_stack_base = p_stack_->base_size();
-//                    ctx->p_stack_size = p_stack_->size();
-//                    ctx->o_stack_base = o_stack_->base_size();
-//                    ctx->o_stack_size = o_stack_->size();
-//                    ctx->pc = pc_;
-//                    ctx->bc = bc_;
-//
-//                    auto closure = DCHECK_NOTNULL(obj->AsClosure());
-//                    ctx->callee = closure;
-
-//                    pc_ = 0;
-//                    bc_ = static_cast<uint64_t *>(closure->GetFunction()->Get);
+                    bc_ = static_cast<uint64_t *>(normal->GetCode());
                 }
             } break;
 
@@ -386,6 +359,99 @@ Handle<MIOUnion> Thread::GetUnion(int addr, bool *ok) {
         return make_handle<MIOUnion>(nullptr);
     }
     return make_handle(ob->AsUnion());
+}
+
+void Thread::ProcessLoadPrimitive(CallContext *top, int bytes, uint16_t dest,
+                                  uint16_t segment, int32_t offset, bool *ok) {
+    switch (static_cast<BCSegment>(segment)) {
+        case BC_FUNCTION_CONSTANT_PRIMITIVE_SEGMENT: {
+            auto buf = top->const_primitive_buf();
+            if (offset < 0 || offset >= buf.n) {
+                DLOG(ERROR) << "function: " << top->callee->GetName()->GetData()
+                            << " constant primitive data out of range. "
+                            << offset << " vs. " << buf.n;
+                goto fail;
+            }
+            memcpy(p_stack_->offset(dest), buf.z + offset, bytes);
+        } return;
+
+        case BC_UP_PRIMITIVE_SEGMENT: {
+            auto buf = top->upvalue_buf();
+            auto idx = offset / kObjectReferenceSize;
+            if (idx < 0 || idx >= buf.n) {
+                DLOG(ERROR) << "up value data out of range. "
+                            << idx << " vs. " << buf.n;
+                goto fail;
+            }
+            auto upval = buf.z[idx].val;
+            if (upval->GetValueSize() < bytes) {
+                DLOG(ERROR) << "upvalue size too small, " << upval->GetValueSize()
+                            << " vs. " << bytes;
+                goto fail;
+            }
+            if (!upval->IsPrimitiveValue()) {
+                DLOG(ERROR) << "upvalue is not primitive value!";
+                goto fail;
+            }
+            memcpy(p_stack_->offset(dest), upval->GetValue(), bytes);
+        } return;
+
+        case BC_GLOBAL_PRIMITIVE_SEGMENT:
+            memcpy(p_stack_->offset(dest), vm_->p_global_->offset(offset), bytes);
+            return;
+
+        default:
+            DLOG(ERROR) << "load_xb segment error.";
+            break;
+    }
+fail:
+    exit_code_ = BAD_BIT_CODE;
+    *ok = false;
+}
+
+void Thread::ProcessLoadObject(CallContext *top, uint16_t dest, uint16_t segment,
+                               int32_t offset, bool *ok) {
+    switch (segment) {
+        case BC_FUNCTION_CONSTANT_OBJECT_SEGMENT: {
+            auto buf = top->const_object_buf();
+            auto idx = offset / kObjectReferenceSize;
+            if (idx < 0 || idx >= buf.n) {
+                DLOG(ERROR) << "constant object data out of range. " << idx
+                            << " vs. " <<  buf.n;
+                goto fail;
+            }
+            o_stack_->Set(dest, buf.z[idx]);
+        } return;
+
+        case BC_UP_OBJECT_SEGMENT: {
+            auto buf = top->upvalue_buf();
+            auto idx = offset / kObjectReferenceSize;
+            if (idx < 0 || idx >= buf.n) {
+                DLOG(ERROR) << "upvalue object data out of range. " << idx
+                            << " vs. " << buf.n;
+                goto fail;
+            }
+
+            auto upval = buf.z[idx].val;
+            if (!upval->IsObjectValue()) {
+                DLOG(ERROR) << "upval is not object!";
+                goto fail;
+            }
+
+            o_stack_->Set(dest, upval->GetObject());
+        } return;
+
+        case BC_GLOBAL_OBJECT_SEGMENT:
+            o_stack_->Set(dest, vm_->o_global_->Get<HeapObject *>(offset));
+            return;
+
+        default:
+            DLOG(ERROR) << "load_o segment error.";
+            break;
+    }
+fail:
+    exit_code_ = BAD_BIT_CODE;
+    *ok = false;
 }
 
 void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,

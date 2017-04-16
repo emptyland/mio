@@ -46,7 +46,6 @@ public:
 private:
     int max_call_deep_ = kDefaultMaxCallDeep;
     Thread *main_thread_;
-    MemorySegment *constants_;
     MemorySegment *p_global_;
     MemorySegment *o_global_;
     Zone *ast_zone_;

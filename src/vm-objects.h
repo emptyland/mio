@@ -209,14 +209,35 @@ public:
         return GetConstantObjects()[index];
     }
 
+    mio_buf_t<HeapObject *> GetConstantObjectBuf() {
+        return {
+            .z = GetConstantObjects(),
+            .n = GetConstantObjectSize(),
+        };
+    }
+
     void *GetConstantPrimitiveData() {
         return reinterpret_cast<uint8_t *>(this) + kHeaderOffset;
+    }
+
+    mio_buf_t<uint8_t> GetConstantPrimitiveBuf() {
+        return {
+            .z = static_cast<uint8_t *>(GetConstantPrimitiveData()),
+            .n = GetConstantPrimitiveSize(),
+        };
     }
 
     void *GetCode() {
         return reinterpret_cast<uint8_t *>(this) + kHeaderOffset +
                 GetConstantPrimitiveSize() +
                 (kObjectReferenceSize * GetConstantObjectSize());
+    }
+
+    mio_buf_t<uint64_t> GetCodeBuf() {
+        return {
+            .z = static_cast<uint64_t *>(GetCode()),
+            .n = GetCodeSize(),
+        };
     }
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIONormalFunction)
@@ -228,7 +249,25 @@ static_assert(sizeof(MIONormalFunction) == sizeof(HeapObject),
 
 class MIOUpValue final : public HeapObject {
 public:
+    static const int kUniqueIdOffset  = kHeapObjectOffset;
+    static const int kFlagsOffset = kUniqueIdOffset + sizeof(int32_t);
+    static const int kValueOffset     = kFlagsOffset + sizeof(uint32_t);
+    static const int kHeaderOffset    = kValueOffset + sizeof(void *);
 
+    DEFINE_HEAP_OBJ_RW(int32_t, UniqueId)
+    DEFINE_HEAP_OBJ_RW(uint32_t, Flags)
+    DEFINE_HEAP_OBJ_RW(void *, Value)
+
+    int GetValueSize()            { return (GetFlags() >> 1) & 0x7fffffff; }
+    bool IsObjectValue() const    { return (GetFlags() & 0x1) != 0; }
+    bool IsPrimitiveValue() const { return (GetFlags() & 0x1) == 0; }
+
+    HeapObject *GetObject() const {
+        DCHECK(IsObjectValue());
+        return static_cast<HeapObject *>(GetValue());
+    }
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOUpValue)
 }; // class MIOUpValue;
 
 union UpValDesc {
@@ -254,14 +293,21 @@ public:
     bool IsClose() const { return (GetFlags() & 0x1) != 0; }
     void Close() { SetFlags(GetFlags() | 0x1);     }
 
-    UpValDesc **mutable_up_values() {
-        return reinterpret_cast<UpValDesc **>(reinterpret_cast<uint8_t *>(this) + kUpValesOffset);
+    UpValDesc *GetUpValues() {
+        return reinterpret_cast<UpValDesc *>(reinterpret_cast<uint8_t *>(this) + kUpValesOffset);
     }
 
     UpValDesc *GetUpValue(int index) {
         DCHECK_GE(index, 0);
         DCHECK_LT(index, GetUpValueSize());
-        return mutable_up_values()[index];
+        return GetUpValues() + index;
+    }
+
+    mio_buf_t<UpValDesc> GetUpValuesBuf() {
+        return {
+            .z = GetUpValues(),
+            .n = GetUpValueSize(),
+        };
     }
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOClosure)

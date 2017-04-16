@@ -26,7 +26,6 @@ public:
         types_ = new TypeFactory(zone_);
         factory_ = new AstNodeFactory(zone_);
         code_ = new MemorySegment();
-        constant_ = new MemorySegment();
         p_global_ = new MemorySegment();
         o_global_ = new MemorySegment();
         object_factory_ = new MallocedObjectFactory();
@@ -38,7 +37,6 @@ public:
         delete object_factory_;
         delete o_global_;
         delete p_global_;
-        delete constant_;
         delete code_;
         delete factory_;
         delete types_;
@@ -62,8 +60,7 @@ public:
         ASSERT_TRUE(checker.Run()) << "checking fail: " << checker.last_error().ToString();
 
 
-        BitCodeEmitter emitter(constant_,
-                               p_global_,
+        BitCodeEmitter emitter(p_global_,
                                o_global_,
                                types_,
                                object_factory_,
@@ -88,7 +85,6 @@ protected:
     AstNodeFactory   *factory_ = nullptr;
     SimpleFileSystem *sfs_     = nullptr;
     MemorySegment    *code_    = nullptr;
-    MemorySegment    *constant_ = nullptr;
     MemorySegment    *p_global_ = nullptr;
     MemorySegment    *o_global_ = nullptr;
     MallocedObjectFactory  *object_factory_ = nullptr;

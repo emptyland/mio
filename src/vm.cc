@@ -15,7 +15,6 @@ namespace mio {
 
 VM::VM()
     : main_thread_(new Thread(this))
-    , constants_(new MemorySegment())
     , p_global_(new MemorySegment())
     , o_global_(new MemorySegment())
     , ast_zone_(new Zone()) {
@@ -24,7 +23,6 @@ VM::VM()
 VM::~VM() {
     delete p_global_;
     delete o_global_;
-    delete constants_;
     delete main_thread_;
 }
 
@@ -55,16 +53,14 @@ bool VM::CompileProject(const char *project_dir, ParsingError *error) {
     }
 
     CompiledInfo info;
-    Compiler::AstEmitToBitCode(all_modules_, constants_, p_global_, o_global_,
-                               types.get(), object_factory_, function_register_,
-                               &info);
+    Compiler::AstEmitToBitCode(all_modules_, p_global_, o_global_, types.get(),
+                               object_factory_, function_register_, &info);
     DLOG(INFO) << "cs: " << info.constatns_segment_bytes << "\n"
                << "pg: " << info.global_primitive_segment_bytes << "\n"
                << "og: " << info.global_object_segment_bytes;
 
-    type_info_base_ = info.type_id_base;
-    type_info_size_ = info.type_id_bytes;
-    type_void_index = info.type_void_index;
+    type_info_base_ = info.all_type_base;
+    type_void_index = info.void_type_index;
     return true;
 }
 

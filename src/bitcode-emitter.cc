@@ -1666,14 +1666,12 @@ TypeToReflection(Type *type, ObjectFactory *factory,
     return reft;
 }
 
-BitCodeEmitter::BitCodeEmitter(MemorySegment *constants,
-                               MemorySegment *p_global,
+BitCodeEmitter::BitCodeEmitter(MemorySegment *p_global,
                                MemorySegment *o_global,
                                TypeFactory *types,
                                ObjectFactory *object_factory,
                                FunctionRegister *function_register)
-    : constants_(DCHECK_NOTNULL(constants))
-    , p_global_(DCHECK_NOTNULL(p_global))
+    : p_global_(DCHECK_NOTNULL(p_global))
     , o_global_(DCHECK_NOTNULL(o_global))
     , types_(DCHECK_NOTNULL(types))
     , object_factory_(DCHECK_NOTNULL(object_factory))
@@ -1684,8 +1682,6 @@ BitCodeEmitter::~BitCodeEmitter() {
 }
 
 void BitCodeEmitter::Init() {
-    // fill zero number area.
-    memset(constants_->AlignAdvance(8), 0, 8);
     DCHECK(type_id2index_.empty());
 
     std::map<int64_t, Type *> all_type;
@@ -1700,7 +1696,7 @@ void BitCodeEmitter::Init() {
         TypeToReflection(pair.second, object_factory_, &all_obj);
     }
 
-    type_id_base_ = o_global_->size();
+    all_type_base_ = o_global_->size();
     int index = 0;
     for (const auto &pair : all_obj) {
         type_id2index_.emplace(pair.first, index++);
@@ -1728,10 +1724,8 @@ bool BitCodeEmitter::Run(ParsedModuleMap *all_modules, CompiledInfo *info) {
     auto ok = EmitModule(pair->key(), pair->value(), all_modules);
 
     if (info) {
-        info->type_id_base  = type_id_base_;
-        info->type_id_bytes = static_cast<int>(type_id2index_.size() * sizeof(MIOReflectionType *));
-        info->type_void_index = type_id2index_[types_->GetVoid()->GenerateId()];
-        info->constatns_segment_bytes        = constants_->size();
+        info->all_type_base   = all_type_base_;
+        info->void_type_index = type_id2index_[types_->GetVoid()->GenerateId()];
         info->global_primitive_segment_bytes = p_global_->size();
         info->global_object_segment_bytes    = o_global_->size();
     }

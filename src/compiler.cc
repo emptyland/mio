@@ -150,15 +150,13 @@ Compiler::ParseProject(const char *project_dir,
 }
 
 /*static*/ void Compiler::AstEmitToBitCode(ParsedModuleMap *all_modules,
-                                           MemorySegment *constants,
                                            MemorySegment *p_global,
                                            MemorySegment *o_global,
                                            TypeFactory *types,
                                            ObjectFactory *object_factory,
                                            FunctionRegister *function_register,
                                            CompiledInfo *info) {
-    BitCodeEmitter emitter(constants,
-                           p_global,
+    BitCodeEmitter emitter(p_global,
                            o_global,
                            types,
                            object_factory,

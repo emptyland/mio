@@ -39,10 +39,13 @@ typedef int64_t  mio_int_t;
 typedef float    mio_f32_t;
 typedef double   mio_f64_t;
 
-struct mio_strbuf_t {
-    const char *z;
-    int         n;
-}; // struct mio_strbuf_t
+template<class T>
+struct mio_buf_t {
+    T  *z;
+    int n;
+}; // struct mio_buf_t
+
+typedef mio_buf_t<const char> mio_strbuf_t;
 
 #define DISALLOW_IMPLICIT_CONSTRUCTORS(clazz_name) \
     clazz_name (const clazz_name &) = delete;      \
