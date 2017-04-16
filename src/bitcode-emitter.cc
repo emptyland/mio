@@ -569,7 +569,7 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
         auto closure = emitter_->object_factory_->CreateClosure(ob, node->up_values_size());
         for (int i = 0; i < node->up_values_size(); ++i) {
             auto upval = node->up_value(i);
-            auto offset = GetVariableOffset(upval->link(), current_->scope());
+            auto offset = GetVariableOffset(upval->link(), info.scope());
             auto desc = closure->GetUpValue(i);
 
             desc->desc.offset = offset;
@@ -1558,6 +1558,8 @@ int EmittingAstVisitor::GetVariableOffset(Variable *var, Scope *scope) {
 
     int base = 0;
     for (;;) {
+        scope = scope->outter_scope();
+
         if (scope->type() == FUNCTION_SCOPE) {
             fn_frame = fn_frame->prev();
             if (var->type()->is_primitive()) {
@@ -1565,7 +1567,7 @@ int EmittingAstVisitor::GetVariableOffset(Variable *var, Scope *scope) {
             } else {
                 base += fn_frame->o_stack_size();
             }
-            DCHECK_EQ(fn_frame->scope(), scope);
+            DCHECK_EQ(fn_frame->scope(), scope) << scope->name()->ToString();
         }
 
         if (scope == var->scope()) {
@@ -1577,7 +1579,6 @@ int EmittingAstVisitor::GetVariableOffset(Variable *var, Scope *scope) {
             }
             return -base;
         }
-        scope = scope->outter_scope();
     }
 
     return 0;

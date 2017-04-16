@@ -44,6 +44,11 @@ public:
                                  Handle<MIOReflectionType> type_info) override;
 
     virtual
+    Handle<MIOUpValue>
+    GetOrNewUpValue(const void *data, int size, int32_t unique_id,
+                    bool is_primitive) override;
+
+    virtual
     Handle<MIOReflectionVoid> CreateReflectionVoid(int64_t tid) override;
 
     virtual
@@ -77,6 +82,7 @@ public:
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MallocedObjectFactory)
 private:
+    std::unordered_map<int32_t, MIOUpValue *> upvalues_;
     std::vector<HeapObject *> objects_;
     int  offset_stub_;
     int *offset_pointer_;

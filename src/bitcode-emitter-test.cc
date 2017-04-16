@@ -152,22 +152,6 @@ TEST_F(BitCodeEmitterTest, P013_UnionOperation) {
 
     printf("%s\n", dasm.c_str());
 }
-//
-//    class TypeDigest {
-//    public:
-//        static const int64_t kInitialValue = 1315423911;
-//
-//        TypeDigest() = default;
-//
-//        int64_t value() const { return value_; }
-//
-//        void Step(int64_t atomic) {
-//            value_ ^= ((value_ << 5) + atomic + (value_ >> 2));
-//        }
-//        
-//    private:
-//        int64_t value_ = kInitialValue;
-//    };
 
 struct PrimitiveKey {
     uint8_t size;
@@ -257,6 +241,13 @@ TEST_F(BitCodeEmitterTest, PrimitiveHashKey) {
 
     ASSERT_EQ(100, map[k100]);
     ASSERT_EQ(110, map[k110]);
+}
+
+TEST_F(BitCodeEmitterTest, P014_LocalFuckingFunction) {
+    std::string dasm;
+    ParseProject("014", &dasm);
+
+    printf("%s\n", dasm.c_str());
 }
 
 } // namespace mio

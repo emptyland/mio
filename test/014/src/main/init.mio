@@ -2,6 +2,7 @@ package main
 
 function main: void {
     val n = 1
+    val m = 100
     
     function foo (a: int) = a + n
 }

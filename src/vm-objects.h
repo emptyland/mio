@@ -249,20 +249,23 @@ static_assert(sizeof(MIONormalFunction) == sizeof(HeapObject),
 
 class MIOUpValue final : public HeapObject {
 public:
-    static const int kUniqueIdOffset  = kHeapObjectOffset;
-    static const int kFlagsOffset = kUniqueIdOffset + sizeof(int32_t);
-    static const int kValueOffset     = kFlagsOffset + sizeof(uint32_t);
-    static const int kHeaderOffset    = kValueOffset + sizeof(void *);
+    static const int kFlagsOffset     = kHeapObjectOffset;
+    static const int kValueSizeOffset = kFlagsOffset + sizeof(uint32_t);
+    static const int kValueOffset     = kValueSizeOffset + sizeof(int);
+    static const int kHeaderOffset    = kValueOffset;
 
-    DEFINE_HEAP_OBJ_RW(int32_t, UniqueId)
+    DEFINE_HEAP_OBJ_RW(int, ValueSize)
     DEFINE_HEAP_OBJ_RW(uint32_t, Flags)
-    DEFINE_HEAP_OBJ_RW(void *, Value)
 
-    int GetValueSize()            { return (GetFlags() >> 1) & 0x7fffffff; }
+    int GetUniqueId()             { return (GetFlags() >> 1) & 0x7fffffff; }
     bool IsObjectValue() const    { return (GetFlags() & 0x1) != 0; }
     bool IsPrimitiveValue() const { return (GetFlags() & 0x1) == 0; }
 
-    HeapObject *GetObject() const {
+    void *GetValue() {
+        return reinterpret_cast<uint8_t *>(this) + kValueOffset;
+    }
+
+    HeapObject *GetObject() {
         DCHECK(IsObjectValue());
         return static_cast<HeapObject *>(GetValue());
     }

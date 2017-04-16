@@ -10,13 +10,15 @@ namespace mio {
 
 class HeapObject;
 class MIOString;
-class MIOFunction;
-class MIONativeFunction;
-class MIONormalFunction;
 class MIOClosure;
 class MIOHashMap;
 class MIOError;
 class MIOUnion;
+class MIOUpValue;
+class MIOFunction;
+class MIONativeFunction;
+class MIONormalFunction;
+
 class MIOReflectionType;
 class MIOReflectionVoid;
 class MIOReflectionIntegral;
@@ -59,6 +61,9 @@ public:
 
     virtual Handle<MIOUnion> CreateUnion(const void *data, int size,
                                          Handle<MIOReflectionType> type_info) = 0;
+
+    virtual Handle<MIOUpValue> GetOrNewUpValue(const void *data, int size,
+                                               int unique_id, bool is_primitive) = 0;
 
     //
     // Reflection Type Objects:

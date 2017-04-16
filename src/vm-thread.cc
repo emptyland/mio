@@ -291,6 +291,38 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 }
             } break;
 
+            case BC_close_fn: {
+                auto dest = BitCodeDisassembler::GetOp1(bc);
+                auto closure = GetClosure(dest, ok);
+                if (!*ok) {
+                    DLOG(ERROR) << "not closure for close.";
+                    exit_code_ = PANIC;
+                    return;
+                }
+
+                if (closure->IsClose()) {
+                    DLOG(ERROR) << "closure already closed.";
+                    exit_code_ = PANIC;
+                    return;
+                }
+
+                for (int i = 0; i < closure->GetUpValueSize(); i++) {
+                    auto upval = closure->GetUpValue(i);
+
+                    bool is_primitive = (upval->desc.unique_id & 0x1) == 0;
+                    auto id = (upval->desc.unique_id >> 1) & 0x7fffffff;
+
+                    const void *addr = nullptr;
+                    if (is_primitive) {
+                        addr = p_stack_->offset(upval->desc.offset);
+                    } else {
+                        addr = o_stack_->offset(upval->desc.offset);
+                    }
+                    upval->val = vm_->object_factory_->GetOrNewUpValue(addr,
+                            kMaxReferenceValueSize, id, is_primitive).get();
+                }
+            } break;
+
             case BC_oop:
                 ProcessObjectOperation(BitCodeDisassembler::GetOp1(bc),
                                        BitCodeDisassembler::GetOp2(bc),
@@ -359,6 +391,16 @@ Handle<MIOUnion> Thread::GetUnion(int addr, bool *ok) {
         return make_handle<MIOUnion>(nullptr);
     }
     return make_handle(ob->AsUnion());
+}
+
+Handle<MIOClosure> Thread::GetClosure(int addr, bool *ok) {
+    auto ob = GetObject(addr);
+
+    if (!ob->IsClosure()) {
+        *ok = false;
+        return make_handle<MIOClosure>(nullptr);
+    }
+    return make_handle(ob->AsClosure());
 }
 
 void Thread::ProcessLoadPrimitive(CallContext *top, int bytes, uint16_t dest,

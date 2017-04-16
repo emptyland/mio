@@ -16,6 +16,7 @@ class MIOString;
 class MIOError;
 class MIOUnion;
 class MIONormalFunction;
+class MIOClosure;
 class MIOReflectionType;
 class MIOReflectionIntegral;
 class MIOReflectionFloating;
@@ -56,6 +57,7 @@ public:
     Handle<MIOString>  GetString(int addr, bool *ok);
     Handle<MIOError>   GetError(int addr, bool *ok);
     Handle<MIOUnion>   GetUnion(int addr, bool *ok);
+    Handle<MIOClosure> GetClosure(int addr, bool *ok);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Thread)
 private:

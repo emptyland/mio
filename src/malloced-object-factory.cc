@@ -61,6 +61,7 @@ MallocedObjectFactory::CreateClosure(Handle<MIOFunction> function,
     auto placement_size = MIOClosure::kUpValesOffset +
             up_values_size * sizeof(UpValDesc);
     auto ob = static_cast<MIOClosure *>(::malloc(placement_size));
+    ob->SetKind(HeapObject::kClosure);
     objects_.push_back(ob);
 
     ob->SetFlags(0);
@@ -147,6 +148,28 @@ MallocedObjectFactory::CreateUnion(const void *data, int size,
     if (size > 0) {
         memcpy(ob->mutable_data(), data, size);
     }
+    return make_handle(ob);
+}
+
+/*virtual*/
+Handle<MIOUpValue>
+MallocedObjectFactory::GetOrNewUpValue(const void *data, int size,
+                                       int32_t unique_id, bool is_primitive) {
+    auto iter = upvalues_.find(unique_id);
+    if (iter != upvalues_.end()) {
+        return make_handle(iter->second);
+    }
+
+    auto placement_size = MIOUpValue::kHeaderOffset + size;
+    auto ob = static_cast<MIOUpValue *>(::malloc(placement_size));
+    ob->SetKind(HeapObject::kUpValue);
+    objects_.push_back(ob);
+
+    ob->SetFlags((unique_id << 1) | (is_primitive ? 0x0 : 0x1));
+    ob->SetValueSize(size);
+    memcpy(ob->GetValue(), data, size);
+
+    upvalues_.emplace(unique_id, ob);
     return make_handle(ob);
 }
 
