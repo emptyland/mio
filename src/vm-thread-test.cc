@@ -68,4 +68,17 @@ TEST_F(ThreadTest, P013_UnionOperation) {
     ASSERT_EQ(0, vm_->Run());
 }
 
+TEST_F(ThreadTest, P014_LocalFuckingFunction) {
+    ParsingError error;
+
+    ASSERT_TRUE(vm_->CompileProject("test/014", &error)) << error.ToString();
+    std::string buf;
+    vm_->DisassembleAll(&buf);
+
+    printf("%s\n", buf.c_str());
+
+    vm_->function_register()->RegisterNativeFunction("::main::print", PrintRountine);
+    ASSERT_EQ(0, vm_->Run());
+}
+
 } // namespace mio

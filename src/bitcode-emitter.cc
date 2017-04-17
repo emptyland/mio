@@ -850,7 +850,8 @@ void EmittingAstVisitor::VisitAssignment(Assignment *node) {
                     dest.segment = BC_LOCAL_PRIMITIVE_SEGMENT;
                     break;
                 case Variable::UP_VALUE:
-                    // TODO:
+                    dest.segment = BC_UP_PRIMITIVE_SEGMENT;
+                    break;
                 default:
                     DLOG(FATAL) << "noreached!";
                     break;
@@ -864,7 +865,8 @@ void EmittingAstVisitor::VisitAssignment(Assignment *node) {
                     dest.segment = BC_LOCAL_OBJECT_SEGMENT;
                     break;
                 case Variable::UP_VALUE:
-                    // TODO:
+                    dest.segment = BC_UP_OBJECT_SEGMENT;
+                    break;
                 default:
                     DLOG(FATAL) << "noreached!";
                     break;
@@ -876,7 +878,9 @@ void EmittingAstVisitor::VisitAssignment(Assignment *node) {
             rval = union_ob;
         }
         if (dest.segment == BC_GLOBAL_OBJECT_SEGMENT ||
-            dest.segment == BC_GLOBAL_PRIMITIVE_SEGMENT) {
+            dest.segment == BC_GLOBAL_PRIMITIVE_SEGMENT ||
+            dest.segment == BC_UP_PRIMITIVE_SEGMENT ||
+            dest.segment == BC_UP_OBJECT_SEGMENT) {
             EmitStore(dest, rval);
         } else if (dest.segment == BC_LOCAL_PRIMITIVE_SEGMENT ||
                    dest.segment == BC_LOCAL_OBJECT_SEGMENT) {
@@ -1460,16 +1464,19 @@ void EmittingAstVisitor::EmitStore(const VMValue &dest, const VMValue &src) {
 
     #define DEFINE_CASE(byte, bit) \
         case byte: \
+            DCHECK(dest.segment == BC_GLOBAL_PRIMITIVE_SEGMENT || \
+                   dest.segment == BC_UP_PRIMITIVE_SEGMENT); \
             builder()->store_##byte##b(dest.offset, dest.segment, src.offset); \
             break;
-
             MIO_INT_BYTES_SWITCH(src.size, DEFINE_CASE)
     #undef DEFINE_CASE
         } break;
 
-        case BC_LOCAL_OBJECT_SEGMENT: {
+        case BC_LOCAL_OBJECT_SEGMENT:
+            DCHECK(dest.segment == BC_GLOBAL_OBJECT_SEGMENT ||
+                   dest.segment == BC_UP_OBJECT_SEGMENT);
             builder()->store_o(dest.offset, dest.segment, src.offset);
-        } break;
+            break;
 
         default:
             DLOG(FATAL) << "noreached! bad segment: " << src.segment;
@@ -1556,12 +1563,13 @@ int EmittingAstVisitor::GetVariableOffset(Variable *var, Scope *scope) {
     auto fn_frame = current_;
     DCHECK_EQ(fn_frame->scope(), scope);
 
-    int base = 0;
+    int base = 0, fn_layout = 0;
     for (;;) {
         scope = scope->outter_scope();
 
         if (scope->type() == FUNCTION_SCOPE) {
             fn_frame = fn_frame->prev();
+            ++fn_layout;
             if (var->type()->is_primitive()) {
                 base += fn_frame->p_stack_size();
             } else {
@@ -1571,6 +1579,9 @@ int EmittingAstVisitor::GetVariableOffset(Variable *var, Scope *scope) {
         }
 
         if (scope == var->scope()) {
+            if (fn_layout == 0) { // variable in same function scope.
+                return var->offset();
+            }
             fn_frame = fn_frame->prev();
             if (var->type()->is_primitive()) {
                 base += (fn_frame->p_stack_size() - var->offset());

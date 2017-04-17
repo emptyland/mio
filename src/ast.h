@@ -719,8 +719,8 @@ public:
     DEF_PROP_RW(int, offset)
 
     bool is_read_only() const {
-        return declaration_->IsValDeclaration() ||
-               declaration_->IsFunctionDefine();
+        return link_ == nullptr && (declaration_->IsValDeclaration() ||
+                                    declaration_->IsFunctionDefine());
     }
 
     bool is_readwrite() const { return !is_read_only(); }

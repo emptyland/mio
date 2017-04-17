@@ -1,8 +1,17 @@
 package main
 
+native function print(s:string): void
+
 function main: void {
-    val n = 1
+    val n = 4
     val m = 100
     
     function foo (a: int) = a + n
+    function bar (a: int): void {
+        n = a
+    }
+
+    print('foo='..foo(2)..'\n')
+    bar(3)
+    print('foo='..foo(2)..'\n')
 }

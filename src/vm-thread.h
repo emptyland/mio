@@ -1,25 +1,16 @@
 #ifndef MIO_VM_THREAD_H_
 #define MIO_VM_THREAD_H_
 
+#include "vm-objects.h"
+#include "vm-stack.h"
 #include "handles.h"
 #include "base.h"
 
 namespace mio {
 
 class VM;
-class Stack;
-class HeapObject;
-
 struct CallContext;
 class CallStack;
-class MIOString;
-class MIOError;
-class MIOUnion;
-class MIONormalFunction;
-class MIOClosure;
-class MIOReflectionType;
-class MIOReflectionIntegral;
-class MIOReflectionFloating;
 
 class TextOutputStream;
 
@@ -43,28 +34,32 @@ public:
 
     void Execute(MIONormalFunction *callee, bool *ok);
 
-    mio_bool_t GetBool(int addr) { return GetI8(addr); }
-    mio_i8_t   GetI8(int addr);
-    mio_i16_t  GetI16(int addr);
-    mio_i32_t  GetI32(int addr);
-    mio_int_t  GetInt(int addr) { return GetI64(addr); }
-    mio_i64_t  GetI64(int addr);
+    inline mio_bool_t GetBool(int addr) { return GetI8(addr); }
+    inline mio_i8_t   GetI8(int addr);
+    inline mio_i16_t  GetI16(int addr);
+    inline mio_i32_t  GetI32(int addr);
+    inline mio_int_t  GetInt(int addr) { return GetI64(addr); }
+    inline mio_i64_t  GetI64(int addr);
 
-    mio_f32_t  GetF32(int addr);
-    mio_f64_t  GetF64(int addr);
+    inline mio_f32_t  GetF32(int addr);
+    inline mio_f64_t  GetF64(int addr);
 
-    Handle<HeapObject> GetObject(int addr);
-    Handle<MIOString>  GetString(int addr, bool *ok);
-    Handle<MIOError>   GetError(int addr, bool *ok);
-    Handle<MIOUnion>   GetUnion(int addr, bool *ok);
-    Handle<MIOClosure> GetClosure(int addr, bool *ok);
+    inline Handle<HeapObject> GetObject(int addr);
+    inline Handle<MIOString>  GetString(int addr, bool *ok);
+    inline Handle<MIOError>   GetError(int addr, bool *ok);
+    inline Handle<MIOUnion>   GetUnion(int addr, bool *ok);
+    inline Handle<MIOClosure> GetClosure(int addr, bool *ok);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Thread)
 private:
     void ProcessLoadPrimitive(CallContext *top, int bytes, uint16_t dest,
                               uint16_t segment, int32_t offset, bool *ok);
+    void ProcessStorePrimitive(CallContext *top, int bytes, uint16_t addr,
+                               uint16_t segment, int dest, bool *ok);
     void ProcessLoadObject(CallContext *top, uint16_t dest, uint16_t segment,
                            int32_t offset, bool *ok);
+    void ProcessStoreObject(CallContext *top, uint16_t addr, uint16_t segment,
+                            int dest, bool *ok);
     void ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                                 int16_t val2, bool *ok);
 
@@ -87,6 +82,62 @@ private:
     bool should_exit_ = false;
     ExitCode exit_code_ = SUCCESS;
 }; // class Thread
+
+
+////////////////////////////////////////////////////////////////////////////////
+/// Inline Functions:
+////////////////////////////////////////////////////////////////////////////////
+
+inline mio_i8_t   Thread::GetI8(int addr)  { return p_stack_->Get<mio_i8_t>(addr); }
+inline mio_i16_t  Thread::GetI16(int addr) { return p_stack_->Get<mio_i16_t>(addr); }
+inline mio_i32_t  Thread::GetI32(int addr) { return p_stack_->Get<mio_i32_t>(addr); }
+inline mio_i64_t  Thread::GetI64(int addr) { return p_stack_->Get<mio_i64_t>(addr); }
+inline mio_f32_t  Thread::GetF32(int addr) { return p_stack_->Get<mio_f32_t>(addr); }
+inline mio_f64_t  Thread::GetF64(int addr) { return p_stack_->Get<mio_f64_t>(addr); }
+
+inline Handle<HeapObject> Thread::GetObject(int addr) {
+    return make_handle(o_stack_->Get<HeapObject *>(addr));
+}
+
+inline Handle<MIOString> Thread::GetString(int addr, bool *ok) {
+    auto ob = GetObject(addr);
+
+    if (!ob->IsString()) {
+        *ok = false;
+        return make_handle<MIOString>(nullptr);
+    }
+    return make_handle(ob->AsString());
+}
+
+inline Handle<MIOError> Thread::GetError(int addr, bool *ok) {
+    auto ob = GetObject(addr);
+
+    if (!ob->IsError()) {
+        *ok = false;
+        return make_handle<MIOError>(nullptr);
+    }
+    return make_handle(ob->AsError());
+}
+
+inline Handle<MIOUnion> Thread::GetUnion(int addr, bool *ok) {
+    auto ob = GetObject(addr);
+
+    if (!ob->IsUnion()) {
+        *ok = false;
+        return make_handle<MIOUnion>(nullptr);
+    }
+    return make_handle(ob->AsUnion());
+}
+
+inline Handle<MIOClosure> Thread::GetClosure(int addr, bool *ok) {
+    auto ob = GetObject(addr);
+    
+    if (!ob->IsClosure()) {
+        *ok = false;
+        return make_handle<MIOClosure>(nullptr);
+    }
+    return make_handle(ob->AsClosure());
+}
 
 } // namespace mio
 

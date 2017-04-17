@@ -81,10 +81,24 @@ public:
     #undef  HeapObject_ENUM_KIND
     };
 
-    static const int kKindOffset = 0;
-    static const int kHeapObjectOffset = kKindOffset + sizeof(int);
+    static const int kNextOffset = 0;                                  // for double-linked list
+    static const int kPrevOffset = kNextOffset + sizeof(HeapObject *); // for double-linked list
 
-    DEFINE_HEAP_OBJ_RW(Kind, Kind)
+    // HI-8  bits: heap object of kind
+    // LO-24 bits: GC flags
+    static const int kHeaderFlagsOffset = kPrevOffset + sizeof(HeapObject *);
+    static const int kHeapObjectOffset = kHeaderFlagsOffset + sizeof(uint32_t);
+
+    DEFINE_HEAP_OBJ_RW(HeapObject *, Next)
+    DEFINE_HEAP_OBJ_RW(HeapObject *, Prev)
+
+    Kind GetKind() const {
+        return static_cast<Kind>((GetHeaderFlags() >> 24) & 0xff);
+    }
+
+    void SetKind(Kind kind) {
+        SetHeaderFlags((GetHeaderFlags() & 0x00ffffff) | ((static_cast<int>(kind) << 24) & 0xff000000));
+    }
 
 #define HeapObject_TYPE_CAST(name) \
     bool Is##name() const { return GetKind() == k##name; } \
@@ -117,7 +131,22 @@ public:
         return IsReflectionType() ? reinterpret_cast<const MIOReflectionType *>(this) : nullptr;
     }
 
+    bool IsCallable() const {
+        return IsNativeFunction() || IsNormalFunction() || IsClosure();
+    }
+
+    MIOFunction *AsCallable() {
+        return IsCallable() ? reinterpret_cast<MIOFunction *>(this) : nullptr;
+    }
+
+    const MIOFunction *AsCallable() const {
+        return IsCallable() ? reinterpret_cast<const MIOFunction *>(this) : nullptr;
+    }
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(HeapObject)
+
+private:
+    DEFINE_HEAP_OBJ_RW(uint32_t, HeaderFlags)
 }; // class HeapObject
 
 union InternalAllValue {
@@ -265,12 +294,58 @@ public:
         return reinterpret_cast<uint8_t *>(this) + kValueOffset;
     }
 
-    HeapObject *GetObject() {
+    const void *GetValue() const {
+        return reinterpret_cast<const uint8_t *>(this) + kValueOffset;
+    }
+
+#define DEFINE_GETTER_SETTER(byte, bit) \
+    mio_i##bit##_t GetI##bit() const { \
+        DCHECK(IsPrimitiveValue()); \
+        return Get<const mio_i##bit##_t>(); \
+    } \
+    void SetI##bit(mio_i##bit##_t value) { \
+        DCHECK(IsPrimitiveValue()); \
+        Set<mio_i##bit##_t>(value); \
+    }
+    MIO_INT_BYTES_TO_BITS(DEFINE_GETTER_SETTER)
+#undef  DEFINE_GETTER_SETTER
+
+#define DEFINE_GETTER_SETTER(byte, bit) \
+    mio_f##bit##_t GetF##bit() const { \
+        DCHECK(IsPrimitiveValue()); \
+        return Get<const mio_f##bit##_t>(); \
+    } \
+    void SetF##bit(mio_f##bit##_t value) { \
+        DCHECK(IsPrimitiveValue()); \
+        return Set<mio_f##bit##_t>(value); \
+    }
+    MIO_FLOAT_BYTES_TO_BITS(DEFINE_GETTER_SETTER)
+#undef  DEFINE_GETTER_SETTER
+
+    HeapObject *GetObject() const {
         DCHECK(IsObjectValue());
-        return static_cast<HeapObject *>(GetValue());
+        return Get<HeapObject * const>();
+    }
+
+    void SetObject(HeapObject *ob) {
+        DCHECK(IsObjectValue());
+        Set<HeapObject *>(ob);
     }
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOUpValue)
+
+private:
+    template<class T>
+    inline T Get() const {
+        DCHECK_LE(sizeof(T), GetValueSize());
+        return *static_cast<T *>(GetValue());
+    }
+
+    template<class T>
+    inline void Set(const T &value) {
+        DCHECK_LE(sizeof(T), GetValueSize());
+        *static_cast<T *>(GetValue()) = value;
+    }
 }; // class MIOUpValue;
 
 union UpValDesc {

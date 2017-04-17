@@ -151,6 +151,29 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
             MIO_SMI_BYTES_TO_BITS(DEFINE_CASE)
         #undef DEFINE_CASE
 
+        #define DEFINE_CASE(byte, bit) \
+            case BC_add_i##bit: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto rhs = BitCodeDisassembler::GetOp3(bc); \
+                p_stack_->Set(dest, GetI##bit(lhs) + GetI##bit(rhs)); \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_store_##byte##b: { \
+                auto src = BitCodeDisassembler::GetOp1(bc); \
+                auto segment = BitCodeDisassembler::GetOp2(bc); \
+                auto dest = BitCodeDisassembler::GetImm32(bc); \
+                ProcessStorePrimitive(top, byte, src, segment, dest, ok); \
+                if (!*ok) { \
+                    return; \
+                } \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
             case BC_frame: {
                 auto size1 = BitCodeDisassembler::GetOp1(bc);
                 auto size2 = BitCodeDisassembler::GetOp2(bc);
@@ -352,57 +375,6 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
     }
 }
 
-mio_i8_t   Thread::GetI8(int addr)  { return p_stack_->Get<mio_i8_t>(addr); }
-mio_i16_t  Thread::GetI16(int addr) { return p_stack_->Get<mio_i16_t>(addr); }
-mio_i32_t  Thread::GetI32(int addr) { return p_stack_->Get<mio_i32_t>(addr); }
-mio_i64_t  Thread::GetI64(int addr) { return p_stack_->Get<mio_i64_t>(addr); }
-mio_f32_t  Thread::GetF32(int addr) { return p_stack_->Get<mio_f32_t>(addr); }
-mio_f64_t  Thread::GetF64(int addr) { return p_stack_->Get<mio_f64_t>(addr); }
-
-Handle<HeapObject> Thread::GetObject(int addr) {
-    return make_handle(o_stack_->Get<HeapObject *>(addr));
-}
-
-Handle<MIOString> Thread::GetString(int addr, bool *ok) {
-    auto ob = GetObject(addr);
-
-    if (!ob->IsString()) {
-        *ok = false;
-        return make_handle<MIOString>(nullptr);
-    }
-    return make_handle(ob->AsString());
-}
-
-Handle<MIOError> Thread::GetError(int addr, bool *ok) {
-    auto ob = GetObject(addr);
-
-    if (!ob->IsError()) {
-        *ok = false;
-        return make_handle<MIOError>(nullptr);
-    }
-    return make_handle(ob->AsError());
-}
-
-Handle<MIOUnion> Thread::GetUnion(int addr, bool *ok) {
-    auto ob = GetObject(addr);
-
-    if (!ob->IsUnion()) {
-        *ok = false;
-        return make_handle<MIOUnion>(nullptr);
-    }
-    return make_handle(ob->AsUnion());
-}
-
-Handle<MIOClosure> Thread::GetClosure(int addr, bool *ok) {
-    auto ob = GetObject(addr);
-
-    if (!ob->IsClosure()) {
-        *ok = false;
-        return make_handle<MIOClosure>(nullptr);
-    }
-    return make_handle(ob->AsClosure());
-}
-
 void Thread::ProcessLoadPrimitive(CallContext *top, int bytes, uint16_t dest,
                                   uint16_t segment, int32_t offset, bool *ok) {
     switch (static_cast<BCSegment>(segment)) {
@@ -451,6 +423,44 @@ fail:
     *ok = false;
 }
 
+void Thread::ProcessStorePrimitive(CallContext *top, int bytes, uint16_t addr,
+                                   uint16_t segment, int dest, bool *ok) {
+    auto src = p_stack_->offset(addr);
+    switch (static_cast<BCSegment>(segment)) {
+        case BC_GLOBAL_PRIMITIVE_SEGMENT:
+            memcpy(vm_->p_global_->offset(dest), src, bytes);
+            return;
+
+        case BC_UP_PRIMITIVE_SEGMENT: {
+            auto idx = dest / kObjectReferenceSize;
+            auto buf = top->upvalue_buf();
+            if (idx < 0 || idx >= buf.n) {
+                DLOG(ERROR) << "up value data out of range. "
+                << idx << " vs. " << buf.n;
+                goto fail;
+            }
+            auto upval = buf.z[idx].val;
+            if (upval->GetValueSize() < bytes) {
+                DLOG(ERROR) << "upvalue size too small, " << upval->GetValueSize()
+                << " vs. " << bytes;
+                goto fail;
+            }
+            if (!upval->IsPrimitiveValue()) {
+                DLOG(ERROR) << "upvalue is not primitive value!";
+                goto fail;
+            }
+            memcpy(upval->GetValue(), src, bytes);
+        } return;
+
+        default:
+            DLOG(ERROR) << "store_xb segment error." << segment;
+            break;
+    }
+fail:
+    exit_code_ = BAD_BIT_CODE;
+    *ok = false;
+}
+
 void Thread::ProcessLoadObject(CallContext *top, uint16_t dest, uint16_t segment,
                                int32_t offset, bool *ok) {
     switch (segment) {
@@ -489,6 +499,44 @@ void Thread::ProcessLoadObject(CallContext *top, uint16_t dest, uint16_t segment
 
         default:
             DLOG(ERROR) << "load_o segment error.";
+            break;
+    }
+fail:
+    exit_code_ = BAD_BIT_CODE;
+    *ok = false;
+}
+
+void Thread::ProcessStoreObject(CallContext *top, uint16_t addr,
+                                uint16_t segment, int dest, bool *ok) {
+    auto src = make_handle(o_stack_->Get<HeapObject *>(addr));
+    switch (static_cast<BCSegment>(segment)) {
+        case BC_GLOBAL_PRIMITIVE_SEGMENT:
+            vm_->o_global_->Set(dest, src.get());
+            return;
+
+        case BC_UP_PRIMITIVE_SEGMENT: {
+            auto idx = dest / kObjectReferenceSize;
+            auto buf = top->upvalue_buf();
+            if (idx < 0 || idx >= buf.n) {
+                DLOG(ERROR) << "up value data out of range. "
+                << idx << " vs. " << buf.n;
+                goto fail;
+            }
+            auto upval = buf.z[idx].val;
+            if (upval->GetValueSize() < kObjectReferenceSize) {
+                DLOG(ERROR) << "upvalue size too small, " << upval->GetValueSize()
+                            << " vs. " << kObjectReferenceSize;
+                goto fail;
+            }
+            if (!upval->IsObjectValue()) {
+                DLOG(ERROR) << "upvalue is not object value!";
+                goto fail;
+            }
+            upval->SetObject(src.get());
+        } return;
+
+        default:
+            DLOG(ERROR) << "store_xb segment error." << segment;
             break;
     }
 fail:
