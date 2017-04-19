@@ -5,7 +5,6 @@
 #include "vm-objects.h"
 #include "vm.h"
 #include "vm-function-register.h"
-#include "malloced-object-factory.h"
 #include "handles.h"
 #include "code-label.h"
 #include "gtest/gtest.h"
@@ -18,17 +17,14 @@ public:
     virtual void SetUp() override {
         vm_ = new VM();
         ASSERT_TRUE(vm_->Init());
-        factory_ = new MallocedObjectFactory;
     }
 
     virtual void TearDown() override {
-        delete factory_;
         delete vm_;
     }
 
 protected:
     VM *vm_ = nullptr;
-    MallocedObjectFactory *factory_ = nullptr;
 };
 
 int PrintRountine(VM *vm, Thread *thread) {

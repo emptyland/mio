@@ -2,6 +2,7 @@
 #define MIO_VM_OBJECT_FACTORY_H_
 
 #include "vm.h"
+#include "vm-objects.h"
 #include "handles.h"
 #include "base.h"
 #include <vector>
@@ -36,7 +37,7 @@ public:
 
     inline Handle<MIOString> CreateString(const char *z, int n);
 
-    virtual Handle<MIOString> GetOrNewString(const char *z, int n, int **offset) = 0;
+    virtual Handle<MIOString> GetOrNewString(const char *z, int n) = 0;
 
     virtual Handle<MIOString> CreateString(const mio_strbuf_t *buf, int n) = 0;
 

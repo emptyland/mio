@@ -8,13 +8,15 @@
 #include "types.h"
 #include "scopes.h"
 #include "memory-output-stream.h"
-#include "malloced-object-factory.h"
 #include "simple-function-register.h"
+#include "do-nothing-garbage-collector.h"
+#include "msg-garbage-collector.h"
 
 namespace mio {
 
 VM::VM()
-    : main_thread_(new Thread(this))
+    : gc_name_("msg")
+    , main_thread_(new Thread(this))
     , p_global_(new MemorySegment())
     , o_global_(new MemorySegment())
     , ast_zone_(new Zone()) {
@@ -29,7 +31,14 @@ VM::~VM() {
 //HeapMemoryManagementUnit
 
 bool VM::Init() {
-    object_factory_ = new MallocedObjectFactory;
+    if (gc_name_.compare("msg") == 0) {
+        gc_ = new MSGGarbageCollector(o_global_, main_thread_);
+    } else if (gc_name_.compare("nogc") == 0) {
+        gc_ = new DoNothingGarbageCollector();
+    } else {
+        DLOG(ERROR) << "bad gc name: " << gc_name_;
+        return false;
+    }
     function_register_ = new SimpleFunctionRegister(o_global_);
     // TODO:
     return true;
@@ -54,7 +63,7 @@ bool VM::CompileProject(const char *project_dir, ParsingError *error) {
 
     CompiledInfo info;
     Compiler::AstEmitToBitCode(all_modules_, p_global_, o_global_, types.get(),
-                               object_factory_, function_register_, &info);
+                               gc_, function_register_, &info);
     DLOG(INFO) << "cs: " << info.constatns_segment_bytes << "\n"
                << "pg: " << info.global_primitive_segment_bytes << "\n"
                << "og: " << info.global_object_segment_bytes;
@@ -79,11 +88,10 @@ int VM::Run() {
     }
 
     bool ok = true;
+    //gc_->Active(false);
     main_thread_->Execute(main_fn, &ok);
-    if (!ok) {
-        return main_thread_->exit_code();
-    }
-    return 0;
+    //gc_->Active(true);
+    return main_thread_->exit_code();
 }
 
 void VM::DisassembleAll(TextOutputStream *stream) {

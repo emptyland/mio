@@ -1596,7 +1596,7 @@ int EmittingAstVisitor::GetVariableOffset(Variable *var, Scope *scope) {
 }
 
 VMValue EmittingAstVisitor::GetOrNewString(const char *z, int n, Handle<MIOString> *rv) {
-    auto ob = emitter_->object_factory_->GetOrNewString(z, n, nullptr);
+    auto ob = emitter_->object_factory_->GetOrNewString(z, n);
     auto value = current_->MakeConstantObjectValue(ob);
 
     if (rv) {

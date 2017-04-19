@@ -8,7 +8,7 @@
 #include "vm-memory-segment.h"
 #include "vm-bitcode-disassembler.h"
 #include "vm-bitcode-builder.h"
-#include "malloced-object-factory.h"
+#include "do-nothing-garbage-collector.h"
 #include "simple-function-register.h"
 #include "checker.h"
 #include "compiler.h"
@@ -28,7 +28,7 @@ public:
         code_ = new MemorySegment();
         p_global_ = new MemorySegment();
         o_global_ = new MemorySegment();
-        object_factory_ = new MallocedObjectFactory();
+        object_factory_ = new DoNothingGarbageCollector();
         function_register_ = new SimpleFunctionRegister(o_global_);
     }
 
@@ -87,7 +87,7 @@ protected:
     MemorySegment    *code_    = nullptr;
     MemorySegment    *p_global_ = nullptr;
     MemorySegment    *o_global_ = nullptr;
-    MallocedObjectFactory  *object_factory_ = nullptr;
+    DoNothingGarbageCollector  *object_factory_ = nullptr;
     SimpleFunctionRegister *function_register_ = nullptr;
 };
 

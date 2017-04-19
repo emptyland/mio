@@ -50,6 +50,8 @@ public:
     inline Handle<MIOUnion>   GetUnion(int addr, bool *ok);
     inline Handle<MIOClosure> GetClosure(int addr, bool *ok);
 
+    int GetCallStack(std::vector<MIOFunction *> *call_stack);
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(Thread)
 private:
     void ProcessLoadPrimitive(CallContext *top, int bytes, uint16_t dest,

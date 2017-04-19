@@ -43,6 +43,15 @@ public:
         *static_cast<T *>(offset(addr)) = value;
     }
 
+    template<class T>
+    inline mio_buf_t<T> buf() const {
+        DCHECK_EQ(0, size_ % sizeof(T));
+        return {
+            .z = static_cast<T *>(chunk_),
+            .n = static_cast<int>(size_ / sizeof(T)),
+        };
+    }
+
 private:
     uint8_t *bytes() const { return static_cast<uint8_t *>(chunk_); }
 

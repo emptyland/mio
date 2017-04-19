@@ -9,18 +9,43 @@ public:
     Handle() : object_(nullptr) {}
 
     template<class U>
-    explicit Handle(U *object) : object_(object) {}
+    explicit Handle(U *object) : object_(object) {
+        if (object_) {
+            object_->GrabOrNothing();
+        }
+    }
 
-    explicit Handle(T *object) : object_(object) {}
+    explicit Handle(T *object) : object_(object) {
+        if (object_) {
+            object_->GrabOrNothing();
+        }
+    }
 
     template<class U>
-    Handle(const Handle<U> &other) : object_(other.get()) {}
+    Handle(const Handle<U> &other) : object_(other.get()) {
+        if (object_) {
+            object_->GrabOrNothing();
+        }
+    }
 
-    Handle(const Handle<T> &other) : object_(other.object_) {}
+    Handle(const Handle<T> &other) : object_(other.object_) {
+        if (object_) {
+            object_->GrabOrNothing();
+        }
+    }
 
-    Handle(Handle &&other) : object_(other.object_) { other.object_ = nullptr; }
+    Handle(Handle &&other) : object_(other.object_) {
+        other.object_ = nullptr;
+        if (object_) {
+            object_->GrabOrNothing();
+        }
+    }
 
-    ~Handle() {/*TODO*/}
+    ~Handle() {
+        if (object_) {
+            object_->DropOrNothing();
+        }
+    }
 
     T *get() const { return object_; }
 
@@ -42,11 +67,6 @@ public:
         object_ = other.object_;
         other.object_ = nullptr;
     }
-
-//    template<class U>
-//    void assign(const Handle<U> &other) {
-//        object_ = other.object_;
-//    }
 
 private:
     T *object_;

@@ -1,4 +1,4 @@
-#include "malloced-object-factory.h"
+#include "do-nothing-garbage-collector.h"
 #include "vm-objects.h"
 #include "glog/logging.h"
 #include <stdlib.h>
@@ -7,15 +7,14 @@ namespace mio {
 
 #define NEW_MIO_OBJECT(obj, name) \
     auto obj = static_cast<MIO##name *>(malloc(MIO##name::kMIO##name##Offset)); \
-    obj->SetKind(HeapObject::k##name); \
-    objects_.push_back(obj)
+    objects_.push_back(obj->Init(HeapObject::k##name))
 
-MallocedObjectFactory::MallocedObjectFactory()
+DoNothingGarbageCollector::DoNothingGarbageCollector()
     : offset_stub_(0)
     , offset_pointer_(&offset_stub_) {}
 
 /*virtual*/
-MallocedObjectFactory::~MallocedObjectFactory() {
+DoNothingGarbageCollector::~DoNothingGarbageCollector() {
     for (auto obj : objects_) {
         free(obj);
     }
@@ -23,16 +22,12 @@ MallocedObjectFactory::~MallocedObjectFactory() {
 
 /*virtual*/
 Handle<MIOString>
-MallocedObjectFactory::GetOrNewString(const char *z, int n, int **offset) {
-    if (offset) {
-        offset_stub_ = -1;
-        *offset = offset_pointer_;
-    }
+DoNothingGarbageCollector::GetOrNewString(const char *z, int n) {
     return ObjectFactory::CreateString(z, n);
 }
 
 /*virtual*/
-Handle<MIOString> MallocedObjectFactory::CreateString(const mio_strbuf_t *bufs, int n) {
+Handle<MIOString> DoNothingGarbageCollector::CreateString(const mio_strbuf_t *bufs, int n) {
     auto payload_length = 0;
     DCHECK_GE(n, 0);
     for (int i = 0; i < n; ++i) {
@@ -41,8 +36,7 @@ Handle<MIOString> MallocedObjectFactory::CreateString(const mio_strbuf_t *bufs, 
 
     auto total_size = payload_length + 1 + MIOString::kDataOffset; // '\0' + MIOStringHeader
     auto ob = static_cast<MIOString *>(malloc(total_size));
-    ob->SetKind(HeapObject::kString);
-    objects_.push_back(ob);
+    objects_.push_back(ob->Init(HeapObject::kString));
 
     ob->SetLength(payload_length);
     auto p = ob->mutable_data();
@@ -56,13 +50,12 @@ Handle<MIOString> MallocedObjectFactory::CreateString(const mio_strbuf_t *bufs, 
 
 /*virtual*/
 Handle<MIOClosure>
-MallocedObjectFactory::CreateClosure(Handle<MIOFunction> function,
+DoNothingGarbageCollector::CreateClosure(Handle<MIOFunction> function,
                                      int up_values_size) {
     auto placement_size = MIOClosure::kUpValesOffset +
             up_values_size * sizeof(UpValDesc);
     auto ob = static_cast<MIOClosure *>(::malloc(placement_size));
-    ob->SetKind(HeapObject::kClosure);
-    objects_.push_back(ob);
+    objects_.push_back(ob->Init(HeapObject::kClosure));
 
     ob->SetFlags(0);
     ob->SetFunction(function.get());
@@ -72,7 +65,7 @@ MallocedObjectFactory::CreateClosure(Handle<MIOFunction> function,
 
 /*virtual*/
 Handle<MIONativeFunction>
-MallocedObjectFactory::CreateNativeFunction(const char *signature,
+DoNothingGarbageCollector::CreateNativeFunction(const char *signature,
                                             MIOFunctionPrototype pointer) {
     Handle<MIOString> sign(ObjectFactory::CreateString(signature,
                                                        static_cast<int>(strlen(signature))));
@@ -84,7 +77,7 @@ MallocedObjectFactory::CreateNativeFunction(const char *signature,
 
 /*virtual*/
 Handle<MIONormalFunction>
-MallocedObjectFactory::CreateNormalFunction(const std::vector<Handle<HeapObject>> &constant_objects,
+DoNothingGarbageCollector::CreateNormalFunction(const std::vector<Handle<HeapObject>> &constant_objects,
                                             const void *constant_primitive_data,
                                             int constant_primitive_size,
                                             const void *code,
@@ -95,8 +88,7 @@ MallocedObjectFactory::CreateNormalFunction(const std::vector<Handle<HeapObject>
             constant_primitive_size +
             constant_objects.size() * kObjectReferenceSize + code_size;
     auto ob = static_cast<MIONormalFunction *>(malloc(placement_size));
-    ob->SetKind(HeapObject::kNormalFunction);
-    objects_.push_back(ob);
+    objects_.push_back(ob->Init(HeapObject::kNormalFunction));
 
     ob->SetName(nullptr);
 
@@ -114,7 +106,7 @@ MallocedObjectFactory::CreateNormalFunction(const std::vector<Handle<HeapObject>
 }
 
 /*virtual*/
-Handle<MIOHashMap> MallocedObjectFactory::CreateHashMap(int seed, uint32_t flags) {
+Handle<MIOHashMap> DoNothingGarbageCollector::CreateHashMap(int seed, uint32_t flags) {
     NEW_MIO_OBJECT(ob, HashMap);
     ob->SetSeed(seed);
     ob->SetSize(0);
@@ -126,19 +118,18 @@ Handle<MIOHashMap> MallocedObjectFactory::CreateHashMap(int seed, uint32_t flags
 
 /*virtual*/
 Handle<MIOError>
-MallocedObjectFactory::CreateError(const char *message, int position,
+DoNothingGarbageCollector::CreateError(const char *message, int position,
                                    Handle<MIOError> linked) {
     NEW_MIO_OBJECT(ob, Error);
     ob->SetPosition(position);
-    ob->SetMessage(GetOrNewString(message, static_cast<int>(strlen(message)),
-                                   nullptr).get());
+    ob->SetMessage(GetOrNewString(message, static_cast<int>(strlen(message))).get());
     ob->SetLinkedError(linked.get());
     return make_handle(ob);
 }
 
 /*virtual*/
 Handle<MIOUnion>
-MallocedObjectFactory::CreateUnion(const void *data, int size,
+DoNothingGarbageCollector::CreateUnion(const void *data, int size,
                                    Handle<MIOReflectionType> type_info) {
     DCHECK_GE(size, 0);
     DCHECK_LE(size, kMaxReferenceValueSize);
@@ -153,7 +144,7 @@ MallocedObjectFactory::CreateUnion(const void *data, int size,
 
 /*virtual*/
 Handle<MIOUpValue>
-MallocedObjectFactory::GetOrNewUpValue(const void *data, int size,
+DoNothingGarbageCollector::GetOrNewUpValue(const void *data, int size,
                                        int32_t unique_id, bool is_primitive) {
     auto iter = upvalues_.find(unique_id);
     if (iter != upvalues_.end()) {
@@ -162,8 +153,7 @@ MallocedObjectFactory::GetOrNewUpValue(const void *data, int size,
 
     auto placement_size = MIOUpValue::kHeaderOffset + size;
     auto ob = static_cast<MIOUpValue *>(::malloc(placement_size));
-    ob->SetKind(HeapObject::kUpValue);
-    objects_.push_back(ob);
+    objects_.push_back(ob->Init(HeapObject::kUpValue));
 
     ob->SetFlags((unique_id << 1) | (is_primitive ? 0x0 : 0x1));
     ob->SetValueSize(size);
@@ -175,7 +165,7 @@ MallocedObjectFactory::GetOrNewUpValue(const void *data, int size,
 
 /*virtual*/
 Handle<MIOReflectionVoid>
-MallocedObjectFactory::CreateReflectionVoid(int64_t tid) {
+DoNothingGarbageCollector::CreateReflectionVoid(int64_t tid) {
     NEW_MIO_OBJECT(ob, ReflectionVoid);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
@@ -184,7 +174,7 @@ MallocedObjectFactory::CreateReflectionVoid(int64_t tid) {
 
 /*virtual*/
 Handle<MIOReflectionIntegral>
-MallocedObjectFactory::CreateReflectionIntegral(int64_t tid, int bitwide) {
+DoNothingGarbageCollector::CreateReflectionIntegral(int64_t tid, int bitwide) {
     NEW_MIO_OBJECT(ob, ReflectionIntegral);
     ob->SetTid(tid);
     ob->SetReferencedSize((bitwide + 7) / 8);
@@ -194,7 +184,7 @@ MallocedObjectFactory::CreateReflectionIntegral(int64_t tid, int bitwide) {
 
 /*virtual*/
 Handle<MIOReflectionFloating>
-MallocedObjectFactory::CreateReflectionFloating(int64_t tid, int bitwide) {
+DoNothingGarbageCollector::CreateReflectionFloating(int64_t tid, int bitwide) {
     NEW_MIO_OBJECT(ob, ReflectionFloating);
     ob->SetTid(tid);
     ob->SetReferencedSize((bitwide + 7) / 8);
@@ -204,7 +194,7 @@ MallocedObjectFactory::CreateReflectionFloating(int64_t tid, int bitwide) {
 
 /*virtual*/
 Handle<MIOReflectionString>
-MallocedObjectFactory::CreateReflectionString(int64_t tid) {
+DoNothingGarbageCollector::CreateReflectionString(int64_t tid) {
     NEW_MIO_OBJECT(ob, ReflectionString);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
@@ -213,7 +203,7 @@ MallocedObjectFactory::CreateReflectionString(int64_t tid) {
 
 /*virtual*/
 Handle<MIOReflectionError>
-MallocedObjectFactory::CreateReflectionError(int64_t tid) {
+DoNothingGarbageCollector::CreateReflectionError(int64_t tid) {
     NEW_MIO_OBJECT(ob, ReflectionError);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
@@ -222,7 +212,7 @@ MallocedObjectFactory::CreateReflectionError(int64_t tid) {
 
 /*virtual*/
 Handle<MIOReflectionUnion>
-MallocedObjectFactory::CreateReflectionUnion(int64_t tid) {
+DoNothingGarbageCollector::CreateReflectionUnion(int64_t tid) {
     NEW_MIO_OBJECT(ob, ReflectionUnion);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
@@ -231,7 +221,7 @@ MallocedObjectFactory::CreateReflectionUnion(int64_t tid) {
 
 /*virtual*/
 Handle<MIOReflectionMap>
-MallocedObjectFactory::CreateReflectionMap(int64_t tid,
+DoNothingGarbageCollector::CreateReflectionMap(int64_t tid,
                                            Handle<MIOReflectionType> key,
                                            Handle<MIOReflectionType> value) {
     NEW_MIO_OBJECT(ob, ReflectionMap);
@@ -244,16 +234,15 @@ MallocedObjectFactory::CreateReflectionMap(int64_t tid,
 
 /*virtual*/
 Handle<MIOReflectionFunction>
-MallocedObjectFactory::CreateReflectionFunction(int64_t tid, Handle<MIOReflectionType> return_type,
-                                                int number_of_parameters,
-                                                const std::vector<Handle<MIOReflectionType>> &parameters) {
+DoNothingGarbageCollector::CreateReflectionFunction(int64_t tid, Handle<MIOReflectionType> return_type,
+                                                    int number_of_parameters,
+                                                    const std::vector<Handle<MIOReflectionType>> &parameters) {
     int placement_size = MIOReflectionFunction::kParamtersOffset +
             sizeof(MIOReflectionType *) * number_of_parameters;
 
     auto ob = static_cast<MIOReflectionFunction *>(malloc(placement_size));
-    objects_.push_back(ob);
+    objects_.push_back(ob->Init(HeapObject::kReflectionFunction));
 
-    ob->SetKind(HeapObject::kReflectionFunction);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     ob->SetNumberOfParameters(number_of_parameters);

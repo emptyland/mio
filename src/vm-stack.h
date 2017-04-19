@@ -56,6 +56,14 @@ public:
     template<class T>
     T *top() const { return reinterpret_cast<T *>(top_); }
 
+    template<class T>
+    mio_buf_t<T> buf() const {
+        return {
+            .z = static_cast<T *>(chunk_),
+            .n = static_cast<int>(total_size() / sizeof(T)),
+        };
+    }
+
 private:
     uint8_t *bytes() const { return static_cast<uint8_t *>(chunk_); }
 

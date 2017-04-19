@@ -13,6 +13,7 @@ class Zone;
 class Thread;
 class MemorySegment;
 class ObjectFactory;
+class GarbageCollector;
 class FunctionRegister;
 class TextOutputStream;
 struct ParsingError;
@@ -38,12 +39,19 @@ public:
         return DCHECK_NOTNULL(function_register_);
     }
 
+    ObjectFactory *object_factory() const {
+        return reinterpret_cast<ObjectFactory *>(gc_);
+    }
+
     void DisassembleAll(TextOutputStream *stream);
     void DisassembleAll(std::string *buf);
 
     friend class Thread;
     DISALLOW_IMPLICIT_CONSTRUCTORS(VM)
 private:
+    std::string gc_name_;
+
+    int tick_ = 0;
     int max_call_deep_ = kDefaultMaxCallDeep;
     Thread *main_thread_;
     MemorySegment *p_global_;
@@ -52,7 +60,7 @@ private:
     int type_info_base_ = 0;
     int type_info_size_ = 0;
     int type_void_index = 0;
-    ObjectFactory *object_factory_ = nullptr;
+    GarbageCollector *gc_ = nullptr;
     FunctionRegister *function_register_ = nullptr;
     ParsedModuleMap *all_modules_ = nullptr;
 };

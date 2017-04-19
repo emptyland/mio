@@ -1,22 +1,22 @@
-#ifndef MIO_MALLOCED_OBJECT_FACTORY_H_
-#define MIO_MALLOCED_OBJECT_FACTORY_H_
+#ifndef MIO_DO_NOTHING_GARBAGE_COLLECTOR_H_
+#define MIO_DO_NOTHING_GARBAGE_COLLECTOR_H_
 
-#include "vm-object-factory.h"
+#include "vm-garbage-collector.h"
 #include <vector>
 
 namespace mio {
 
 class HeapObject;
 
-class MallocedObjectFactory : public ObjectFactory {
+class DoNothingGarbageCollector : public GarbageCollector {
 public:
-    MallocedObjectFactory();
-    virtual ~MallocedObjectFactory() override;
+    DoNothingGarbageCollector();
+    virtual ~DoNothingGarbageCollector() override;
 
     virtual Handle<MIOString> CreateString(const mio_strbuf_t *bufs, int n) override;
 
     virtual Handle<MIOString>
-    GetOrNewString(const char *z, int n, int **offset) override;
+    GetOrNewString(const char *z, int n) override;
 
     virtual Handle<MIOClosure>
     CreateClosure(Handle<MIOFunction> function, int up_values_size) override;
@@ -80,14 +80,19 @@ public:
                              int number_of_parameters,
                              const std::vector<Handle<MIOReflectionType>> &parameters) override;
 
-    DISALLOW_IMPLICIT_CONSTRUCTORS(MallocedObjectFactory)
+    virtual void Step(int tick) override { /*DO-NOTHING*/ }
+    virtual void WriteBarrier(HeapObject *target, HeapObject *other) override { /*DO-NOTHING*/ }
+    virtual void FullGC() override { /*DO-NOTHING*/ }
+    virtual void Active(bool pause) override { /*DO-NOTHING*/ }
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(DoNothingGarbageCollector)
 private:
     std::unordered_map<int32_t, MIOUpValue *> upvalues_;
     std::vector<HeapObject *> objects_;
     int  offset_stub_;
     int *offset_pointer_;
-};
+}; // class
 
 } // namespace mio
 
-#endif // MIO_MALLOCED_OBJECT_FACTORY_H_
+#endif // MIO_DO_NOTHING_GARBAGE_COLLECTOR_H_

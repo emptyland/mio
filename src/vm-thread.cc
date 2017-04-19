@@ -1,5 +1,5 @@
 #include "vm-thread.h"
-#include "vm-object-factory.h"
+#include "vm-garbage-collector.h"
 #include "vm-objects.h"
 #include "vm-stack.h"
 #include "vm-memory-segment.h"
@@ -45,38 +45,44 @@ class CallStack {
 public:
     static const int kSizeofElem = sizeof(CallContext);
 
-    DEF_GETTER(int, size)
-
-    CallContext *Push() {
-        ++size_;
-        return static_cast<CallContext *>(core_.AlignAdvance(kSizeofElem));
+    CallStack(int max_deep)
+        : max_deep_(max_deep)
+        , core_(new CallContext[max_deep])
+        , top_(core_) {
     }
 
-    CallContext *Top() {
-        DCHECK_GT(size_, 0);
-        return core_.top<CallContext>() - 1;
-    }
+    ~CallStack() { delete[] core_; }
+
+    int size() const { return static_cast<int>(top_ - core_); }
+
+    CallContext *base() const { return core_; }
+
+    CallContext *Push() { return top_++; }
+
+    CallContext *Top() { DCHECK_GT(size(), 0); return top_ - 1; }
 
     void Pop() {
-        --size_;
-        core_.AdjustFrame(0, kSizeofElem);
+        --top_;
+        DCHECK_GE(top_, core_);
     }
 
 private:
-    int size_ = 0;
-    Stack core_;
+    CallContext *core_;
+    CallContext *top_;
+    int          max_deep_;
 };
 
 Thread::Thread(VM *vm)
     : vm_(DCHECK_NOTNULL(vm))
     , p_stack_(new Stack())
     , o_stack_(new Stack())
-    , call_stack_(new CallStack()) {
+    , call_stack_(new CallStack(vm->max_call_deep())) {
 }
 
 Thread::~Thread() {
     delete p_stack_;
     delete o_stack_;
+    delete call_stack_;
 }
 
 void Thread::Execute(MIONormalFunction *callee, bool *ok) {
@@ -182,9 +188,8 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 o_stack_->AdjustFrame(0, size2);
 
                 auto clean2 = BitCodeDisassembler::GetVal2(bc);
-                if (clean2) {
-                    memset(o_stack_->offset(clean2), 0, size2 - clean2);
-                }
+                memset(o_stack_->offset(clean2), 0, size2 - clean2);
+                vm_->gc_->Active(false);
             } break;
 
             case BC_ret: {
@@ -222,29 +227,6 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
             case BC_jmp: {
                 auto delta = BitCodeDisassembler::GetImm32(bc);
                 pc_ += delta - 1;
-            } break;
-
-            case BC_call: {
-                if (call_stack_->size() >= vm_->max_call_deep()) {
-                    *ok = false;
-                    exit_code_ = STACK_OVERFLOW;
-                    return;
-                }
-                auto ctx = call_stack_->Push();
-                ctx->p_stack_base = p_stack_->base_size();
-                ctx->p_stack_size = p_stack_->size();
-                ctx->o_stack_base = o_stack_->base_size();
-                ctx->o_stack_size = o_stack_->size();
-                ctx->pc = pc_;
-                ctx->bc = bc_;
-
-                auto base1 = BitCodeDisassembler::GetOp1(bc);
-                auto base2 = BitCodeDisassembler::GetOp2(bc);
-                p_stack_->AdjustFrame(base1, 0);
-                o_stack_->AdjustFrame(base2, 0);
-
-                auto delta = BitCodeDisassembler::GetImm32(bc);
-                pc_ += delta;
             } break;
 
             case BC_call_val: {
@@ -311,6 +293,8 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
 
                     pc_ = 0;
                     bc_ = static_cast<uint64_t *>(normal->GetCode());
+
+                    vm_->gc_->Active(true);
                 }
             } break;
 
@@ -340,9 +324,13 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                         addr = p_stack_->offset(upval->desc.offset);
                     } else {
                         addr = o_stack_->offset(upval->desc.offset);
+
+                        vm_->gc_->WriteBarrier(closure.get(),
+                                               o_stack_->Get<HeapObject *>(upval->desc.offset));
                     }
-                    upval->val = vm_->object_factory_->GetOrNewUpValue(addr,
+                    upval->val = vm_->gc_->GetOrNewUpValue(addr,
                             kMaxReferenceValueSize, id, is_primitive).get();
+                    vm_->gc_->WriteBarrier(closure.get(), upval->val);
                 }
             } break;
 
@@ -371,8 +359,17 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 }
                 *ok = false;
             } return;
-        }
+        } // switch
+
+        vm_->gc_->Step(++vm_->tick_);
+    } // while
+}
+
+int Thread::GetCallStack(std::vector<MIOFunction *> *call_stack) {
+    for (int i = 0; i < call_stack_->size(); ++i) {
+        call_stack->push_back(call_stack_->base()[i].callee);
     }
+    return call_stack_->size();
 }
 
 void Thread::ProcessLoadPrimitive(CallContext *top, int bytes, uint16_t dest,
@@ -550,6 +547,7 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
         case OO_UnionOrMerge: {
             auto type_info = GetTypeInfo(val2);
             auto ob = CreateOrMergeUnion(val1, type_info, ok);
+            vm_->gc_->WriteBarrier(ob.get(), type_info.get());
             o_stack_->Set(result, ob.get());
         } break;
 
@@ -597,8 +595,8 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                 return;
             }
 
-            auto ob = vm_->object_factory_->GetOrNewString(buf.data(),
-                    static_cast<int>(buf.size()), nullptr);
+            auto ob = vm_->gc_->GetOrNewString(buf.data(),
+                    static_cast<int>(buf.size()));
             o_stack_->Set(result, ob.get());
         } break;
 
@@ -618,7 +616,7 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             }
 
             mio_strbuf_t buf[2] = { lhs->Get(), rhs->Get() };
-            auto rv = vm_->object_factory_->CreateString(buf, arraysize(buf));
+            auto rv = vm_->gc_->CreateString(buf, arraysize(buf));
             o_stack_->Set(result, rv.get());
         } break;
 
@@ -687,7 +685,7 @@ Thread::CreateOrMergeUnion(int inbox, Handle<MIOReflectionType> reflection,
                            bool *ok) {
     switch (reflection->GetKind()) {
         case HeapObject::kReflectionVoid:
-            return vm_->object_factory_->CreateUnion(nullptr, 0, reflection);
+            return vm_->gc_->CreateUnion(nullptr, 0, reflection);
 
         case HeapObject::kReflectionUnion:
             return GetUnion(inbox, ok);
@@ -696,7 +694,7 @@ Thread::CreateOrMergeUnion(int inbox, Handle<MIOReflectionType> reflection,
             switch (reflection->AsReflectionIntegral()->GetBitWide()) {
             #define DEFINE_CASE(byte, bit) \
                 case bit: \
-                    return vm_->object_factory_->CreateUnion(p_stack_->offset(inbox), \
+                    return vm_->gc_->CreateUnion(p_stack_->offset(inbox), \
                             (byte), reflection);
                 MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
             #undef DEFINE_CASE
@@ -710,7 +708,7 @@ Thread::CreateOrMergeUnion(int inbox, Handle<MIOReflectionType> reflection,
             switch (reflection->AsReflectionFloating()->GetBitWide()) {
             #define DEFINE_CASE(byte, bit) \
                 case bit: \
-                    return vm_->object_factory_->CreateUnion(p_stack_->offset(inbox), \
+                    return vm_->gc_->CreateUnion(p_stack_->offset(inbox), \
                             (byte), reflection);
                 MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
             #undef DEFINE_CASE
@@ -724,9 +722,9 @@ Thread::CreateOrMergeUnion(int inbox, Handle<MIOReflectionType> reflection,
         case HeapObject::kReflectionError:
         case HeapObject::kReflectionMap:
         case HeapObject::kReflectionFunction:
-            return vm_->object_factory_->CreateUnion(o_stack_->offset(inbox),
-                                                     kObjectReferenceSize,
-                                                     reflection);
+            return vm_->gc_->CreateUnion(o_stack_->offset(inbox),
+                                         kObjectReferenceSize,
+                                         reflection);
 
 fail:
         default:
@@ -746,12 +744,12 @@ void Thread::CreateEmptyValue(int result, Handle<MIOReflectionType> reflection,
         } break;
 
         case HeapObject::kReflectionString: {
-            auto ob = vm_->object_factory_->GetOrNewString("", 0, nullptr);
+            auto ob = vm_->gc_->GetOrNewString("", 0);
             o_stack_->Set(result, ob.get());
         } break;
 
         case HeapObject::kReflectionUnion: {
-            auto ob = vm_->object_factory_->CreateUnion(
+            auto ob = vm_->gc_->CreateUnion(
                     nullptr, 0, GetTypeInfo(vm_->type_void_index));
             o_stack_->Set(result, ob.get());
         } break;

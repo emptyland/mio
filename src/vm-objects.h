@@ -73,31 +73,85 @@ inline void HeapObjectSet(void *obj, int offset, T value) {
     DEFINE_HEAP_OBJ_GETTER(type, name) \
     DEFINE_HEAP_OBJ_SETTER(type, name)
 
+#define DECLARE_VM_OBJECT(name) \
+    enum { kSelfKind = HeapObject::k##name, };
+
 class HeapObject {
 public:
     enum Kind: int {
     #define HeapObject_ENUM_KIND(name) k##name,
         MIO_OBJECTS(HeapObject_ENUM_KIND)
     #undef  HeapObject_ENUM_KIND
+        MAX_KINDS,
     };
+
+    enum Flags: uint32_t {
+        GC_HANDLE          = 0x1,
+        GC_COLOR_MASK      = 0x000f0000,
+        GC_GENERATION_MASK = 0x00f00000,
+        KIND_MASK          = 0xff000000,
+    };
+
+    static const int kMaxGCGeneration = 0xf;
+    static const int kMaxGCColor      = 0xf;
 
     static const int kNextOffset = 0;                                  // for double-linked list
     static const int kPrevOffset = kNextOffset + sizeof(HeapObject *); // for double-linked list
+    static const int kListEntryOffset = kPrevOffset;
 
     // HI-8  bits: heap object of kind
     // LO-24 bits: GC flags
     static const int kHeaderFlagsOffset = kPrevOffset + sizeof(HeapObject *);
     static const int kHeapObjectOffset = kHeaderFlagsOffset + sizeof(uint32_t);
 
+    HeapObject *InitEntry() {
+        SetNext(this);
+        SetPrev(this);
+        return this;
+    }
+
+    HeapObject *Init(Kind kind) {
+        InitEntry();
+        SetHeaderFlags(0);
+        SetKind(kind);
+        return this;
+    }
+
     DEFINE_HEAP_OBJ_RW(HeapObject *, Next)
     DEFINE_HEAP_OBJ_RW(HeapObject *, Prev)
 
-    Kind GetKind() const {
-        return static_cast<Kind>((GetHeaderFlags() >> 24) & 0xff);
+    bool IsHandle() const { return (GetHeaderFlags() & GC_HANDLE) != 0; }
+
+    void GrabOrNothing() {
+        if (!IsHandle()) {
+            SetHeaderFlags(GetHeaderFlags() | GC_HANDLE);
+        }
     }
 
-    void SetKind(Kind kind) {
-        SetHeaderFlags((GetHeaderFlags() & 0x00ffffff) | ((static_cast<int>(kind) << 24) & 0xff000000));
+    void DropOrNothing() {
+        if (IsHandle()) {
+            SetHeaderFlags(GetHeaderFlags() & ~GC_HANDLE);
+        }
+    }
+
+    int GetGeneration() const {
+        return static_cast<int>((GetHeaderFlags() >> 20) & 0xf);
+    }
+
+    void SetGeneration(int g) {
+        SetHeaderFlags((GetHeaderFlags() & ~GC_GENERATION_MASK) | ((g << 20) & GC_GENERATION_MASK));
+    }
+
+    int GetColor() const {
+        return static_cast<int>((GetHeaderFlags() >> 16) & 0xf);
+    }
+
+    void SetColor(int c) {
+        SetHeaderFlags((GetHeaderFlags() & ~GC_COLOR_MASK) | ((c << 16) & GC_COLOR_MASK));
+    }
+
+    Kind GetKind() const {
+        return static_cast<Kind>((GetHeaderFlags() >> 24) & 0xff);
     }
 
 #define HeapObject_TYPE_CAST(name) \
@@ -147,6 +201,10 @@ public:
 
 private:
     DEFINE_HEAP_OBJ_RW(uint32_t, HeaderFlags)
+
+    void SetKind(Kind kind) {
+        SetHeaderFlags((GetHeaderFlags() & ~KIND_MASK) | ((static_cast<int>(kind) << 24) & KIND_MASK));
+    }
 }; // class HeapObject
 
 union InternalAllValue {
@@ -178,6 +236,7 @@ public:
         return reinterpret_cast<char *>(this) + kDataOffset;
     }
 
+    DECLARE_VM_OBJECT(String)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOString)
 }; // class MIOString
 
@@ -200,9 +259,9 @@ static_assert(sizeof(MIOFunction) == sizeof(HeapObject),
 class MIONativeFunction : public MIOFunction {
 public:
     static const int kSignatureOffset = kMIOFunctionOffset;
-    static const int kPrimitiveArgumentsSizeOffset = kSignatureOffset + sizeof(int);
+    static const int kPrimitiveArgumentsSizeOffset = kSignatureOffset + kObjectReferenceSize;
     static const int kObjectArgumentsSizeOffset = kPrimitiveArgumentsSizeOffset + sizeof(int);
-    static const int kNativePointerOffset = kObjectArgumentsSizeOffset + sizeof(HeapObject *);
+    static const int kNativePointerOffset = kObjectArgumentsSizeOffset + sizeof(int);
     static const int kMIONativeFunctionOffset = kNativePointerOffset + sizeof(MIOFunctionPrototype);
 
     DEFINE_HEAP_OBJ_RW(MIOString *, Signature)
@@ -210,6 +269,7 @@ public:
     DEFINE_HEAP_OBJ_RW(int, ObjectArgumentsSize)
     DEFINE_HEAP_OBJ_RW(MIOFunctionPrototype, NativePointer)
 
+    DECLARE_VM_OBJECT(NativeFunction)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIONativeFunction)
 }; // class MIONativeFunction
 
@@ -269,6 +329,7 @@ public:
         };
     }
 
+    DECLARE_VM_OBJECT(NormalFunction)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIONormalFunction)
 }; // class NormalFunction
 
@@ -332,6 +393,7 @@ public:
         Set<HeapObject *>(ob);
     }
 
+    DECLARE_VM_OBJECT(UpValue)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOUpValue)
 
 private:
@@ -388,6 +450,7 @@ public:
         };
     }
 
+    DECLARE_VM_OBJECT(Closure)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOClosure)
 }; // class MIOClosure
 
@@ -410,9 +473,14 @@ public:
         return reinterpret_cast<const uint8_t *>(this) + kDataOffset;
     }
 
+    HeapObject *GetObject() {
+        return static_cast<HeapObject *>(mutable_data());
+    }
+
     template<class T>
     inline T GetData() const { return *static_cast<const T *>(data()); }
 
+    DECLARE_VM_OBJECT(Union)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOUnion)
 }; // class MIOUnion
 
@@ -439,6 +507,7 @@ public:
     DEFINE_HEAP_OBJ_RW(int, NumberOfSlots)
     DEFINE_HEAP_OBJ_RW(MapPair *, Slots)
 
+    DECLARE_VM_OBJECT(HashMap)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOHashMap)
 }; // class MIOHashMap
 
@@ -481,6 +550,7 @@ public:
     DEFINE_HEAP_OBJ_RW(int, Position)
     DEFINE_HEAP_OBJ_RW(MIOString *, Message)
 
+    DECLARE_VM_OBJECT(Error)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOError)
 }; // class MIOError
 
@@ -512,6 +582,7 @@ class MIOReflectionVoid final : public MIOReflectionType {
 public:
     static const int kMIOReflectionVoidOffset = kMIOReflectionTypeOffset;
 
+    DECLARE_VM_OBJECT(ReflectionVoid)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionVoid)
 }; // class MIOReflectionVoid
 
@@ -522,6 +593,7 @@ public:
 
     DEFINE_HEAP_OBJ_RW(int, BitWide)
 
+    DECLARE_VM_OBJECT(ReflectionIntegral)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionIntegral)
 }; // class MIOReflectionIntegral
 
@@ -532,6 +604,7 @@ public:
 
     DEFINE_HEAP_OBJ_RW(int, BitWide)
 
+    DECLARE_VM_OBJECT(ReflectionFloating)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionFloating)
 }; // class MIOReflectionFloating
 
@@ -539,6 +612,7 @@ class MIOReflectionString final : public MIOReflectionType {
 public:
     static const int kMIOReflectionStringOffset = kMIOReflectionTypeOffset;
 
+    DECLARE_VM_OBJECT(ReflectionString)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionString)
 }; // class MIOReflectionString
 
@@ -546,6 +620,7 @@ class MIOReflectionError final : public MIOReflectionType {
 public:
     static const int kMIOReflectionErrorOffset = kMIOReflectionTypeOffset;
 
+    DECLARE_VM_OBJECT(ReflectionError)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionError)
 }; // class MIOReflectionError
 
@@ -553,6 +628,7 @@ class MIOReflectionUnion final : public MIOReflectionType {
 public:
     static const int kMIOReflectionUnionOffset = kMIOReflectionTypeOffset;
 
+    DECLARE_VM_OBJECT(ReflectionUnion)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionUnion)
 }; // class MIOReflectionUnion
 
@@ -565,6 +641,7 @@ public:
     DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Key)
     DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Value)
 
+    DECLARE_VM_OBJECT(ReflectionMap)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionMap)
 }; // class MIOReflectionMap
 
@@ -588,8 +665,34 @@ public:
         return GetParamters()[index];
     }
 
+    DECLARE_VM_OBJECT(ReflectionFunction)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionFunction)
 }; // class MIOReflectionFunction
+
+
+////////////////////////////////////////////////////////////////////////////////
+/// Inline Functions:
+////////////////////////////////////////////////////////////////////////////////
+
+inline void HORemove(HeapObject *ob) {
+    ob->GetNext()->SetPrev(ob->GetPrev());
+    ob->GetPrev()->SetNext(ob->GetNext());
+}
+
+inline void HOInsertHead(HeapObject *h, HeapObject *x) {
+    x->SetNext(h->GetNext());
+    x->GetNext()->SetPrev(x);
+    x->SetPrev(h);
+    h->SetNext(x);
+}
+
+inline bool HOIsEmpty(HeapObject *h) {
+    return h->GetNext() == h;
+}
+
+inline bool HOIsNotEmpty(HeapObject *h) {
+    return !HOIsEmpty(h);
+}
 
 } // namespace mio
 
