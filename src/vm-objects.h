@@ -73,8 +73,15 @@ inline void HeapObjectSet(void *obj, int offset, T value) {
     DEFINE_HEAP_OBJ_GETTER(type, name) \
     DEFINE_HEAP_OBJ_SETTER(type, name)
 
-#define DECLARE_VM_OBJECT(name) \
+#define DECLARE_VM_OBJECT(name)  \
+    DECLARE_VM_OBJECT_KIND(name) \
+    DECLARE_VM_OBJECT_SIZE(name)
+
+#define DECLARE_VM_OBJECT_KIND(name) \
     enum { kSelfKind = HeapObject::k##name, };
+
+#define DECLARE_VM_OBJECT_SIZE(name) \
+    inline constexpr int GetPlacementSize() const { return kMIO##name##Offset; }
 
 class HeapObject {
 public:
@@ -197,6 +204,8 @@ public:
         return IsCallable() ? reinterpret_cast<const MIOFunction *>(this) : nullptr;
     }
 
+    int GetSize() const;
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(HeapObject)
 
 private:
@@ -221,6 +230,7 @@ public:
 
     static const int kLengthOffset = kHeapObjectOffset;
     static const int kDataOffset = kLengthOffset + sizeof(int);
+    static const int kHeaderOffset = kDataOffset;
 
     DEFINE_HEAP_OBJ_RW(int, Length)
 
@@ -236,7 +246,9 @@ public:
         return { .z = GetData(), .n = GetLength(), };
     }
 
-    DECLARE_VM_OBJECT(String)
+    inline int GetPlacementSize() const { return kHeaderOffset + GetLength(); }
+
+    DECLARE_VM_OBJECT_KIND(String)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOString)
 }; // class MIOString
 
@@ -329,7 +341,13 @@ public:
         };
     }
 
-    DECLARE_VM_OBJECT(NormalFunction)
+    inline int GetPlacementSize() const {
+        return kHeaderOffset + GetConstantPrimitiveSize() +
+               GetConstantObjectSize() * kObjectReferenceSize +
+               GetCodeSize() * sizeof(uint64_t);
+    }
+
+    DECLARE_VM_OBJECT_KIND(NormalFunction)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIONormalFunction)
 }; // class NormalFunction
 
@@ -393,7 +411,11 @@ public:
         Set<HeapObject *>(ob);
     }
 
-    DECLARE_VM_OBJECT(UpValue)
+    inline int GetPlacementSize() const {
+        return kHeaderOffset + GetValueSize();
+    }
+
+    DECLARE_VM_OBJECT_KIND(UpValue)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOUpValue)
 
 private:
@@ -424,6 +446,7 @@ public:
     static const int kFunctionOffset = kFlagsOffset + sizeof(uint32_t);
     static const int kUpValueSizeOffset = kFunctionOffset + kObjectReferenceSize;
     static const int kUpValesOffset = kUpValueSizeOffset + sizeof(int);
+    static const int kHeaderOffset = kUpValesOffset;
 
     DEFINE_HEAP_OBJ_RW(uint32_t, Flags)
     DEFINE_HEAP_OBJ_RW(MIOFunction *, Function)
@@ -450,7 +473,11 @@ public:
         };
     }
 
-    DECLARE_VM_OBJECT(Closure)
+    inline int GetPlacementSize() const {
+        return kHeaderOffset + GetUpValueSize() * sizeof(UpValDesc);
+    }
+
+    DECLARE_VM_OBJECT_KIND(Closure)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOClosure)
 }; // class MIOClosure
 
@@ -461,7 +488,7 @@ class MIOUnion final : public HeapObject {
 public:
     static const int kTypeInfoOffset = kHeapObjectOffset;
     static const int kDataOffset     = kTypeInfoOffset + kObjectReferenceSize;
-    static const int kMIOUnionOffset = kDataOffset   + kMaxReferenceValueSize;
+    static const int kMIOUnionOffset = kDataOffset + kMaxReferenceValueSize;
 
     DEFINE_HEAP_OBJ_RW(MIOReflectionType *, TypeInfo)
 
@@ -573,7 +600,7 @@ public:
     bool IsVoid() const { return IsReflectionVoid(); }
     bool IsObject() const { return !IsPrimitive() && !IsVoid(); }
 
-    int GetPlacementSize() const;
+    int GetTypePlacementSize() const;
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionType)
 }; // class MIOReflectionType
@@ -650,6 +677,7 @@ public:
     static const int kReturnOffset = kMIOReflectionTypeOffset;
     static const int kNumberOfParametersOffset = kReturnOffset + sizeof(MIOReflectionType *);
     static const int kParamtersOffset = kNumberOfParametersOffset + sizeof(int);
+    static const int kHeaderOffset = kParamtersOffset;
 
     DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Return)
     DEFINE_HEAP_OBJ_RW(int, NumberOfParameters)
@@ -665,7 +693,11 @@ public:
         return GetParamters()[index];
     }
 
-    DECLARE_VM_OBJECT(ReflectionFunction)
+    inline int GetPlacementSize() const {
+        return kHeaderOffset + GetNumberOfParameters() * sizeof(MIOReflectionType *);
+    }
+
+    DECLARE_VM_OBJECT_KIND(ReflectionFunction)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionFunction)
 }; // class MIOReflectionFunction
 

@@ -574,7 +574,7 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             if (ob->GetTypeInfo() == type_info.get()) {
                 if (type_info->IsPrimitive()) {
                     memcpy(p_stack_->offset(result), ob->GetData(),
-                           type_info->GetPlacementSize());
+                           type_info->GetTypePlacementSize());
                 } else {
                     memcpy(o_stack_->offset(result), ob->GetData(),
                            kObjectReferenceSize);
@@ -740,7 +740,7 @@ void Thread::CreateEmptyValue(int result, Handle<MIOReflectionType> reflection,
         case HeapObject::kReflectionIntegral:
         case HeapObject::kReflectionFloating: {
             memset(p_stack_->offset(result), 0,
-                   AlignDownBounds(kAlignmentSize, reflection->GetPlacementSize()));
+                   AlignDownBounds(kAlignmentSize, reflection->GetTypePlacementSize()));
         } break;
 
         case HeapObject::kReflectionString: {

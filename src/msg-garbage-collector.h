@@ -14,18 +14,30 @@ class Thread;
 class ObjectScanner;
 class ManagedAllocator;
 
+struct SweepInfo {
+    int times         = 0;
+    int generation    = 0;
+    int release       = 0;
+    int release_bytes = 0;
+    int grow_up       = 0;
+    int junks         = 0;
+    int junks_bytes   = 0;
+
+    SweepInfo() = default;
+};
+
 /**
  * The Mark-Sweep-Generation GC
  */
 class MSGGarbageCollector : public GarbageCollector {
 public:
     enum Phase: int {
-        kPause,
-        kRemark,
-        kPropagate,
-        kSweepYoung,
-        kSweepOld,
-        kFinialize,
+        kPause,      // gc not running.
+        kRemark,     // remark handled objects.
+        kPropagate,  // mark gray objects to black.
+        kSweepYoung, // sweep young generation objects.
+        kSweepOld,   // sweep old generation objects.
+        kFinialize,  // gc loop finish.
     };
 
     enum Color: int {
@@ -133,6 +145,7 @@ private:
     void Propagate();
     void Atomic();
     void SweepYoung();
+    void SweepOld();
 
     void RecursiveMarkGray(ObjectScanner *scanner, HeapObject *x);
 
@@ -163,6 +176,7 @@ private:
     int start_tick_ = 0;
     int propagate_speed_ = kDefaultPropagateSpeed;
     int sweep_speed_ = kDefaultSweepSpeed;
+    bool need_full_gc_ = false;
 
     MemorySegment *root_;
 
@@ -174,6 +188,7 @@ private:
     HeapObject  *gray_again_header_;
     HeapObject  *generations_[kMaxGeneration];
     ManagedAllocator *allocator_;
+    SweepInfo sweep_info_[kMaxGeneration];
 }; // class MSGGarbageCollector
 
 template<class T>

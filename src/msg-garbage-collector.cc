@@ -267,6 +267,7 @@ void MSGGarbageCollector::Step(int tick) {
         case kPause:
             MarkRoot();
             start_tick_ = tick;
+            memset(sweep_info_, 0, arraysize(sweep_info_) * sizeof(sweep_info_[0]));
             break;
 
         case kRemark:
@@ -286,6 +287,7 @@ void MSGGarbageCollector::Step(int tick) {
             break;
 
         case kSweepOld:
+            SweepOld();
             break;
 
         case kFinialize:
@@ -321,9 +323,11 @@ void MSGGarbageCollector::WriteBarrier(HeapObject *target, HeapObject *other) {
 
 /*virtual*/
 void MSGGarbageCollector::FullGC() {
-    while (phase_ != kFinialize) {
+    need_full_gc_ = true;
+    while (phase_ != kPause) {
         Step(0);
     }
+    need_full_gc_ = false;
 }
 
 void MSGGarbageCollector::MarkRoot() {
@@ -428,32 +432,72 @@ void MSGGarbageCollector::Atomic() {
 
 void MSGGarbageCollector::SweepYoung() {
     auto header = generations_[0];
-    auto n = 0, release = 0, grow_up = 0, junks = 0;
+    auto n = 0;
+
+    auto info = &sweep_info_[0];
+    ++info->times;
     while (n < sweep_speed_ && HOIsNotEmpty(header)) {
         auto x = header->GetNext();
         HORemove(x);
         if (x->GetColor() == PrevWhite()) {
+            ++info->release;
+            info->release_bytes += x->GetSize();
             DeleteObject(x);
-            ++release;
         } else if (x->GetColor() == white_) {
             // junks
-            ++junks;
+            ++info->junks;
+            info->junks_bytes += x->GetSize();
             HOInsertHead(generations_[x->GetGeneration()], x);
         } else {
+            ++info->grow_up;
             HOInsertHead(generations_[1], x); // move to old generation.
             x->SetGeneration(1);
             x->SetColor(white_);
-            ++grow_up;
+        }
+        n++;
+    }
+    if (HOIsEmpty(header)) {
+        if (need_full_gc_) {
+            phase_ = kSweepOld;
+        } else {
+            phase_ = kFinialize;
+        }
+
+        DLOG(INFO) << "------[young generation]------";
+        DLOG(INFO) << "-- release: " << info->release << ", " << info->release_bytes;
+        DLOG(INFO) << "-- junks: "   << info->junks   << ", " << info->junks_bytes;
+        DLOG(INFO) << "-- grow up: " << info->grow_up;
+    }
+}
+
+void MSGGarbageCollector::SweepOld() {
+    auto header = generations_[1];
+    auto n = 0;
+
+    auto info = &sweep_info_[1];
+    ++info->times;
+    while (n < sweep_speed_ && HOIsNotEmpty(header)) {
+        auto x = header->GetNext();
+
+        if (x->GetColor() == PrevWhite()) {
+            ++info->release;
+            info->release_bytes += x->GetSize();
+            HORemove(x);
+            DeleteObject(x);
+        } else if (x->GetColor() == white_) {
+            // junks
+            ++info->junks;
+            info->junks_bytes += x->GetSize();
         }
         n++;
     }
     if (HOIsEmpty(header)) {
         phase_ = kFinialize;
+
+        DLOG(INFO) << "------[old generation]------";
+        DLOG(INFO) << "-- release: " << info->release << ", " << info->release_bytes;
+        DLOG(INFO) << "-- junks: "   << info->junks   << ", " << info->junks_bytes;
     }
-    DLOG(INFO) << "current white: " << white_
-               << ", release: " << release
-               << ", grow up: " << grow_up
-               << ", junks: " << junks;
 }
 
 void MSGGarbageCollector::RecursiveMarkGray(ObjectScanner *scanner, HeapObject *x) {

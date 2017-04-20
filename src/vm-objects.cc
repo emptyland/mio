@@ -2,7 +2,21 @@
 
 namespace mio {
 
-int MIOReflectionType::GetPlacementSize() const {
+int HeapObject::GetSize() const {
+#define DEFINE_CASE(name) \
+    case HeapObject::k##name: \
+        return As##name()->GetPlacementSize();
+    switch (GetKind()) {
+        MIO_OBJECTS(DEFINE_CASE)
+        default:
+            DLOG(FATAL) << "bad object kind: " << GetKind();
+            break;
+    }
+#undef DEFINE_CASE
+    return 0;
+}
+
+int MIOReflectionType::GetTypePlacementSize() const {
     switch (GetKind()) {
         case HeapObject::kReflectionIntegral:
             return (AsReflectionIntegral()->GetBitWide() + 7) / 8;
