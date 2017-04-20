@@ -36,8 +36,8 @@ public:
     };
 
     static const int kMaxGeneration = 2;
-    static const int kDefaultPropagateSpeed = 5;
-    static const int kDefaultSweepSpeed = 10;
+    static const int kDefaultPropagateSpeed = 50;
+    static const int kDefaultSweepSpeed = 50;
 
     MSGGarbageCollector(MemorySegment *root, Thread *main_thread);
     virtual ~MSGGarbageCollector();
@@ -149,6 +149,11 @@ private:
     void Gray2Black(HeapObject *ob) {
         DCHECK_EQ(kGray, ob->GetColor());
         ob->SetColor(kGray);
+    }
+
+    void Black2White(HeapObject *ob, Color white) {
+        DCHECK_EQ(kBlack, ob->GetColor());
+        ob->SetColor(white);
     }
 
     bool pause_ = false;

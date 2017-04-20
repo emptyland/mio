@@ -573,10 +573,10 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
 
             if (ob->GetTypeInfo() == type_info.get()) {
                 if (type_info->IsPrimitive()) {
-                    memcpy(p_stack_->offset(result), ob->data(),
+                    memcpy(p_stack_->offset(result), ob->GetData(),
                            type_info->GetPlacementSize());
                 } else {
-                    memcpy(o_stack_->offset(result), ob->data(),
+                    memcpy(o_stack_->offset(result), ob->GetData(),
                            kObjectReferenceSize);
                 }
             } else {
@@ -657,7 +657,7 @@ int Thread::ToString(TextOutputStream *stream, void *addr,
 
         case HeapObject::kReflectionUnion: {
             auto ob = make_handle<MIOUnion>(*static_cast<MIOUnion **>(addr));
-            return ToString(stream, ob->mutable_data(), make_handle(ob->GetTypeInfo()), ok);
+            return ToString(stream, ob->GetMutableData(), make_handle(ob->GetTypeInfo()), ok);
         } break;
 
         case HeapObject::kReflectionString: {

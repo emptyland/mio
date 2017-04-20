@@ -228,12 +228,12 @@ public:
         return reinterpret_cast<const char *>(this) + kDataOffset;
     }
 
-    Buffer Get() const {
-        return { .z = GetData(), .n = GetLength(), };
+    char *GetMutableData() {
+        return reinterpret_cast<char *>(this) + kDataOffset;
     }
 
-    char *mutable_data() {
-        return reinterpret_cast<char *>(this) + kDataOffset;
+    Buffer Get() const {
+        return { .z = GetData(), .n = GetLength(), };
     }
 
     DECLARE_VM_OBJECT(String)
@@ -465,20 +465,20 @@ public:
 
     DEFINE_HEAP_OBJ_RW(MIOReflectionType *, TypeInfo)
 
-    void *mutable_data() {
+    void *GetMutableData() {
         return reinterpret_cast<uint8_t *>(this) + kDataOffset;
     }
 
-    const void *data() const {
+    const void *GetData() const {
         return reinterpret_cast<const uint8_t *>(this) + kDataOffset;
     }
 
     HeapObject *GetObject() {
-        return static_cast<HeapObject *>(mutable_data());
+        return *static_cast<HeapObject **>(GetMutableData());
     }
 
     template<class T>
-    inline T GetData() const { return *static_cast<const T *>(data()); }
+    inline T GetData() const { return *static_cast<const T *>(GetData()); }
 
     DECLARE_VM_OBJECT(Union)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOUnion)
@@ -675,8 +675,10 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 inline void HORemove(HeapObject *ob) {
-    ob->GetNext()->SetPrev(ob->GetPrev());
-    ob->GetPrev()->SetNext(ob->GetNext());
+    DCHECK_NOTNULL(ob->GetNext())->SetPrev(ob->GetPrev());
+    DCHECK_NOTNULL(ob->GetPrev())->SetNext(ob->GetNext());
+    ob->SetNext(nullptr); // for debugging
+    ob->SetPrev(nullptr); // for debugging
 }
 
 inline void HOInsertHead(HeapObject *h, HeapObject *x) {
@@ -684,6 +686,20 @@ inline void HOInsertHead(HeapObject *h, HeapObject *x) {
     x->GetNext()->SetPrev(x);
     x->SetPrev(h);
     h->SetNext(x);
+}
+
+inline void HOInsertTail(HeapObject *h, HeapObject *x) {
+    x->SetPrev(h->GetPrev());
+    x->GetPrev()->SetNext(x);
+    x->SetNext(h);
+    h->SetPrev(x);
+}
+
+inline void HOLink(HeapObject *h, HeapObject *n) {
+    h->GetPrev()->SetNext(n->GetNext());
+    n->GetNext()->SetPrev(h->GetPrev());
+    h->SetPrev(n->GetPrev());
+    h->GetPrev()->SetNext(h);
 }
 
 inline bool HOIsEmpty(HeapObject *h) {

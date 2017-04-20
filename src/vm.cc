@@ -26,9 +26,8 @@ VM::~VM() {
     delete p_global_;
     delete o_global_;
     delete main_thread_;
+    delete gc_;
 }
-
-//HeapMemoryManagementUnit
 
 bool VM::Init() {
     if (gc_name_.compare("msg") == 0) {

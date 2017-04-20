@@ -33,7 +33,7 @@ int PrintRountine(VM *vm, Thread *thread) {
     if (!ob->IsString()) {
         printf("error: parameter is not string\n");
     } else {
-        printf("[%p] %s", ob.get(), ob->AsString()->mutable_data());
+        printf("[%p] %s", ob.get(), ob->AsString()->GetData());
     }
     return 0;
 }

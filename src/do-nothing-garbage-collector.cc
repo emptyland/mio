@@ -39,12 +39,12 @@ Handle<MIOString> DoNothingGarbageCollector::CreateString(const mio_strbuf_t *bu
     objects_.push_back(ob->Init(HeapObject::kString));
 
     ob->SetLength(payload_length);
-    auto p = ob->mutable_data();
+    auto p = ob->GetMutableData();
     for (int i = 0; i < n; ++i) {
         memcpy(p, bufs[i].z, bufs[i].n);
         p += bufs[i].n;
     }
-    ob->mutable_data()[payload_length] = '\0';
+    ob->GetMutableData()[payload_length] = '\0';
     return make_handle(ob);
 }
 
@@ -137,7 +137,7 @@ DoNothingGarbageCollector::CreateUnion(const void *data, int size,
     NEW_MIO_OBJECT(ob, Union);
     ob->SetTypeInfo(type_info.get());
     if (size > 0) {
-        memcpy(ob->mutable_data(), data, size);
+        memcpy(ob->GetMutableData(), data, size);
     }
     return make_handle(ob);
 }
