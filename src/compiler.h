@@ -73,6 +73,16 @@ public:
                                        Zone *zone,
                                        ParsingError *error);
 
+    static ParsedUnitMap *ParseProject(const char *project_dir,
+                                       const char *entry_module,
+                                       const std::vector<std::string> &builtin_modules,
+                                       const std::vector<std::string> &search_paths,
+                                       SimpleFileSystem *sfs,
+                                       TypeFactory *types,
+                                       Scope *global,
+                                       Zone *zone,
+                                       ParsingError *error);
+
     static ParsedModuleMap *Check(ParsedUnitMap *all_units,
                                   TypeFactory *types,
                                   Scope *global,

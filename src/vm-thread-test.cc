@@ -16,6 +16,7 @@ public:
 
     virtual void SetUp() override {
         vm_ = new VM();
+        vm_->AddSerachPath("libs");
         ASSERT_TRUE(vm_->Init());
     }
 
@@ -60,7 +61,6 @@ TEST_F(ThreadTest, P013_UnionOperation) {
 
     printf("%s\n", buf.c_str());
 
-    vm_->function_register()->RegisterNativeFunction("::main::print", PrintRountine);
     ASSERT_EQ(0, vm_->Run());
 }
 

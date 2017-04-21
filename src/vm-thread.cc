@@ -86,8 +86,18 @@ Thread::~Thread() {
 }
 
 void Thread::Execute(MIONormalFunction *callee, bool *ok) {
-    pc_ = 0;
-    bc_ = static_cast<uint64_t *>(callee->GetCode());
+    auto init = call_stack_->Push();
+
+    init->p_stack_base = p_stack_->base_size(),
+    init->p_stack_size = p_stack_->size(),
+    init->o_stack_base = o_stack_->base_size(),
+    init->o_stack_size = o_stack_->size(),
+    init->bc = static_cast<uint64_t *>(callee->GetCode());
+    init->pc = 0;
+    init->callee = callee;
+
+    pc_ = init->pc;
+    bc_ = init->bc;
     while (!should_exit_) {
         auto bc = bc_[pc_++];
         auto top = call_stack_->size() ? call_stack_->Top() : nullptr;
@@ -238,9 +248,8 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
 
                 auto obj_addr = BitCodeDisassembler::GetImm32(bc);
                 Handle<HeapObject> ob(o_stack_->Get<HeapObject *>(obj_addr));
-                DLOG_IF(INFO, ob->IsString()) << ob->AsString()->GetData();
                 DCHECK(ob->IsNativeFunction() || ob->IsNormalFunction() ||
-                       ob->IsClosure());
+                       ob->IsClosure()) << ob->GetKind();
 
                 Handle<MIOFunction> fn;
                 if (ob->IsClosure()) {
@@ -253,6 +262,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 if (fn->IsNativeFunction()) {
                     auto native = fn->AsNativeFunction();
                     if (!native->GetNativePointer()) {
+                        DLOG(ERROR) << "NULL native function!";
                         *ok = false;
                         exit_code_ = NULL_NATIVE_FUNCTION;
                         return;

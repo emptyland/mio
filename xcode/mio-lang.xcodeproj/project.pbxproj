@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2311E3851EA8AD58007B5305 /* vm-runtime.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2311E3841EA8AD58007B5305 /* vm-runtime.cc */; };
+		2311E3861EA8AD58007B5305 /* vm-runtime.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2311E3841EA8AD58007B5305 /* vm-runtime.cc */; };
 		231378E51E8A5514009384DF /* simple-function-register.cc in Sources */ = {isa = PBXBuildFile; fileRef = 231378E41E8A5514009384DF /* simple-function-register.cc */; };
 		231378E61E8A5514009384DF /* simple-function-register.cc in Sources */ = {isa = PBXBuildFile; fileRef = 231378E41E8A5514009384DF /* simple-function-register.cc */; };
 		231378E81E8B563D009384DF /* bitcode-emitter-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 231378E71E8B563D009384DF /* bitcode-emitter-test.cc */; };
@@ -124,6 +126,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2311E3831EA8A95F007B5305 /* vm-runtime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-runtime.h"; sourceTree = "<group>"; };
+		2311E3841EA8AD58007B5305 /* vm-runtime.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-runtime.cc"; sourceTree = "<group>"; };
 		231378E31E8A54CA009384DF /* simple-function-register.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "simple-function-register.h"; sourceTree = "<group>"; };
 		231378E41E8A5514009384DF /* simple-function-register.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "simple-function-register.cc"; sourceTree = "<group>"; };
 		231378E71E8B563D009384DF /* bitcode-emitter-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "bitcode-emitter-test.cc"; sourceTree = "<group>"; };
@@ -308,6 +312,7 @@
 				23ECD44E1EA4B4C700A0091D /* msg-garbage-collector.cc */,
 				23658AF61E8A3FD700F7F72A /* do-nothing-garbage-collector.cc */,
 				23ECD4521EA5C1A000A0091D /* vm-object-scanner.cc */,
+				2311E3841EA8AD58007B5305 /* vm-runtime.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -354,6 +359,7 @@
 				2361991A1E83FC5B00682485 /* vm-function-register.h */,
 				232434881E7BBDD30054C385 /* vm-objects.h */,
 				23ECD4511EA5C08700A0091D /* vm-object-scanner.h */,
+				2311E3831EA8A95F007B5305 /* vm-runtime.h */,
 				2324348C1E7BCCAA0054C385 /* handles.h */,
 				231378E31E8A54CA009384DF /* simple-function-register.h */,
 				23ECD44D1EA4B3D900A0091D /* msg-garbage-collector.h */,
@@ -488,6 +494,7 @@
 				2349E5721E4B1800002883BC /* keywords.c in Sources */,
 				23E3D5A31E63C6DD00C51DDE /* scopes.cc in Sources */,
 				23658AF71E8A3FD700F7F72A /* do-nothing-garbage-collector.cc in Sources */,
+				2311E3851EA8AD58007B5305 /* vm-runtime.cc in Sources */,
 				23E3D5C01E77C51800C51DDE /* memory-output-stream.cc in Sources */,
 				236202551E45BE2900B6B949 /* lexer.cc in Sources */,
 				23E3D59A1E5C1A7900C51DDE /* ast-printer.cc in Sources */,
@@ -541,6 +548,7 @@
 				2349E5831E56E378002883BC /* ast-test.cc in Sources */,
 				235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
 				23E3D59B1E5C1A7900C51DDE /* ast-printer.cc in Sources */,
+				2311E3861EA8AD58007B5305 /* vm-runtime.cc in Sources */,
 				236202561E45BE2900B6B949 /* lexer.cc in Sources */,
 				2362025D1E45CC5F00B6B949 /* token-test.cc in Sources */,
 				23E3D5A41E63C6DD00C51DDE /* scopes.cc in Sources */,

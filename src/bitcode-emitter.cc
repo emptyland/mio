@@ -1824,8 +1824,8 @@ bool BitCodeEmitter::ProcessImportList(PackageImporter *pkg,
         if (!EmitModule(module_name, pair->value(), all_modules)) {
             return false;
         }
-        auto name = TextOutputStream::sprintf("%s::bootstrap", module_name->c_str());
-        auto entry = function_register_->FindOrInsert(name.c_str());
+        auto name = TextOutputStream::sprintf("::%s::bootstrap", module_name->c_str());
+        auto entry = DCHECK_NOTNULL(function_register_->FindOrNull(name.c_str()));
         auto local = info->MakeObjectRoom();
 
         info->builder()->load_o(local, BC_GLOBAL_OBJECT_SEGMENT, entry->offset());

@@ -90,7 +90,6 @@ MSGGarbageCollector::CreateNativeFunction(const char *signature,
     auto ob = NewObject<MIONativeFunction>(MIONativeFunction::kMIONativeFunctionOffset, 0);
     ob->SetSignature(sign.get());
     ob->SetNativePointer(pointer);
-    printf("nfn %p %p %s\n", ob, sign.get(), ob->GetSignature()->GetData());
     return make_handle(ob);
 }
 
@@ -270,9 +269,9 @@ void MSGGarbageCollector::Step(int tick) {
             memset(sweep_info_, 0, arraysize(sweep_info_) * sizeof(sweep_info_[0]));
             break;
 
-        case kRemark:
-            Remark();
-            break;
+//        case kRemark:
+//            Remark();
+//            break;
 
         case kPropagate:
             if (HOIsNotEmpty(gray_header_)) {
@@ -323,7 +322,12 @@ void MSGGarbageCollector::WriteBarrier(HeapObject *target, HeapObject *other) {
 
 /*virtual*/
 void MSGGarbageCollector::FullGC() {
+    while (phase_ != kPause) {
+        Step(0);
+    }
+
     need_full_gc_ = true;
+    Step(0);
     while (phase_ != kPause) {
         Step(0);
     }
@@ -335,54 +339,30 @@ void MSGGarbageCollector::MarkRoot() {
 
     auto buf = root_->buf<HeapObject *>();
     for (int i = 0; i < buf.n; ++i) {
-        RecursiveMarkGray(&scanner, buf.z[i]);
+        MarkGray(buf.z[i]);
     }
 
     buf = current_thread_->o_stack()->buf<HeapObject *>();
     for (int i = 0; i < buf.n; ++i) {
-        RecursiveMarkGray(&scanner, buf.z[i]);
+        MarkGray(buf.z[i]);
     }
 
     std::vector<MIOFunction *> call_stack;
     current_thread_->GetCallStack(&call_stack);
     for (int i = 0; i < call_stack.size(); ++i) {
-        RecursiveMarkGray(&scanner, call_stack[i]);
+        MarkGray(call_stack[i]);
     }
 
-    phase_ = kRemark;
-}
-
-void MSGGarbageCollector::Remark() {
-    ObjectScanner scanner;
-    int counter = 0;
-
-    while (HOIsNotEmpty(handle_header_)) {
-        auto x = handle_header_->GetNext();
-        if (x->IsHandle()) {
-            scanner.Scan(x, [&] (HeapObject *ob) {
-                x->SetColor(kGray);
-                HORemove(x);
-                HOInsertHead(gray_header_, x);
-            });
-            counter++;
-        } else {
-            // put down x to generation list.
-            x->SetColor(white_);
-            HORemove(x);
-            HOInsertHead(generations_[x->GetGeneration()], x);
-        }
-    }
-    DLOG(INFO) << "handle: " << counter << " objects yet";
     phase_ = kPropagate;
 }
 
 void MSGGarbageCollector::Propagate() {
     ObjectScanner scanner;
-    auto remain = 0;
+    auto n = 0;
 
-    while (remain < propagate_speed_ && HOIsNotEmpty(gray_header_)) {
+    while (n < propagate_speed_ && HOIsNotEmpty(gray_header_)) {
         auto x = gray_header_->GetNext();
-        scanner.Scan(x, [this, &remain] (HeapObject *ob) {
+        scanner.Scan(x, [this, &n] (HeapObject *ob) {
             switch (ob->GetColor()) {
                 case kWhite0:
                 case kWhite1:
@@ -394,17 +374,17 @@ void MSGGarbageCollector::Propagate() {
                     break;
 
                 case kBlack:
-                    return;
+                    break;
             }
             HORemove(ob);
             DCHECK_NE(ob, gray_again_header_);
             HOInsertHead(gray_again_header_, ob);
 
-            remain++;
+            n++;
         });
     }
 
-    DLOG(INFO) << "propagate: " << remain << " objects.";
+    DLOG(INFO) << "propagate: " << n << " objects.";
 }
 
 void MSGGarbageCollector::Atomic() {
@@ -416,7 +396,6 @@ void MSGGarbageCollector::Atomic() {
     }
 
     MarkRoot();
-    Remark();
     while (HOIsNotEmpty(gray_header_)) {
         Propagate();
     }
@@ -428,6 +407,7 @@ void MSGGarbageCollector::Atomic() {
     }
     SwitchWhite();
     phase_ = kSweepYoung;
+    sweep_info_[0].iter = generations_[0]->GetNext();
 }
 
 void MSGGarbageCollector::SweepYoung() {
@@ -436,29 +416,35 @@ void MSGGarbageCollector::SweepYoung() {
 
     auto info = &sweep_info_[0];
     ++info->times;
-    while (n < sweep_speed_ && HOIsNotEmpty(header)) {
-        auto x = header->GetNext();
-        HORemove(x);
+    while (n < sweep_speed_ && info->iter != header) {
+        auto x = info->iter; info->iter = info->iter->GetNext();
+
+        printf("kind %d, young color: %d, prev: %d\n",
+               x->GetKind(), x->GetColor(), PrevWhite());
+
+
         if (x->GetColor() == PrevWhite()) {
             ++info->release;
             info->release_bytes += x->GetSize();
+            HORemove(x);
             DeleteObject(x);
         } else if (x->GetColor() == white_) {
             // junks
             ++info->junks;
             info->junks_bytes += x->GetSize();
-            HOInsertHead(generations_[x->GetGeneration()], x);
         } else {
             ++info->grow_up;
-            HOInsertHead(generations_[1], x); // move to old generation.
             x->SetGeneration(1);
             x->SetColor(white_);
+            HORemove(x);
+            HOInsertHead(generations_[1], x); // move to old generation.
         }
         n++;
     }
-    if (HOIsEmpty(header)) {
+    if (info->iter == header) {
         if (need_full_gc_) {
             phase_ = kSweepOld;
+            sweep_info_[1].iter = generations_[1]->GetNext();
         } else {
             phase_ = kFinialize;
         }
@@ -476,8 +462,11 @@ void MSGGarbageCollector::SweepOld() {
 
     auto info = &sweep_info_[1];
     ++info->times;
-    while (n < sweep_speed_ && HOIsNotEmpty(header)) {
-        auto x = header->GetNext();
+    while (n < sweep_speed_ && info->iter != header) {
+        auto x = info->iter; info->iter = info->iter->GetNext();
+
+        printf("kind %d, old color: %d, prev: %d\n",
+               x->GetKind(), x->GetColor(), PrevWhite());
 
         if (x->GetColor() == PrevWhite()) {
             ++info->release;
@@ -491,7 +480,7 @@ void MSGGarbageCollector::SweepOld() {
         }
         n++;
     }
-    if (HOIsEmpty(header)) {
+    if (info->iter == header) {
         phase_ = kFinialize;
 
         DLOG(INFO) << "------[old generation]------";
@@ -500,21 +489,5 @@ void MSGGarbageCollector::SweepOld() {
     }
 }
 
-void MSGGarbageCollector::RecursiveMarkGray(ObjectScanner *scanner, HeapObject *x) {
-    if (!x || x->GetColor() == kGray) {
-        return;
-    }
-    scanner->Scan(x, [this] (HeapObject *ob) {
-        if (ob->GetColor() == white_) {
-            this->White2Gray(ob);
-        }
-        HORemove(ob);
-        if (ob->IsHandle()) {
-            HOInsertHead(handle_header_, ob);
-        } else {
-            HOInsertHead(gray_header_, ob);
-        }
-    });
-}
 
 } // namespace mio

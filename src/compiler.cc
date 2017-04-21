@@ -6,7 +6,9 @@
 #include "types.h"
 #include "scopes.h"
 #include "text-input-stream.h"
+#include "text-output-stream.h"
 #include "simple-file-system.h"
+#include <unordered_set>
 
 namespace mio {
 
@@ -62,7 +64,7 @@ Compiler::ParseProject(const char *project_dir,
     src_path.append("/src");
 
     if (!sfs->IsDir(src_path.c_str())) {
-        error->message = src_path + " is not a dir.";
+        error->message = TextOutputStream::sprintf("project dir: %s is not a dir.", project_dir);
         return nullptr;
     }
 
@@ -133,6 +135,134 @@ Compiler::ParseProject(const char *project_dir,
         }
     }
     return all_units;
+}
+
+int RecursiveParseModule(const std::string &module_name,
+                         const std::vector<std::string> &builtin_modules,
+                         const std::vector<std::string> &search_paths,
+                         std::unordered_set<std::string> *unique_parsed,
+                         SimpleFileSystem *sfs,
+                         TypeFactory *types,
+                         ParsedUnitMap *all_unit,
+                         Scope *global,
+                         Zone *zone,
+                         ParsingError *error) {
+    std::string module_path = sfs->Search(module_name.c_str(), search_paths);
+    if (module_path.empty()) {
+        error->message = TextOutputStream::sprintf("module: %s not found!", module_name.c_str());
+        return -1;
+    }
+
+    std::vector<std::string> names;
+    if (sfs->GetNames(module_path.c_str(), ".mio", &names) < 0) {
+        error->message = "file system error";
+        return -1;
+    }
+
+    std::unique_ptr<TextStreamFactory> text_streams(CreateFileStreamFactory());
+    Parser parser(types, text_streams.get(), global, zone);
+
+    for (const auto unit_name : names) {
+        std::string unit_path(module_path);
+        unit_path.append("/");
+        unit_path.append(unit_name);
+
+        parser.SwitchInputStream(unit_path);
+
+        bool ok = true;
+        auto pkg = parser.ParsePackageImporter(&ok);
+        if (!ok) {
+            *error = parser.last_error();
+            return -1;
+        }
+        if (module_name.compare(pkg->package_name()->ToString()) != 0) {
+            error->message = TextOutputStream::sprintf("path: %s has other module name %s, should be %s",
+                                                       module_path.c_str(),
+                                                       pkg->package_name()->c_str(),
+                                                       module_name.c_str());
+            return -1;
+        }
+        for (const auto &builtin : builtin_modules) {
+            if (builtin.compare(module_name) == 0) {
+                continue;
+            }
+            pkg->mutable_import_list()->Put(RawString::Create(builtin, zone),
+                                            RawString::kEmpty);
+        }
+        PackageImporter::ImportList::Iterator iter(pkg->mutable_import_list());
+        for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
+            if (unique_parsed->find(iter->key()->ToString()) != unique_parsed->end()) {
+                continue;
+            }
+            auto rv = RecursiveParseModule(iter->key()->ToString(),
+                    builtin_modules, search_paths, unique_parsed, sfs, types,
+                    all_unit, global, zone, error);
+            if (rv < 0) {
+                return -1;
+            }
+        }
+
+        auto stmts = new (zone) ZoneVector<Statement *>(zone);
+        stmts->Add(pkg);
+
+        auto module = global->FindInnerScopeOrNull(pkg->package_name());
+        if (!module) {
+            module = new (zone) Scope(global, MODULE_SCOPE, zone);
+            module->set_name(pkg->package_name());
+        }
+        parser.EnterScope(module);
+        parser.EnterScope(unit_path, UNIT_SCOPE);
+
+        for (;;) {
+            ok = true;
+            auto stmt = parser.ParseStatement(&ok);
+            if (!ok) {
+                *error = parser.last_error();
+                return -1;
+            }
+            if (!stmt) {
+                break;
+            }
+            stmts->Add(stmt);
+        }
+
+        parser.LeaveScope();
+        parser.LeaveScope();
+
+        all_unit->Put(RawString::Create(unit_path, zone), stmts);
+    }
+    unique_parsed->insert(module_name);
+    return 0;
+}
+
+    /*static*/
+ParsedUnitMap *Compiler::ParseProject(const char *project_dir,
+                                      const char *entry_module,
+                                      const std::vector<std::string> &builtin_modules,
+                                      const std::vector<std::string> &search_path,
+                                      SimpleFileSystem *sfs,
+                                      TypeFactory *types,
+                                      Scope *global,
+                                      Zone *zone,
+                                      ParsingError *error) {
+    std::string base_path(DCHECK_NOTNULL(project_dir));
+    std::string src_path(base_path);
+    src_path.append("/src");
+
+    if (!sfs->IsDir(src_path.c_str())) {
+        error->message = TextOutputStream::sprintf("project dir: %s is not a dir.", project_dir);
+        return nullptr;
+    }
+
+    std::unordered_set<std::string> unique_parsed;
+
+    auto all_units = new (zone) ParsedUnitMap(zone);
+    std::vector<std::string> paths(search_path);
+    paths.push_back(src_path);
+    auto rv = RecursiveParseModule(entry_module, builtin_modules, paths,
+                                   &unique_parsed, sfs, types, all_units,
+                                   global, zone, error);
+    return rv < 0 ? nullptr : all_units;
 }
 
 /*static*/ ParsedModuleMap *Compiler::Check(ParsedUnitMap *all_units,

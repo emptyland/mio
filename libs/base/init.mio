@@ -1,0 +1,9 @@
+package base
+
+native function gc: void
+
+native function fullGC: void
+
+native function tick: i32
+
+native function print(s: string): void

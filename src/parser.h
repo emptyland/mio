@@ -48,6 +48,9 @@ public:
     void ClearError();
 
     TextInputStream *SwitchInputStream(const std::string &key);
+    TextInputStream *PushInputStream(const std::string &key);
+    void PopInputStream();
+
     Scope *EnterScope(const std::string &name, int scope_type);
     void EnterScope(Scope *scope);
     Scope *LeaveScope();

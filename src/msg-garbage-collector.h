@@ -22,6 +22,7 @@ struct SweepInfo {
     int grow_up       = 0;
     int junks         = 0;
     int junks_bytes   = 0;
+    HeapObject *iter  = nullptr;
 
     SweepInfo() = default;
 };
@@ -141,13 +142,19 @@ private:
     Color PrevWhite() { return (white_ == kWhite0) ? kWhite1 : kWhite0; }
 
     void MarkRoot();
-    void Remark();
     void Propagate();
     void Atomic();
     void SweepYoung();
     void SweepOld();
 
-    void RecursiveMarkGray(ObjectScanner *scanner, HeapObject *x);
+    void MarkGray(HeapObject *x) {
+        if (!x || x->GetColor() == kGray || x->GetColor() == kBlack) {
+            return;
+        }
+        White2Gray(x);
+        HORemove(x);
+        HOInsertHead(gray_header_, x);
+    }
 
     template<class T>
     inline T *NewObject(int placement_size, int g);
@@ -161,7 +168,7 @@ private:
 
     void Gray2Black(HeapObject *ob) {
         DCHECK_EQ(kGray, ob->GetColor());
-        ob->SetColor(kGray);
+        ob->SetColor(kBlack);
     }
 
     void Black2White(HeapObject *ob, Color white) {

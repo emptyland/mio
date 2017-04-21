@@ -3,6 +3,7 @@
 #include "vm-thread.h"
 #include "vm-objects.h"
 #include "vm-bitcode-disassembler.h"
+#include "vm-runtime.h"
 #include "zone.h"
 #include "simple-file-system.h"
 #include "types.h"
@@ -46,9 +47,13 @@ bool VM::Init() {
 bool VM::CompileProject(const char *project_dir, ParsingError *error) {
     std::unique_ptr<SimpleFileSystem> sfs(CreatePlatformSimpleFileSystem());
     std::unique_ptr<TypeFactory> types(new TypeFactory(ast_zone_));
+    std::vector<std::string> builtin_modules = {"base"};
 
     auto scope = new (ast_zone_) Scope(nullptr, GLOBAL_SCOPE, ast_zone_);
-    auto all_units = Compiler::ParseProject(project_dir, sfs.get(), types.get(),
+//    auto all_units = Compiler::ParseProject(project_dir, sfs.get(), types.get(),
+//                                            scope, ast_zone_, error);
+    auto all_units = Compiler::ParseProject(project_dir, "main", builtin_modules,
+                                            search_path_, sfs.get(), types.get(),
                                             scope, ast_zone_, error);
     if (!all_units) {
         return false;
@@ -69,6 +74,12 @@ bool VM::CompileProject(const char *project_dir, ParsingError *error) {
 
     type_info_base_ = info.all_type_base;
     type_void_index = info.void_type_index;
+
+    auto nafn = &kRtNaFn[0];
+    while (nafn->name != nullptr) {
+        function_register_->RegisterNativeFunction(nafn->name, nafn->pointer);
+        ++nafn;
+    }
     return true;
 }
 
@@ -87,9 +98,7 @@ int VM::Run() {
     }
 
     bool ok = true;
-    //gc_->Active(false);
     main_thread_->Execute(main_fn, &ok);
-    //gc_->Active(true);
     return main_thread_->exit_code();
 }
 

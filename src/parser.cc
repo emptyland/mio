@@ -38,6 +38,15 @@ TextInputStream *Parser::SwitchInputStream(const std::string &key) {
     return input;
 }
 
+TextInputStream *Parser::PushInputStream(const std::string &key) {
+    auto input = text_streams_->GetInputStream(key);
+    lexer_->PushScope(input, true);
+    lexer_->Next(&ahead_);
+    return input;
+}
+
+void Parser::PopInputStream() { lexer_->PopScope(); }
+
 ParsingError Parser::last_error() const {
     if (has_error()) {
         return last_error_;

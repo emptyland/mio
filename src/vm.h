@@ -30,6 +30,7 @@ public:
     int Run();
 
     DEF_GETTER(int, max_call_deep)
+    DEF_GETTER(int, tick);
 
     Thread *main_thread() const {
         return DCHECK_NOTNULL(main_thread_);
@@ -43,6 +44,14 @@ public:
         return reinterpret_cast<ObjectFactory *>(gc_);
     }
 
+    GarbageCollector *gc() const {
+        return DCHECK_NOTNULL(gc_);
+    }
+
+    void AddSerachPath(const std::string &path) {
+        search_path_.push_back(path);
+    }
+
     void DisassembleAll(TextOutputStream *stream);
     void DisassembleAll(std::string *buf);
 
@@ -50,6 +59,7 @@ public:
     DISALLOW_IMPLICIT_CONSTRUCTORS(VM)
 private:
     std::string gc_name_;
+    std::vector<std::string> search_path_;
 
     int tick_ = 0;
     int max_call_deep_ = kDefaultMaxCallDeep;
