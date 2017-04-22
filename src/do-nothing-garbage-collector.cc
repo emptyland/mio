@@ -1,22 +1,21 @@
 #include "do-nothing-garbage-collector.h"
+#include "vm-object-surface.h"
 #include "vm-objects.h"
 #include "glog/logging.h"
 #include <stdlib.h>
 
 namespace mio {
 
-#define NEW_MIO_OBJECT(obj, name) \
-    auto obj = static_cast<MIO##name *>(malloc(MIO##name::kMIO##name##Offset)); \
-    objects_.push_back(obj->Init(HeapObject::k##name))
+#define NEW_OBJECT(name) NewObject<MIO##name>(MIO##name::kMIO##name##Offset);
 
 DoNothingGarbageCollector::DoNothingGarbageCollector()
-    : offset_stub_(0)
-    , offset_pointer_(&offset_stub_) {}
+    : allocator_(new ManagedAllocator()) {
+}
 
 /*virtual*/
 DoNothingGarbageCollector::~DoNothingGarbageCollector() {
-    for (auto obj : objects_) {
-        free(obj);
+    for (auto ob : objects_) {
+        allocator_->Free(ob);
     }
 }
 
@@ -35,8 +34,7 @@ Handle<MIOString> DoNothingGarbageCollector::CreateString(const mio_strbuf_t *bu
     }
 
     auto total_size = payload_length + 1 + MIOString::kDataOffset; // '\0' + MIOStringHeader
-    auto ob = static_cast<MIOString *>(malloc(total_size));
-    objects_.push_back(ob->Init(HeapObject::kString));
+    auto ob = NewObject<MIOString>(total_size);
 
     ob->SetLength(payload_length);
     auto p = ob->GetMutableData();
@@ -52,11 +50,10 @@ Handle<MIOString> DoNothingGarbageCollector::CreateString(const mio_strbuf_t *bu
 Handle<MIOClosure>
 DoNothingGarbageCollector::CreateClosure(Handle<MIOFunction> function,
                                      int up_values_size) {
-    auto placement_size = MIOClosure::kUpValesOffset +
-            up_values_size * sizeof(UpValDesc);
-    auto ob = static_cast<MIOClosure *>(::malloc(placement_size));
-    objects_.push_back(ob->Init(HeapObject::kClosure));
+    auto placement_size = static_cast<int>(MIOClosure::kUpValesOffset +
+            up_values_size * sizeof(UpValDesc));
 
+    auto ob = NewObject<MIOClosure>(placement_size);
     ob->SetFlags(0);
     ob->SetFunction(function.get());
     ob->SetUpValueSize(up_values_size);
@@ -69,7 +66,7 @@ DoNothingGarbageCollector::CreateNativeFunction(const char *signature,
                                             MIOFunctionPrototype pointer) {
     Handle<MIOString> sign(ObjectFactory::CreateString(signature,
                                                        static_cast<int>(strlen(signature))));
-    NEW_MIO_OBJECT(ob, NativeFunction);
+    auto ob = NEW_OBJECT(NativeFunction);
     ob->SetSignature(sign.get());
     ob->SetNativePointer(pointer);
     return make_handle(ob);
@@ -84,14 +81,12 @@ DoNothingGarbageCollector::CreateNormalFunction(const std::vector<Handle<HeapObj
                                             int code_size) {
     DCHECK_EQ(0, code_size % sizeof(uint64_t));
 
-    auto placement_size = MIONormalFunction::kHeaderOffset +
+    auto placement_size = static_cast<int>(MIONormalFunction::kHeaderOffset +
             constant_primitive_size +
-            constant_objects.size() * kObjectReferenceSize + code_size;
-    auto ob = static_cast<MIONormalFunction *>(malloc(placement_size));
-    objects_.push_back(ob->Init(HeapObject::kNormalFunction));
+            constant_objects.size() * kObjectReferenceSize + code_size);
 
+    auto ob = NewObject<MIONormalFunction>(placement_size);
     ob->SetName(nullptr);
-
     ob->SetConstantPrimitiveSize(constant_primitive_size);
     memcpy(ob->GetConstantPrimitiveData(), constant_primitive_data, constant_primitive_size);
 
@@ -106,21 +101,39 @@ DoNothingGarbageCollector::CreateNormalFunction(const std::vector<Handle<HeapObj
 }
 
 /*virtual*/
-Handle<MIOHashMap> DoNothingGarbageCollector::CreateHashMap(int seed, uint32_t flags) {
-    NEW_MIO_OBJECT(ob, HashMap);
+Handle<MIOHashMap>
+DoNothingGarbageCollector::CreateHashMap(int seed, int initial_slots,
+                                         Handle<MIOReflectionType> key,
+                                         Handle<MIOReflectionType> value) {
+    DCHECK(key->CanBeKey());
+    auto ob = NewObject<MIOHashMap>(MIOHashMap::kMIOHashMapOffset);
     ob->SetSeed(seed);
-    ob->SetSize(0);
-    ob->SetFlags(flags);
-    // TODO: slots
+    ob->SetKey(key.get());
+    ob->SetValue(value.get());
+
+    DCHECK_GE(initial_slots, 0);
+    ob->SetSlotSize(initial_slots);
+    if (ob->GetSlotSize() > 0) {
+        auto slots_placement_size = MIOPair::kHeaderOffset * ob->GetSlotSize();
+        auto slots = allocator_->Allocate(slots_placement_size);
+        memset(slots, 0, slots_placement_size);
+        HeapObjectSet(ob, MIOHashMap::kSlotsOffset, slots);
+    }
 
     return make_handle(ob);
+}
+
+/*virtual*/
+MIOHashMapSurface *
+DoNothingGarbageCollector::MakeHashMapSurface(Handle<MIOHashMap> core) {
+    return new MIOHashMapSurface(core.get(), allocator_);
 }
 
 /*virtual*/
 Handle<MIOError>
 DoNothingGarbageCollector::CreateError(const char *message, int position,
                                    Handle<MIOError> linked) {
-    NEW_MIO_OBJECT(ob, Error);
+    auto ob = NEW_OBJECT(Error);
     ob->SetPosition(position);
     ob->SetMessage(GetOrNewString(message, static_cast<int>(strlen(message))).get());
     ob->SetLinkedError(linked.get());
@@ -134,7 +147,7 @@ DoNothingGarbageCollector::CreateUnion(const void *data, int size,
     DCHECK_GE(size, 0);
     DCHECK_LE(size, kMaxReferenceValueSize);
 
-    NEW_MIO_OBJECT(ob, Union);
+    auto ob = NEW_OBJECT(Union);
     ob->SetTypeInfo(type_info.get());
     if (size > 0) {
         memcpy(ob->GetMutableData(), data, size);
@@ -152,9 +165,7 @@ DoNothingGarbageCollector::GetOrNewUpValue(const void *data, int size,
     }
 
     auto placement_size = MIOUpValue::kHeaderOffset + size;
-    auto ob = static_cast<MIOUpValue *>(::malloc(placement_size));
-    objects_.push_back(ob->Init(HeapObject::kUpValue));
-
+    auto ob = NewObject<MIOUpValue>(placement_size);
     ob->SetFlags((unique_id << 1) | (is_primitive ? 0x0 : 0x1));
     ob->SetValueSize(size);
     memcpy(ob->GetValue(), data, size);
@@ -166,7 +177,7 @@ DoNothingGarbageCollector::GetOrNewUpValue(const void *data, int size,
 /*virtual*/
 Handle<MIOReflectionVoid>
 DoNothingGarbageCollector::CreateReflectionVoid(int64_t tid) {
-    NEW_MIO_OBJECT(ob, ReflectionVoid);
+    auto ob = NEW_OBJECT(ReflectionVoid)
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     return make_handle(ob);
@@ -175,7 +186,7 @@ DoNothingGarbageCollector::CreateReflectionVoid(int64_t tid) {
 /*virtual*/
 Handle<MIOReflectionIntegral>
 DoNothingGarbageCollector::CreateReflectionIntegral(int64_t tid, int bitwide) {
-    NEW_MIO_OBJECT(ob, ReflectionIntegral);
+    auto ob = NEW_OBJECT(ReflectionIntegral);
     ob->SetTid(tid);
     ob->SetReferencedSize((bitwide + 7) / 8);
     ob->SetBitWide(bitwide);
@@ -185,7 +196,7 @@ DoNothingGarbageCollector::CreateReflectionIntegral(int64_t tid, int bitwide) {
 /*virtual*/
 Handle<MIOReflectionFloating>
 DoNothingGarbageCollector::CreateReflectionFloating(int64_t tid, int bitwide) {
-    NEW_MIO_OBJECT(ob, ReflectionFloating);
+    auto ob = NEW_OBJECT(ReflectionFloating);
     ob->SetTid(tid);
     ob->SetReferencedSize((bitwide + 7) / 8);
     ob->SetBitWide(bitwide);
@@ -195,7 +206,7 @@ DoNothingGarbageCollector::CreateReflectionFloating(int64_t tid, int bitwide) {
 /*virtual*/
 Handle<MIOReflectionString>
 DoNothingGarbageCollector::CreateReflectionString(int64_t tid) {
-    NEW_MIO_OBJECT(ob, ReflectionString);
+    auto ob = NEW_OBJECT(ReflectionString);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     return make_handle(ob);
@@ -204,7 +215,7 @@ DoNothingGarbageCollector::CreateReflectionString(int64_t tid) {
 /*virtual*/
 Handle<MIOReflectionError>
 DoNothingGarbageCollector::CreateReflectionError(int64_t tid) {
-    NEW_MIO_OBJECT(ob, ReflectionError);
+    auto ob = NEW_OBJECT(ReflectionError);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     return make_handle(ob);
@@ -213,7 +224,7 @@ DoNothingGarbageCollector::CreateReflectionError(int64_t tid) {
 /*virtual*/
 Handle<MIOReflectionUnion>
 DoNothingGarbageCollector::CreateReflectionUnion(int64_t tid) {
-    NEW_MIO_OBJECT(ob, ReflectionUnion);
+    auto ob = NEW_OBJECT(ReflectionUnion);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     return make_handle(ob);
@@ -224,7 +235,7 @@ Handle<MIOReflectionMap>
 DoNothingGarbageCollector::CreateReflectionMap(int64_t tid,
                                            Handle<MIOReflectionType> key,
                                            Handle<MIOReflectionType> value) {
-    NEW_MIO_OBJECT(ob, ReflectionMap);
+    auto ob = NEW_OBJECT(ReflectionMap);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     ob->SetKey(key.get());
@@ -240,9 +251,7 @@ DoNothingGarbageCollector::CreateReflectionFunction(int64_t tid, Handle<MIORefle
     int placement_size = MIOReflectionFunction::kParamtersOffset +
             sizeof(MIOReflectionType *) * number_of_parameters;
 
-    auto ob = static_cast<MIOReflectionFunction *>(malloc(placement_size));
-    objects_.push_back(ob->Init(HeapObject::kReflectionFunction));
-
+    auto ob = NewObject<MIOReflectionFunction>(placement_size);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     ob->SetNumberOfParameters(number_of_parameters);

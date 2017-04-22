@@ -1,6 +1,7 @@
 #include "vm-thread.h"
 #include "vm-garbage-collector.h"
 #include "vm-objects.h"
+#include "vm-object-surface.h"
 #include "vm-stack.h"
 #include "vm-memory-segment.h"
 #include "vm-bitcode-disassembler.h"
@@ -628,6 +629,39 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             mio_strbuf_t buf[2] = { lhs->Get(), rhs->Get() };
             auto rv = vm_->gc_->CreateString(buf, arraysize(buf));
             o_stack_->Set(result, rv.get());
+        } break;
+
+        case OO_Map: {
+            auto key = GetTypeInfo(val1);
+            auto value = GetTypeInfo(val2);
+            auto ob = vm_->object_factory()->CreateHashMap(0, 7, key, value);
+
+            o_stack_->Set(result, ob.get());
+        } break;
+
+        case OO_MapPut: {
+            auto ob = GetHashMap(result, ok);
+            if (!*ok) {
+                exit_code_ = PANIC;
+                DLOG(ERROR) << "object not map. addr: " << result;
+                return;
+            }
+
+            const void *key = nullptr;
+            if (ob->GetKey()->IsObject()) {
+                key = o_stack_->offset(val1);
+            } else {
+                key = p_stack_->offset(val1);
+            }
+
+            const void *value = nullptr;
+            if (ob->GetValue()->IsObject()) {
+                value = o_stack_->offset(val2);
+            } else {
+                value = p_stack_->offset(val2);
+            }
+            std::unique_ptr<MIOHashMapSurface> surface(vm_->object_factory()->MakeHashMapSurface(ob));
+            surface->RawPut(key, value);
         } break;
 
         default:

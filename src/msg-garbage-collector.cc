@@ -3,8 +3,8 @@
 #include "vm-thread.h"
 #include "vm-memory-segment.h"
 #include "vm-object-scanner.h"
+#include "vm-object-surface.h"
 #include "vm-objects.h"
-
 
 namespace mio {
 
@@ -123,9 +123,31 @@ MSGGarbageCollector::CreateNormalFunction(const std::vector<Handle<HeapObject>> 
 }
 
 /*virtual*/
-Handle<MIOHashMap> MSGGarbageCollector::CreateHashMap(int seed, uint32_t flags) {
-    // TODO:
-    return Handle<MIOHashMap>();
+Handle<MIOHashMap>
+MSGGarbageCollector::CreateHashMap(int seed, int initial_slots,
+                                   Handle<MIOReflectionType> key,
+                                   Handle<MIOReflectionType> value) {
+    DCHECK(key->CanBeKey());
+    auto ob = NewObject<MIOHashMap>(MIOHashMap::kMIOHashMapOffset, 0);
+    ob->SetSeed(seed);
+    ob->SetKey(key.get());
+    ob->SetValue(value.get());
+
+    DCHECK_GE(initial_slots, 0);
+    ob->SetSlotSize(initial_slots);
+    if (ob->GetSlotSize() > 0) {
+        auto slots_placement_size = MIOPair::kHeaderOffset * ob->GetSlotSize();
+        auto slots = allocator_->Allocate(slots_placement_size);
+        memset(slots, 0, slots_placement_size);
+        HeapObjectSet(ob, MIOHashMap::kSlotsOffset, slots);
+    }
+
+    return make_handle(ob);
+}
+
+MIOHashMapSurface *
+MSGGarbageCollector::MakeHashMapSurface(Handle<MIOHashMap> core) {
+    return new MIOHashMapSurface(core.get(), allocator_);
 }
 
 /*virtual*/

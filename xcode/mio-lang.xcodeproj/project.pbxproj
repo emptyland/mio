@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		2311E3851EA8AD58007B5305 /* vm-runtime.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2311E3841EA8AD58007B5305 /* vm-runtime.cc */; };
 		2311E3861EA8AD58007B5305 /* vm-runtime.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2311E3841EA8AD58007B5305 /* vm-runtime.cc */; };
+		2311E3891EA9F0BC007B5305 /* vm-object-surface.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2311E3881EA9F0BC007B5305 /* vm-object-surface.cc */; };
+		2311E38A1EA9F0BC007B5305 /* vm-object-surface.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2311E3881EA9F0BC007B5305 /* vm-object-surface.cc */; };
 		231378E51E8A5514009384DF /* simple-function-register.cc in Sources */ = {isa = PBXBuildFile; fileRef = 231378E41E8A5514009384DF /* simple-function-register.cc */; };
 		231378E61E8A5514009384DF /* simple-function-register.cc in Sources */ = {isa = PBXBuildFile; fileRef = 231378E41E8A5514009384DF /* simple-function-register.cc */; };
 		231378E81E8B563D009384DF /* bitcode-emitter-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 231378E71E8B563D009384DF /* bitcode-emitter-test.cc */; };
@@ -128,6 +130,8 @@
 /* Begin PBXFileReference section */
 		2311E3831EA8A95F007B5305 /* vm-runtime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-runtime.h"; sourceTree = "<group>"; };
 		2311E3841EA8AD58007B5305 /* vm-runtime.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-runtime.cc"; sourceTree = "<group>"; };
+		2311E3871EA9A481007B5305 /* vm-object-surface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-object-surface.h"; sourceTree = "<group>"; };
+		2311E3881EA9F0BC007B5305 /* vm-object-surface.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-object-surface.cc"; sourceTree = "<group>"; };
 		231378E31E8A54CA009384DF /* simple-function-register.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "simple-function-register.h"; sourceTree = "<group>"; };
 		231378E41E8A5514009384DF /* simple-function-register.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "simple-function-register.cc"; sourceTree = "<group>"; };
 		231378E71E8B563D009384DF /* bitcode-emitter-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "bitcode-emitter-test.cc"; sourceTree = "<group>"; };
@@ -306,6 +310,7 @@
 				2324346F1E7929DD0054C385 /* vm-bitcode-builder.cc */,
 				2324347B1E7A84C20054C385 /* vm-bitcode-disassembler.cc */,
 				232434891E7BBEA00054C385 /* vm-objects.cc */,
+				2311E3881EA9F0BC007B5305 /* vm-object-surface.cc */,
 				2361991B1E83FE1100682485 /* vm-function-register.cc */,
 				2361991F1E84CCB900682485 /* vm-object-factory.cc */,
 				231378E41E8A5514009384DF /* simple-function-register.cc */,
@@ -358,6 +363,7 @@
 				23ECD4551EA6EF1D00A0091D /* vm-garbage-collector.h */,
 				2361991A1E83FC5B00682485 /* vm-function-register.h */,
 				232434881E7BBDD30054C385 /* vm-objects.h */,
+				2311E3871EA9A481007B5305 /* vm-object-surface.h */,
 				23ECD4511EA5C08700A0091D /* vm-object-scanner.h */,
 				2311E3831EA8A95F007B5305 /* vm-runtime.h */,
 				2324348C1E7BCCAA0054C385 /* handles.h */,
@@ -504,6 +510,7 @@
 				23E3D5C81E77CBCC00C51DDE /* file-output-stream.cc in Sources */,
 				2349E56C1E4AA77F002883BC /* number-parser.cc in Sources */,
 				23E3D5B81E700A7000C51DDE /* simple-file-system.cc in Sources */,
+				2311E3891EA9F0BC007B5305 /* vm-object-surface.cc in Sources */,
 				23ECD4531EA5C1A000A0091D /* vm-object-scanner.cc in Sources */,
 				2324348A1E7BBEA00054C385 /* vm-objects.cc in Sources */,
 				2361991C1E83FE1100682485 /* vm-function-register.cc in Sources */,
@@ -550,6 +557,7 @@
 				23E3D59B1E5C1A7900C51DDE /* ast-printer.cc in Sources */,
 				2311E3861EA8AD58007B5305 /* vm-runtime.cc in Sources */,
 				236202561E45BE2900B6B949 /* lexer.cc in Sources */,
+				2311E38A1EA9F0BC007B5305 /* vm-object-surface.cc in Sources */,
 				2362025D1E45CC5F00B6B949 /* token-test.cc in Sources */,
 				23E3D5A41E63C6DD00C51DDE /* scopes.cc in Sources */,
 				231378E91E8B563D009384DF /* bitcode-emitter-test.cc in Sources */,

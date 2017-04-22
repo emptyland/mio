@@ -93,10 +93,10 @@ public:
     };
 
     enum Flags: uint32_t {
-        GC_HANDLE          = 0x1,
-        GC_COLOR_MASK      = 0x000f0000,
-        GC_GENERATION_MASK = 0x00f00000,
-        KIND_MASK          = 0xff000000,
+        GC_HANDLE_COUNT_MASK = 0x0000ffff,
+        GC_COLOR_MASK        = 0x000f0000,
+        GC_GENERATION_MASK   = 0x00f00000,
+        KIND_MASK            = 0xff000000,
     };
 
     static const int kMaxGCGeneration = 0xf;
@@ -127,18 +127,18 @@ public:
     DEFINE_HEAP_OBJ_RW(HeapObject *, Next)
     DEFINE_HEAP_OBJ_RW(HeapObject *, Prev)
 
-    bool IsHandle() const { return (GetHeaderFlags() & GC_HANDLE) != 0; }
+    bool IsHandle() const { return GetHandleCount() > 0; }
+
+    int GetHandleCount() const { return (GetHeaderFlags() & GC_HANDLE_COUNT_MASK); }
 
     void GrabOrNothing() {
-        if (!IsHandle()) {
-            SetHeaderFlags(GetHeaderFlags() | GC_HANDLE);
-        }
+        SetHeaderFlags((GetHeaderFlags() & ~GC_HANDLE_COUNT_MASK) |
+                       ((GetHandleCount() + 1) & GC_HANDLE_COUNT_MASK));
     }
 
     void DropOrNothing() {
-        if (IsHandle()) {
-            SetHeaderFlags(GetHeaderFlags() & ~GC_HANDLE);
-        }
+        SetHeaderFlags((GetHeaderFlags() & ~GC_HANDLE_COUNT_MASK) |
+                       ((GetHandleCount() - 1) & GC_HANDLE_COUNT_MASK));
     }
 
     int GetGeneration() const {
@@ -514,25 +514,45 @@ public:
 static_assert(sizeof(MIOUnion) == sizeof(HeapObject),
               "MIOUnion can bigger than HeapObject");
 
+class MIOPair {
+public:
+    static const int kNextOffset = 0;
+    static const int kHeaderOffset = kNextOffset + sizeof(MIOPair *);
+    static const int kKeyOffset = kHeaderOffset;
+    static const int kValueOffset = kKeyOffset + kMaxReferenceValueSize;
+    static const int kMIOPairOffset = kValueOffset + kMaxReferenceValueSize;
 
-class MapPair;
+    DEFINE_HEAP_OBJ_RW(MIOPair *, Next)
+
+    void *GetKey() { return reinterpret_cast<uint8_t *>(this) + kKeyOffset; }
+
+    void *GetValue() { return reinterpret_cast<uint8_t *>(this) + kValueOffset; }
+}; // class MIOMapPair
+
 
 class MIOHashMap : public HeapObject {
 public:
     static const int kDefaultInitialSlots = 4;
 
     static const int kSeedOffset = kHeapObjectOffset;
-    static const int kFlagsOffset = kSeedOffset + sizeof(int);
-    static const int kSizeOffset = kFlagsOffset + sizeof(uint32_t);
-    static const int kNumberOfSlotsOffset = kSizeOffset + sizeof(int);
-    static const int kSlotsOffset = kNumberOfSlotsOffset + sizeof(int);
-    static const int kMIOHashMapOffset = kSlotsOffset + sizeof(MapPair *);
+    static const int kKeyOffset = kSeedOffset + sizeof(int);
+    static const int kValueOffset = kKeyOffset + kObjectReferenceSize;
+    static const int kSizeOffset = kValueOffset + kObjectReferenceSize;
+    static const int kSlotSizeOffset = kSizeOffset + sizeof(int);
+    static const int kSlotsOffset = kSlotSizeOffset + sizeof(int);
+    static const int kMIOHashMapOffset = kSlotsOffset + sizeof(MIOPair *);
 
     DEFINE_HEAP_OBJ_RW(int, Seed)
-    DEFINE_HEAP_OBJ_RW(uint32_t, Flags)
+    DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Key)
+    DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Value)
     DEFINE_HEAP_OBJ_RW(int, Size)
-    DEFINE_HEAP_OBJ_RW(int, NumberOfSlots)
-    DEFINE_HEAP_OBJ_RW(MapPair *, Slots)
+    DEFINE_HEAP_OBJ_RW(int, SlotSize)
+
+    MIOPair *GetSlot(int index) {
+        auto base = reinterpret_cast<uint8_t *>(this) + kSlotsOffset;
+        auto p = *reinterpret_cast<uint8_t **>(base) + index * MIOPair::kMIOPairOffset;
+        return reinterpret_cast<MIOPair *>(p);
+    }
 
     DECLARE_VM_OBJECT(HashMap)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOHashMap)
@@ -540,30 +560,6 @@ public:
 
 static_assert(sizeof(MIOHashMap) == sizeof(HeapObject),
               "MIOHashMap can bigger than HeapObject");
-
-class MIOPair {
-public:
-    static const int kNextOffset = 0;
-    static const int kPrevOffset = kNextOffset + sizeof(MapPair *);
-    static const int kPayloadOffset = kPrevOffset + sizeof(MapPair *);
-    static const int kKeyOffset = kPayloadOffset;
-    static const int kValueOffset = kKeyOffset + kObjectReferenceSize;
-    static const int kMIOMapPairOffset = kValueOffset + kObjectReferenceSize;
-
-    DEFINE_HEAP_OBJ_RW(MapPair *, Next)
-    DEFINE_HEAP_OBJ_RW(MapPair *, Prev)
-
-    template<class T>
-    inline T GetKey() { return HeapObjectGet<T>(this, kKeyOffset); }
-
-    template<class T>
-    inline T GetValue() { return HeapObjectGet<T>(this, kValueOffset); }
-
-    template<class T>
-    inline void SetValue(T value) {
-        return HeapObjectSet<T>(this, kValueOffset, value);
-    }
-}; // class MIOMapPair
 
 
 class MIOError : public HeapObject {
@@ -599,6 +595,13 @@ public:
     bool IsPrimitive() const { return IsReflectionIntegral() || IsReflectionFloating(); }
     bool IsVoid() const { return IsReflectionVoid(); }
     bool IsObject() const { return !IsPrimitive() && !IsVoid(); }
+
+    bool CanBeKey() const {
+        return IsReflectionFloating() || IsReflectionIntegral() ||
+               IsReflectionError() || IsReflectionString();
+    }
+
+    bool CanNotBeKey() const { return !CanBeKey(); }
 
     int GetTypePlacementSize() const;
 

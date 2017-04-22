@@ -68,6 +68,8 @@ public:
         other.object_ = nullptr;
     }
 
+    T **address() { return &object_; }
+
 private:
     T *object_;
 };

@@ -49,6 +49,7 @@ public:
     inline Handle<MIOError>   GetError(int addr, bool *ok);
     inline Handle<MIOUnion>   GetUnion(int addr, bool *ok);
     inline Handle<MIOClosure> GetClosure(int addr, bool *ok);
+    inline Handle<MIOHashMap> GetHashMap(int addr, bool *ok);
 
     int GetCallStack(std::vector<MIOFunction *> *call_stack);
 
@@ -139,6 +140,16 @@ inline Handle<MIOClosure> Thread::GetClosure(int addr, bool *ok) {
         return make_handle<MIOClosure>(nullptr);
     }
     return make_handle(ob->AsClosure());
+}
+
+inline Handle<MIOHashMap> Thread::GetHashMap(int addr, bool *ok) {
+    auto ob = GetObject(addr);
+
+    if (!ob->IsHashMap()) {
+        *ok = false;
+        return make_handle<MIOHashMap>(nullptr);
+    }
+    return make_handle(ob->AsHashMap());
 }
 
 } // namespace mio

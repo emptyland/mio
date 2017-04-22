@@ -79,7 +79,11 @@ public:
                          int code_size) override;
 
     virtual Handle<MIOHashMap>
-    CreateHashMap(int seed, uint32_t flags) override;
+    CreateHashMap(int seed, int initial_slots, Handle<MIOReflectionType> key,
+                  Handle<MIOReflectionType> value) override;
+
+    virtual
+    MIOHashMapSurface *MakeHashMapSurface(Handle<MIOHashMap> core) override;
 
     virtual
     Handle<MIOError> CreateError(const char *message, int position,

@@ -69,6 +69,28 @@ void ObjectScanner::Scan(HeapObject *ob, Callback callback) {
             Scan(fn->GetSignature(), callback);
         } break;
 
+        case HeapObject::kHashMap: {
+            auto map = ob->AsHashMap();
+            Scan(map->GetKey(), callback);
+            Scan(map->GetValue(), callback);
+            if (map->GetKey()->IsPrimitive() && map->GetValue()->IsPrimitive()) {
+                break;
+            }
+
+            for (int i = 0; i < map->GetSlotSize(); ++i) {
+                auto node = map->GetSlot(i)->GetNext();
+                while (node) {
+                    if (map->GetKey()->IsObject()) {
+                        Scan(*static_cast<HeapObject **>(node->GetKey()), callback);
+                    }
+                    if (map->GetValue()->IsObject()) {
+                        Scan(*static_cast<HeapObject **>(node->GetValue()), callback);
+                    }
+                    node = node->GetNext();
+                }
+            }
+        } break;
+
         case HeapObject::kReflectionVoid:
         case HeapObject::kReflectionString:
         case HeapObject::kReflectionError:

@@ -1,6 +1,7 @@
 #ifndef MIO_DO_NOTHING_GARBAGE_COLLECTOR_H_
 #define MIO_DO_NOTHING_GARBAGE_COLLECTOR_H_
 
+#include "managed-allocator.h"
 #include "vm-garbage-collector.h"
 #include <vector>
 
@@ -33,7 +34,11 @@ public:
                          int code_size) override;
 
     virtual Handle<MIOHashMap>
-    CreateHashMap(int seed, uint32_t flags) override;
+    CreateHashMap(int seed, int initial_slots, Handle<MIOReflectionType> key,
+                  Handle<MIOReflectionType> value) override;
+
+    virtual
+    MIOHashMapSurface *MakeHashMapSurface(Handle<MIOHashMap> core) override;
 
     virtual
     Handle<MIOError> CreateError(const char *message, int position,
@@ -87,10 +92,16 @@ public:
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(DoNothingGarbageCollector)
 private:
+    template<class T>
+    inline T *NewObject(int placement_size) {
+        auto ob = allocator_->NewObject<T>(placement_size);
+        objects_.push_back(ob);
+        return ob;
+    }
+
     std::unordered_map<int32_t, MIOUpValue *> upvalues_;
     std::vector<HeapObject *> objects_;
-    int  offset_stub_;
-    int *offset_pointer_;
+    ManagedAllocator *allocator_;
 }; // class
 
 } // namespace mio

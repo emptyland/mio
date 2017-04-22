@@ -30,6 +30,8 @@ class MIOReflectionUnion;
 class MIOReflectionMap;
 class MIOReflectionFunction;
 
+class MIOHashMapSurface;
+
 class ObjectFactory {
 public:
     ObjectFactory() = default;
@@ -55,7 +57,11 @@ public:
     virtual Handle<MIOClosure> CreateClosure(Handle<MIOFunction> function,
                                              int up_values_size) = 0;
 
-    virtual Handle<MIOHashMap> CreateHashMap(int seed, uint32_t flags) = 0;
+    virtual Handle<MIOHashMap> CreateHashMap(int seed, int initial_slots,
+                                             Handle<MIOReflectionType> key,
+                                             Handle<MIOReflectionType> value) = 0;
+
+    virtual MIOHashMapSurface *MakeHashMapSurface(Handle<MIOHashMap> core) = 0;
 
     virtual Handle<MIOError> CreateError(const char *message, int position,
                                         Handle<MIOError> linked) = 0;

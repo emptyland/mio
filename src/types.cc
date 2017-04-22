@@ -105,7 +105,7 @@ int TypeFactory::GetAllType(std::map<int64_t, Type *> *all_type) const {
 }
 
 bool Type::CanBeKey() const {
-    return IsIntegral() || IsFloating() || IsString();
+    return IsIntegral() || IsFloating() || IsString() || IsError();
 }
 
 std::string Type::ToString() const {
