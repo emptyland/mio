@@ -532,6 +532,10 @@ public:
 
 class MIOHashMap : public HeapObject {
 public:
+    struct Slot {
+        MIOPair *head;
+    };
+
     static const int kDefaultInitialSlots = 4;
 
     static const int kSeedOffset = kHeapObjectOffset;
@@ -540,18 +544,19 @@ public:
     static const int kSizeOffset = kValueOffset + kObjectReferenceSize;
     static const int kSlotSizeOffset = kSizeOffset + sizeof(int);
     static const int kSlotsOffset = kSlotSizeOffset + sizeof(int);
-    static const int kMIOHashMapOffset = kSlotsOffset + sizeof(MIOPair *);
+    static const int kMIOHashMapOffset = kSlotsOffset + sizeof(Slot *);
 
     DEFINE_HEAP_OBJ_RW(int, Seed)
     DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Key)
     DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Value)
     DEFINE_HEAP_OBJ_RW(int, Size)
     DEFINE_HEAP_OBJ_RW(int, SlotSize)
+    DEFINE_HEAP_OBJ_RW(Slot *, Slots)
 
-    MIOPair *GetSlot(int index) {
-        auto base = reinterpret_cast<uint8_t *>(this) + kSlotsOffset;
-        auto p = *reinterpret_cast<uint8_t **>(base) + index * MIOPair::kMIOPairOffset;
-        return reinterpret_cast<MIOPair *>(p);
+    Slot *GetSlot(int index) {
+        DCHECK_GE(index, 0);
+        DCHECK_LT(index, GetSlotSize());
+        return GetSlots() + index;
     }
 
     DECLARE_VM_OBJECT(HashMap)

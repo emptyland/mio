@@ -78,7 +78,7 @@ void ObjectScanner::Scan(HeapObject *ob, Callback callback) {
             }
 
             for (int i = 0; i < map->GetSlotSize(); ++i) {
-                auto node = map->GetSlot(i)->GetNext();
+                auto node = map->GetSlot(i)->head;
                 while (node) {
                     if (map->GetKey()->IsObject()) {
                         Scan(*static_cast<HeapObject **>(node->GetKey()), callback);

@@ -132,14 +132,15 @@ MSGGarbageCollector::CreateHashMap(int seed, int initial_slots,
     ob->SetSeed(seed);
     ob->SetKey(key.get());
     ob->SetValue(value.get());
+    ob->SetSize(0);
 
     DCHECK_GE(initial_slots, 0);
     ob->SetSlotSize(initial_slots);
     if (ob->GetSlotSize() > 0) {
-        auto slots_placement_size = MIOPair::kHeaderOffset * ob->GetSlotSize();
-        auto slots = allocator_->Allocate(slots_placement_size);
+        auto slots_placement_size = static_cast<int>(sizeof(MIOHashMap::Slot) * ob->GetSlotSize());
+        auto slots = static_cast<MIOHashMap::Slot *>(allocator_->Allocate(slots_placement_size));
         memset(slots, 0, slots_placement_size);
-        HeapObjectSet(ob, MIOHashMap::kSlotsOffset, slots);
+        ob->SetSlots(slots);
     }
 
     return make_handle(ob);
@@ -290,10 +291,6 @@ void MSGGarbageCollector::Step(int tick) {
             start_tick_ = tick;
             memset(sweep_info_, 0, arraysize(sweep_info_) * sizeof(sweep_info_[0]));
             break;
-
-//        case kRemark:
-//            Remark();
-//            break;
 
         case kPropagate:
             if (HOIsNotEmpty(gray_header_)) {
@@ -511,5 +508,8 @@ void MSGGarbageCollector::SweepOld() {
     }
 }
 
+void MSGGarbageCollector::DeleteObject(const HeapObject *ob) {
+    allocator_->Free(ob);
+}
 
 } // namespace mio

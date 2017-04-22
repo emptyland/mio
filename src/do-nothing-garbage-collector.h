@@ -94,7 +94,8 @@ public:
 private:
     template<class T>
     inline T *NewObject(int placement_size) {
-        auto ob = allocator_->NewObject<T>(placement_size);
+        auto ob = static_cast<T*>(allocator_->Allocate(placement_size));
+        ob->Init(static_cast<HeapObject::Kind>(T::kSelfKind));
         objects_.push_back(ob);
         return ob;
     }

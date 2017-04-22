@@ -11,6 +11,7 @@
 		2311E3861EA8AD58007B5305 /* vm-runtime.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2311E3841EA8AD58007B5305 /* vm-runtime.cc */; };
 		2311E3891EA9F0BC007B5305 /* vm-object-surface.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2311E3881EA9F0BC007B5305 /* vm-object-surface.cc */; };
 		2311E38A1EA9F0BC007B5305 /* vm-object-surface.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2311E3881EA9F0BC007B5305 /* vm-object-surface.cc */; };
+		2311E38C1EAAED57007B5305 /* vm-object-surface-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2311E38B1EAAED57007B5305 /* vm-object-surface-test.cc */; };
 		231378E51E8A5514009384DF /* simple-function-register.cc in Sources */ = {isa = PBXBuildFile; fileRef = 231378E41E8A5514009384DF /* simple-function-register.cc */; };
 		231378E61E8A5514009384DF /* simple-function-register.cc in Sources */ = {isa = PBXBuildFile; fileRef = 231378E41E8A5514009384DF /* simple-function-register.cc */; };
 		231378E81E8B563D009384DF /* bitcode-emitter-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 231378E71E8B563D009384DF /* bitcode-emitter-test.cc */; };
@@ -132,6 +133,7 @@
 		2311E3841EA8AD58007B5305 /* vm-runtime.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-runtime.cc"; sourceTree = "<group>"; };
 		2311E3871EA9A481007B5305 /* vm-object-surface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-object-surface.h"; sourceTree = "<group>"; };
 		2311E3881EA9F0BC007B5305 /* vm-object-surface.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-object-surface.cc"; sourceTree = "<group>"; };
+		2311E38B1EAAED57007B5305 /* vm-object-surface-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-object-surface-test.cc"; sourceTree = "<group>"; };
 		231378E31E8A54CA009384DF /* simple-function-register.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "simple-function-register.h"; sourceTree = "<group>"; };
 		231378E41E8A5514009384DF /* simple-function-register.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "simple-function-register.cc"; sourceTree = "<group>"; };
 		231378E71E8B563D009384DF /* bitcode-emitter-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "bitcode-emitter-test.cc"; sourceTree = "<group>"; };
@@ -391,10 +393,11 @@
 				2349E5931E56FF12002883BC /* parser-test.cc */,
 				23E3D5AA1E6CF20700C51DDE /* checker-test.cc */,
 				23E3D5AD1E6D004C00C51DDE /* scopes-test.cc */,
+				231378E71E8B563D009384DF /* bitcode-emitter-test.cc */,
 				232434721E7A203D0054C385 /* vm-memory-segment-test.cc */,
 				232434781E7A77020054C385 /* vm-bitcode-builder-test.cc */,
-				231378E71E8B563D009384DF /* bitcode-emitter-test.cc */,
 				232434851E7B935B0054C385 /* vm-thread-test.cc */,
+				2311E38B1EAAED57007B5305 /* vm-object-surface-test.cc */,
 			);
 			name = Tests;
 			path = ../src;
@@ -560,6 +563,7 @@
 				2311E38A1EA9F0BC007B5305 /* vm-object-surface.cc in Sources */,
 				2362025D1E45CC5F00B6B949 /* token-test.cc in Sources */,
 				23E3D5A41E63C6DD00C51DDE /* scopes.cc in Sources */,
+				2311E38C1EAAED57007B5305 /* vm-object-surface-test.cc in Sources */,
 				231378E91E8B563D009384DF /* bitcode-emitter-test.cc in Sources */,
 				2349E5941E56FF12002883BC /* parser-test.cc in Sources */,
 				23E3D5C91E77CBCC00C51DDE /* file-output-stream.cc in Sources */,

@@ -163,7 +163,7 @@ private:
     template<class T>
     inline T *NewObject(int placement_size, int g);
 
-    void DeleteObject(const HeapObject *ob) { allocator_->DeleteObject(ob); }
+    void DeleteObject(const HeapObject *ob);
 
     void White2Gray(HeapObject *ob) {
         DCHECK_EQ(ob->GetColor(), white_);
@@ -204,9 +204,10 @@ private:
 
 template<class T>
 inline T *MSGGarbageCollector::NewObject(int placement_size, int g) {
-    auto ob = allocator_->NewObject<T>(placement_size);
-    HOInsertHead(generations_[g], ob);
+    auto ob = static_cast<T *>(allocator_->Allocate(placement_size));
+    ob->Init(static_cast<HeapObject::Kind>(T::kSelfKind));
     ob->SetColor(white_);
+    HOInsertHead(generations_[g], ob);
     return ob;
 }
 

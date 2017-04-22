@@ -20,7 +20,7 @@ MIOPair *MIOHashMapSurface::GetOrInsertRoom(const void *key, bool *insert) {
     auto code = hash_(key, key_size_);
     auto slot = core_->GetSlot(code % core_->GetSlotSize());
 
-    auto node = slot->GetNext();
+    auto node = slot->head;
     while (node) {
         if (equal_to_({node->GetKey(), key_size_}, {key, key_size_})) {
             return node;
@@ -28,7 +28,7 @@ MIOPair *MIOHashMapSurface::GetOrInsertRoom(const void *key, bool *insert) {
         node = node->GetNext();
     }
     auto factor = static_cast<float>(core_->GetSize()) /
-    static_cast<float>(core_->GetSlotSize());
+                  static_cast<float>(core_->GetSlotSize());
     if (factor > kRehashTopFactor) {
         Rehash(1.7f);
         slot = core_->GetSlot(code % core_->GetSlotSize());
@@ -37,10 +37,11 @@ MIOPair *MIOHashMapSurface::GetOrInsertRoom(const void *key, bool *insert) {
         slot = core_->GetSlot(code % core_->GetSlotSize());
     }
 
+    *insert = true;
     node = static_cast<MIOPair *>(allocator_->Allocate(MIOPair::kMIOPairOffset));
     memcpy(node->GetKey(), key, key_size_);
-    node->SetNext(slot->GetNext());
-    slot->SetNext(node);
+    node->SetNext(slot->head);
+    slot->head = node;
     core_->SetSize(core_->GetSize() + 1);
     return node;
 }
@@ -49,7 +50,7 @@ MIOPair *MIOHashMapSurface::GetRoom(const void *key) {
     auto code = hash_(key, key_size_);
     auto slot = core_->GetSlot(code % core_->GetSlotSize());
 
-    auto node = slot->GetNext();
+    auto node = slot->head;
     while (node) {
         if (equal_to_({node->GetKey(), key_size_}, {key, key_size_})) {
             break;
@@ -65,7 +66,7 @@ void MIOHashMapSurface::Rehash(float scalar) {
     memset(new_slots, 0, new_slot_size * MIOPair::kHeaderOffset);
 
     for (int i = 0; i < core_->GetSlotSize(); ++i) {
-        auto node = core_->GetSlot(i)->GetNext();
+        auto node = core_->GetSlot(i)->head;
         while (node) {
             auto offset = (hash_(node->GetKey(), key_size_) % new_slot_size) * MIOPair::kHeaderOffset;
             auto new_slot = reinterpret_cast<MIOPair*>(new_slots + offset);

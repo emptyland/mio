@@ -110,16 +110,16 @@ DoNothingGarbageCollector::CreateHashMap(int seed, int initial_slots,
     ob->SetSeed(seed);
     ob->SetKey(key.get());
     ob->SetValue(value.get());
+    ob->SetSize(0);
 
     DCHECK_GE(initial_slots, 0);
     ob->SetSlotSize(initial_slots);
     if (ob->GetSlotSize() > 0) {
-        auto slots_placement_size = MIOPair::kHeaderOffset * ob->GetSlotSize();
-        auto slots = allocator_->Allocate(slots_placement_size);
+        auto slots_placement_size = static_cast<int>(sizeof(MIOHashMap::Slot) * ob->GetSlotSize());
+        auto slots = static_cast<MIOHashMap::Slot *>(allocator_->Allocate(slots_placement_size));
         memset(slots, 0, slots_placement_size);
-        HeapObjectSet(ob, MIOHashMap::kSlotsOffset, slots);
+        ob->SetSlots(slots);
     }
-
     return make_handle(ob);
 }
 
