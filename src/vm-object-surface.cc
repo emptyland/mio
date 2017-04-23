@@ -16,6 +16,39 @@ MIOHashMapSurface::MIOHashMapSurface(MIOHashMap *core, ManagedAllocator *allocat
     }
 }
 
+MIOPair *MIOHashMapSurface::GetNextRoom(const void *key) {
+    if (key) {
+        int index;
+        auto pair = GetRoom(key, &index);
+        if (!pair) {
+            return nullptr;
+        }
+        if (!pair->GetNext() && index == core_->GetSlotSize() - 1) {
+            return nullptr;
+        }
+        pair = pair->GetNext();
+        if (pair) {
+            return pair;
+        }
+        for (int i = index + 1; i < core_->GetSlotSize(); ++i) {
+            pair = core_->GetSlot(i)->head;
+            if (pair) {
+                break;
+            }
+        }
+        return pair;
+    } else {
+        MIOPair *pair = nullptr;
+        for (int i = 0; i < core_->GetSlotSize(); ++i) {
+            pair = core_->GetSlot(i)->head;
+            if (pair) {
+                break;
+            }
+        }
+        return pair;
+    }
+}
+
 MIOPair *MIOHashMapSurface::GetOrInsertRoom(const void *key, bool *insert) {
     auto code = hash_(key, key_size_);
     auto slot = core_->GetSlot(code % core_->GetSlotSize());
@@ -27,13 +60,8 @@ MIOPair *MIOHashMapSurface::GetOrInsertRoom(const void *key, bool *insert) {
         }
         node = node->GetNext();
     }
-    auto factor = static_cast<float>(core_->GetSize()) /
-                  static_cast<float>(core_->GetSlotSize());
-    if (factor > kRehashTopFactor) {
+    if (key_slot_factor() > kRehashTopFactor) {
         Rehash(1.7f);
-        slot = core_->GetSlot(code % core_->GetSlotSize());
-    } else if (factor < kRehashBottomFactor && core_->GetSize() > kMinSloSize) {
-        Rehash(0.7f);
         slot = core_->GetSlot(code % core_->GetSlotSize());
     }
 
@@ -46,7 +74,7 @@ MIOPair *MIOHashMapSurface::GetOrInsertRoom(const void *key, bool *insert) {
     return node;
 }
 
-MIOPair *MIOHashMapSurface::GetRoom(const void *key) {
+MIOPair *MIOHashMapSurface::GetRoom(const void *key, int *index) {
     auto code = hash_(key, key_size_);
     auto slot = core_->GetSlot(code % core_->GetSlotSize());
 
@@ -57,11 +85,45 @@ MIOPair *MIOHashMapSurface::GetRoom(const void *key) {
         }
         node = node->GetNext();
     }
+    if (node && index) {
+        *index = code % core_->GetSlotSize();
+    }
     return node;
+}
+
+bool MIOHashMapSurface::RawDelete(const void *key) {
+    auto code = hash_(key, key_size_);
+    auto slot = core_->GetSlot(code % core_->GetSlotSize());
+
+    auto prev = reinterpret_cast<MIOPair *>(slot);
+    auto node = slot->head;
+    while (node) {
+        if (equal_to_({node->GetKey(), key_size_}, {key, key_size_})) {
+            break;
+        }
+        prev = node;
+        node = node->GetNext();
+    }
+
+    if (node) {
+        prev->SetNext(node->GetNext());
+        allocator_->Free(node);
+        core_->SetSize(core_->GetSize() - 1);
+
+        if (key_slot_factor() < kRehashBottomFactor && core_->GetSize() > kMinSloSize) {
+            Rehash(0.7f);
+        }
+        return true;
+    }
+    return false;
 }
 
 void MIOHashMapSurface::Rehash(float scalar) {
     auto new_slot_size = static_cast<int>(scalar * core_->GetSlotSize());
+    if (new_slot_size < kMinSloSize) {
+        new_slot_size = kMinSloSize;
+    }
+
     auto new_slots = static_cast<uint8_t *>(allocator_->Allocate(new_slot_size * MIOPair::kHeaderOffset));
     memset(new_slots, 0, new_slot_size * MIOPair::kHeaderOffset);
 

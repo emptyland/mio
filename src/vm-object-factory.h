@@ -31,6 +31,7 @@ class MIOReflectionMap;
 class MIOReflectionFunction;
 
 class MIOHashMapSurface;
+template<class K, class V> class MIOHashMapStub;
 
 class ObjectFactory {
 public:

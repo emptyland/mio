@@ -4,6 +4,7 @@
 #include "vm-objects.h"
 #include "vm-runtime.h"
 #include "managed-allocator.h"
+#include "glog/logging.h"
 
 namespace mio {
 
@@ -30,12 +31,21 @@ public:
     }
 
     void *RawGet(const void *key) {
-        auto pair = GetRoom(key);
+        int slot = 0;
+        auto pair = GetRoom(key, &slot);
         return pair ? pair->GetValue() : nullptr;
     }
 
+    bool RawDelete(const void *key);
+
+    float key_slot_factor() const {
+        return static_cast<float>(core_->GetSize()) /
+               static_cast<float>(core_->GetSlotSize());
+    }
+
+    MIOPair *GetNextRoom(const void *key);
     MIOPair *GetOrInsertRoom(const void *key, bool *insert);
-    MIOPair *GetRoom(const void *key);
+    MIOPair *GetRoom(const void *key, int *slot);
 
     void Rehash(float scalar);
 
@@ -117,18 +127,86 @@ struct Traits<Handle<MIOString>> {
     }
 }; // struct Traits<Handle<MIOString>>
 
+template<>
+struct Traits<Handle<MIOError>> {
+    inline const void *Address(Handle<MIOError> *value) {
+        return static_cast<const void *>(value->address());
+    }
+
+    inline Handle<MIOError> Deref(void *addr) {
+        return make_handle(*static_cast<MIOError **>(addr));
+    }
+
+    inline bool Allow(MIOReflectionType *type) {
+        return type->IsReflectionError();
+    }
+}; // struct Traits<Handle<MIOError>>
+
 } // namespace detail
+
+namespace d = detail;
+
+template<class K, class V>
+class MIOHashMapStubIterator {
+public:
+    inline explicit MIOHashMapStubIterator(MIOHashMapSurface *surface)
+        : surface_(DCHECK_NOTNULL(surface)) {
+        DCHECK(d::Traits<K>().Allow(surface->core()->GetKey()));
+        DCHECK(d::Traits<V>().Allow(surface->core()->GetValue()));
+    }
+
+    inline void Init() { pair_ = surface_->GetNextRoom(nullptr); }
+
+    inline bool HasNext() const { return pair_ != nullptr; }
+
+    inline void MoveNext() {
+        DCHECK(HasNext());
+        pair_ = surface_->GetNextRoom(pair_->GetKey());
+    }
+
+    inline K key() const { return d::Traits<K>().Deref(pair_->GetKey()); }
+
+    inline V value() const { return d::Traits<V>().Deref(pair_->GetValue()); }
+
+private:
+    MIOHashMapSurface *surface_;
+    MIOPair *pair_ = nullptr;
+};
 
 template<class K, class V>
 class MIOHashMapStub : public MIOHashMapSurface {
 public:
-    bool Put(K key, V value) {
-        return RawPut(detail::Traits<K>().Address(&key),
-                      detail::Traits<V>().Address(&value));
+    typedef MIOHashMapStubIterator<K, V> Iterator;
+
+    inline bool Put(K key, V value) {
+        return RawPut(d::Traits<K>().Address(&key),
+                      d::Traits<V>().Address(&value));
     }
 
-    V Get(K key) {
-        return detail::Traits<V>().Deref(RawGet(detail::Traits<K>().Address(&key)));
+    inline V Get(K key) {
+        auto addr = RawGet(d::Traits<K>().Address(&key));
+        return addr ? d::Traits<V>().Deref(addr) : V(0);
+    }
+
+    inline bool Exist(K key) {
+        int index;
+        return GetRoom(d::Traits<K>().Address(&key), &index) != nullptr;
+    }
+
+    inline K GetFirstKey(bool *exist) {
+        auto pair = GetNextRoom(nullptr);
+        *exist = pair != nullptr;
+        return *exist ? d::Traits<K>().Deref(pair->GetKey()) : K(0);
+    }
+
+    inline K GetNextKey(K key, bool *exist) {
+        auto pair = GetNextRoom(d::Traits<K>().Address(&key));
+        *exist = pair != nullptr;
+        return *exist ? d::Traits<K>().Deref(pair->GetKey()) : K(0);
+    }
+
+    inline bool Delete(K key) {
+        return RawDelete(d::Traits<K>().Address(&key));
     }
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOHashMapStub)
@@ -138,10 +216,10 @@ template<class K, class V>
 inline MIOHashMapStub<K, V> *MIOHashMapSurface::ToStub() {
     static_assert(sizeof(MIOHashMapStub<K, V>) == sizeof(*this), "do not allow to stub");
 
-    if (!detail::Traits<K>().Allow(core_->GetKey())) {
+    if (!d::Traits<K>().Allow(core_->GetKey())) {
         return nullptr;
     }
-    if (!detail::Traits<V>().Allow(core_->GetValue())) {
+    if (!d::Traits<V>().Allow(core_->GetValue())) {
         return nullptr;
     }
     return static_cast<MIOHashMapStub<K, V> *>(this);

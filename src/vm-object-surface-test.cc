@@ -64,7 +64,43 @@ TEST_F(ObjectSurefaceTest, Rehash) {
         ASSERT_EQ(i, stub->Get(key));
     }
 
+    MIOHashMapStub<Handle<MIOString>, mio_i32_t>::Iterator iter(stub);
+    int counter = 0;
+    for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
+        ++counter;
+    }
+    ASSERT_EQ(stub->core()->GetSize(), counter);
+
     delete stub;
+}
+
+TEST_F(ObjectSurefaceTest, Delete) {
+    auto string = factory_->CreateReflectionString(0);
+    auto integral = factory_->CreateReflectionIntegral(1, 32);
+    auto map = factory_->CreateHashMap(0, 7, string, integral);
+    ASSERT_EQ(7, map->GetSlotSize());
+
+    auto stub = factory_->MakeHashMapSurface(map)->ToStub<Handle<MIOString>, mio_i32_t>();
+    ASSERT_TRUE(stub != nullptr);
+    for (int i = 0; i < 20; ++i) {
+        auto s = TextOutputStream::sprintf("k.%d", i);
+        auto key = factory_->GetOrNewString(s.c_str(), static_cast<int>(s.size()));
+        stub->Put(key, i);
+    }
+    ASSERT_EQ(18, map->GetSlotSize());
+    ASSERT_EQ(20, map->GetSize());
+
+    auto key = factory_->GetOrNewString("k.0", 3);
+    ASSERT_TRUE(stub->Delete(key));
+    ASSERT_EQ(19, map->GetSize());
+    ASSERT_FALSE(stub->Exist(key));
+
+    MIOHashMapStub<Handle<MIOString>, mio_i32_t>::Iterator iter(stub);
+    int counter = 0;
+    for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
+        ++counter;
+    }
+    ASSERT_EQ(19, counter);
 }
 
 
