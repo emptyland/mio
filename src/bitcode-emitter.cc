@@ -185,6 +185,12 @@ public:
         };
     }
 
+    VMValue MakeLocalValue(Type *type) {
+        return type->is_primitive()
+             ? MakePrimitiveValue(type->placement_size())
+             : MakeObjectValue();
+    }
+
     VMValue MakeConstantObjectValue(Handle<HeapObject> ob) {
         auto offset = static_cast<int>(constant_objects_.size()) * kObjectReferenceSize;
         constant_objects_.push_back(ob);
@@ -264,6 +270,7 @@ public:
 
     virtual void VisitFunctionDefine(FunctionDefine *node) override;
     virtual void VisitFunctionLiteral(FunctionLiteral *node) override;
+    virtual void VisitForeachLoop(ForeachLoop *node) override;
     virtual void VisitReturn(Return *node) override;
     virtual void VisitBlock(Block *node) override;
     virtual void VisitCall(Call *node) override;
@@ -592,6 +599,41 @@ void EmittingAstVisitor::VisitBlock(Block *node) {
     }
     if (node->mutable_body()->is_not_empty()) {
         node->mutable_body()->last()->Accept(this);
+    }
+}
+
+void EmittingAstVisitor::VisitForeachLoop(ForeachLoop *node) {
+    Type *key_type = nullptr;
+    if (node->has_key()) {
+        key_type = node->key()->type();
+    } else {
+        if (node->container_type()->IsMap()) {
+            key_type = node->container_type()->AsMap()->key();
+        } else { // TODO: other container types
+            DLOG(FATAL) << "type can not be foreach.";
+        }
+    }
+    VMValue key = current_->MakeLocalValue(key_type);
+    if (node->has_key()) {
+        node->key()->instance()->set_bind_kind(Variable::LOCAL);
+        node->key()->instance()->set_offset(key.offset);
+    }
+    VMValue value = current_->MakeLocalValue(node->value()->type());
+    node->value()->instance()->set_bind_kind(Variable::LOCAL);
+    node->value()->instance()->set_offset(value.offset);
+
+    auto container = Emit(node->container());
+
+    if (node->container_type()->IsMap()) {
+        builder()->oop(OO_MapFirstKey, container.offset, key.offset, value.offset);
+        auto outter = builder()->jmp(builder()->pc());
+        Emit(node->body());
+        builder()->oop(OO_MapNextKey, container.offset, key.offset, value.offset);
+        builder()->jmp(outter - builder()->pc());
+        builder()->FillPlacement(outter,
+                                 BitCodeBuilder::Make3AddrBC(BC_jmp, 0, 0, builder()->pc() - outter));
+    } else {
+        // TODO: other container types.
     }
 }
 

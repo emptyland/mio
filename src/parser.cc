@@ -94,8 +94,7 @@ Statement *Parser::ParseStatement(bool *ok) {
             break;
 
         case TOKEN_FOR:
-            // TODO:
-            break;
+            return ParseForeachLoop(ok);
 
         case TOKEN_EXPORT:
             return ParseDeclaration(ok);
@@ -195,6 +194,54 @@ FunctionDefine *Parser::ParseFunctionDefine(bool is_export, bool is_native,
     return function;
 }
 
+ForeachLoop *Parser::ParseForeachLoop(bool *ok) {
+    auto position = ahead_.position();
+    Match(TOKEN_FOR, CHECK_OK);
+
+    Match(TOKEN_LPAREN, CHECK_OK);
+
+    auto key_position = ahead_.position();
+    std::string key_name;
+    Match(TOKEN_ID, &key_name, CHECK_OK);
+
+    std::string value_name;
+    int value_position;
+    if (Test(TOKEN_COMMA)) {
+        value_position = ahead_.position();
+        Match(TOKEN_ID, &value_name, CHECK_OK);
+    } else {
+        value_position = key_position;
+        value_name = std::move(key_name);
+    }
+    if (key_name.compare(value_name) == 0) {
+        ThrowError("duplicated val declaration %s", value_name.c_str());
+        *ok = false;
+        return nullptr;
+    }
+
+    Match(TOKEN_IN, CHECK_OK); // in
+
+    auto scope = EnterScope("for-loop", BLOCK_SCOPE);
+    auto container = ParseExpression(false, CHECK_OK);
+
+    Match(TOKEN_RPAREN, CHECK_OK);
+
+    auto body = ParseExpression(false, CHECK_OK);
+
+    ValDeclaration *key = nullptr;
+    if (!key_name.empty()) {
+        key = factory_->CreateValDeclaration(key_name, false, types_->GetUnknown(),
+                                             nullptr, scope, false, key_position);
+        DCHECK_NOTNULL(scope->Declare(key->name(), key));
+    }
+    auto value = factory_->CreateValDeclaration(value_name, false,
+                                                types_->GetUnknown(), nullptr,
+                                                scope, false, value_position);
+    DCHECK_NOTNULL(scope->Declare(value->name(), value));
+
+    LeaveScope();
+    return factory_->CreateForeachLoop(key, value, container, body, scope, position);
+}
 
 Return *Parser::ParserReturn(bool *ok) {
     auto scope = scope_;

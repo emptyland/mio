@@ -1,0 +1,78 @@
+test/015/src/main/init.mio: 
+  - package: main
+  - function_def: print
+    export: no
+    native: yes
+    literal: 
+      prototype: function (s:string): void
+      assignment: no
+  - function_def: main
+    export: no
+    native: no
+    literal: 
+      prototype: function (): void
+      assignment: no
+      body: 
+        block: 
+          - declare_val: m
+            export: no
+            type: map[string,[f32,i64,string]]
+            init: 
+              type: map[string,[f32,i64,string]]
+              pairs: 
+                - key: 
+                    string: name
+                  value: 
+                    string: Cake
+                - key: 
+                    string: id
+                  value: 
+                    i64: 110
+                - key: 
+                    string: cost
+                  value: 
+                    i32: 100.099998
+          - container: 
+              var: ::main::main::<0>::m
+            key: 
+              declare_val: k
+              export: no
+              type: string
+            value: 
+              declare_val: v
+              export: no
+              type: [f32,i64,string]
+            body: 
+              block: 
+                - expression: 
+                    var: ::main::print
+                  arguments: 
+                    - op: STRCAT
+                      lhs: 
+                        op: STRCAT
+                        lhs: 
+                          op: STRCAT
+                          lhs: 
+                            string: key: 
+                          rhs: 
+                            var: ::main::main::<1>::for-loop::k
+                        rhs: 
+                          string: , value: 
+                      rhs: 
+                        var: ::main::main::<1>::for-loop::v
+          - container: 
+              var: ::main::main::<0>::m
+            value: 
+              declare_val: v
+              export: no
+              type: [f32,i64,string]
+            body: 
+              block: 
+                - expression: 
+                    var: ::main::print
+                  arguments: 
+                    - op: STRCAT
+                      lhs: 
+                        string: value: 
+                      rhs: 
+                        var: ::main::main::<1>::for-loop::v

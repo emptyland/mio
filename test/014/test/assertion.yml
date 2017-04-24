@@ -1,5 +1,11 @@
 test/014/src/main/init.mio: 
   - package: main
+  - function_def: print
+    export: no
+    native: yes
+    literal: 
+      prototype: function (s:string): void
+      assignment: no
   - function_def: main
     export: no
     native: no
@@ -12,7 +18,12 @@ test/014/src/main/init.mio:
             export: no
             type: i64
             init: 
-              i64: 1
+              i64: 4
+          - declare_val: m
+            export: no
+            type: i64
+            init: 
+              i64: 100
           - function_def: foo
             export: no
             native: no
@@ -31,3 +42,57 @@ test/014/src/main/init.mio:
                   var: ::main::main::<1>::foo::n
                   link: 
                     var: ::main::main::<0>::n
+          - function_def: bar
+            export: no
+            native: no
+            literal: 
+              prototype: function (a:i64): void
+              assignment: no
+              up_values: 
+                - var: ::main::main::<1>::bar::n
+                  link: 
+                    var: ::main::main::<0>::n
+              body: 
+                block: 
+                  - taget: 
+                      var: ::main::main::<1>::bar::n
+                      link: 
+                        var: ::main::main::<0>::n
+                    rval: 
+                      var: ::main::main::<1>::bar::a
+          - expression: 
+              var: ::main::print
+            arguments: 
+              - op: STRCAT
+                lhs: 
+                  op: STRCAT
+                  lhs: 
+                    string: foo=
+                  rhs: 
+                    expression: 
+                      var: ::main::main::<0>::foo
+                    arguments: 
+                      - i64: 2
+                rhs: 
+                  string: 
+
+          - expression: 
+              var: ::main::main::<0>::bar
+            arguments: 
+              - i64: 3
+          - expression: 
+              var: ::main::print
+            arguments: 
+              - op: STRCAT
+                lhs: 
+                  op: STRCAT
+                  lhs: 
+                    string: foo=
+                  rhs: 
+                    expression: 
+                      var: ::main::main::<0>::foo
+                    arguments: 
+                      - i64: 2
+                rhs: 
+                  string: 
+

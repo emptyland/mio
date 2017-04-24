@@ -1,0 +1,17 @@
+package main
+
+native function print(s: string): void
+
+function main: void {
+    val m = map 'weak' {
+        'name' <- 'Cake',
+        'id'   <- 110,
+        'cost' <- 100.1F
+    }
+    for (k, v in m) {
+        print('key: '..k..', value: '..v)
+    }
+    for (v in m) {
+        print('value: '..v)   
+    }
+}

@@ -165,6 +165,16 @@ public:
         }
     }
 
+    virtual void VisitForeachLoop(ForeachLoop *node) override {
+        WriteMapPair("container", node->container());
+        if (node->has_key()) {
+            Indent(); WriteMapPair("key", node->key());
+        }
+        Indent(); WriteMapPair("value", node->value());
+        Indent(); WriteMapPair("body", node->body());
+
+    }
+
     virtual void VisitReturn(Return *node) override {
         if (node->has_return_value()) {
             WriteMapPair("return", node->expression());

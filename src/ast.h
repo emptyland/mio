@@ -15,7 +15,8 @@ namespace mio {
     M(Return) \
     M(ValDeclaration) \
     M(VarDeclaration) \
-    M(FunctionDefine)
+    M(FunctionDefine) \
+    M(ForeachLoop)
 
 #define DEFINE_EXPRESSION_NODES(M) \
     M(UnaryOperation) \
@@ -81,6 +82,8 @@ class AstNode;
             class FunctionDefine;
         class PackageImporter;
         class Return;
+        class ForeachLoop;
+        class WhileLoop;
 
 class Type;
     class FunctionPrototype;
@@ -336,6 +339,46 @@ private:
     
     Expression *expression_;
 }; // class Return
+
+
+class ForeachLoop : public Statement {
+public:
+    ValDeclaration *key() const { return key_; }
+    bool has_key() const { return key_ != nullptr; }
+
+    ValDeclaration *value() const { return value_; }
+
+    Expression *container() const { return container_; }
+    void set_container(Expression *container) { container_ = DCHECK_NOTNULL(container); }
+
+    Type *container_type() const { return DCHECK_NOTNULL(container_type_); }
+    void set_container_type(Type *type) { container_type_ = DCHECK_NOTNULL(type); }
+
+    Expression *body() const { return body_; }
+    void set_body(Expression *body) { body_ = DCHECK_NOTNULL(body); }
+
+    Scope *scope() const { return scope_; }
+
+    DECLARE_AST_NODE(ForeachLoop)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(ForeachLoop);
+private:
+    ForeachLoop(ValDeclaration *key, ValDeclaration *value,
+                Expression *container, Expression *body, Scope *scope,
+                int position)
+        : Statement(position)
+        , key_(key)
+        , value_(DCHECK_NOTNULL(value))
+        , container_(DCHECK_NOTNULL(container))
+        , body_(DCHECK_NOTNULL(body))
+        , scope_(DCHECK_NOTNULL(scope)) {}
+
+    ValDeclaration *key_;
+    ValDeclaration *value_;
+    Expression *container_;
+    Type *container_type_ = nullptr;
+    Expression *body_;
+    Scope *scope_;
+}; // class ForeachLoop
 
 
 class Expression : public Statement {
@@ -959,6 +1002,13 @@ public:
 
     Return *CreateReturn(Expression *expression, int position) {
         return new (zone_) Return(expression, position);
+    }
+
+    ForeachLoop *CreateForeachLoop(ValDeclaration *key, ValDeclaration *value,
+                                   Expression *container, Expression *body,
+                                   Scope *scope, int position) {
+        return new (zone_) ForeachLoop(key, value, container, body, scope,
+                                       position);
     }
 
     PackageImporter *CreatePackageImporter(const std::string &package_name,

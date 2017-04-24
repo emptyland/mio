@@ -172,6 +172,7 @@ public:
     virtual void VisitStringLiteral(StringLiteral *node) override;
     virtual void VisitIfOperation(IfOperation *node) override;
     virtual void VisitBlock(Block *node) override;
+    virtual void VisitForeachLoop(ForeachLoop *node) override;
     virtual void VisitReturn(Return *node) override;
     virtual void VisitFunctionDefine(FunctionDefine *node) override;
     virtual void VisitFunctionLiteral(FunctionLiteral *node) override;
@@ -557,6 +558,30 @@ void CheckingAstVisitor::VisitFloatLiteral(FloatLiteral *node) {
         }
     }
     // keep the last expression type for assignment type.
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitForeachLoop(ForeachLoop *node) {
+    ACCEPT_REPLACE_EXPRESSION(node, container);
+    auto container_type = AnalysisType();
+    if (!container_type->IsMap()) {
+        ThrowError(node, "this type: %s can not be foreach",
+                   AnalysisType()->ToString().c_str());
+        return;
+    }
+    PopEvalType();
+
+    if (container_type->IsMap()) {
+        auto map = container_type->AsMap();
+
+        if (node->has_key()) {
+            node->key()->set_type(map->key());
+        }
+        node->value()->set_type(map->value());
+    } else {
+        // TODO:
+    }
+    node->set_container_type(container_type);
+    ACCEPT_REPLACE_EXPRESSION(node, body);
 }
 
 /*virtual*/ void CheckingAstVisitor::VisitReturn(Return *node) {

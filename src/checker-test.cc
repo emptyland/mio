@@ -354,4 +354,15 @@ TEST_F(CheckerTest, P014_ClosureUpValues) {
     AssertProjectAST("014", all_units);
 }
 
+TEST_F(CheckerTest, P015_HashMapForeach) {
+    ParsingError error;
+    auto all_units = ParseProject("015", &error);
+    ASSERT_TRUE(all_units != nullptr) << error.ToString();
+
+    Checker checker(types_, all_units, global_, zone_);
+    ASSERT_TRUE(checker.Run()) << checker.last_error().ToString();
+
+    AssertProjectAST("015", all_units);
+}
+
 } // namespace mio

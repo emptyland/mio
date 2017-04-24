@@ -88,6 +88,8 @@ namespace mio {
     M(Map) \
     M(MapPut) \
     M(MapGet) \
+    M(MapFirstKey) \
+    M(MapNextKey) \
     M(ToString) \
     M(StrCat)
 
