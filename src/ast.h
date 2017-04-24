@@ -519,8 +519,8 @@ public:
     Expression *value() const { return value_; }
     void set_value(Expression *value) { value_ = DCHECK_NOTNULL(value_); }
 
-//    Type *value_type() const { return DCHECK_NOTNULL(value_type_); }
-//    void set_value_type(Type *type) { value_type_ = DCHECK_NOTNULL(type); }
+    Type *value_type() const { return DCHECK_NOTNULL(value_type_); }
+    void set_value_type(Type *type) { value_type_ = DCHECK_NOTNULL(type); }
 
     DECLARE_AST_NODE(Pair)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Pair)
@@ -532,7 +532,7 @@ private:
 
     Expression *key_;
     Expression *value_;
-    //Type *value_type_ = nullptr;
+    Type *value_type_ = nullptr;
 }; // class MapPair
 
 class MapInitializer : public Literal {

@@ -62,8 +62,6 @@ public:
                                              Handle<MIOReflectionType> key,
                                              Handle<MIOReflectionType> value) = 0;
 
-    virtual MIOHashMapSurface *MakeHashMapSurface(Handle<MIOHashMap> core) = 0;
-
     virtual Handle<MIOError> CreateError(const char *message, int position,
                                         Handle<MIOError> linked) = 0;
 

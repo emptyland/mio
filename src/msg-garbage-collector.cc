@@ -8,14 +8,16 @@
 
 namespace mio {
 
-MSGGarbageCollector::MSGGarbageCollector(MemorySegment *root, Thread *main_thread)
+MSGGarbageCollector::MSGGarbageCollector(ManagedAllocator *allocator,
+                                         MemorySegment *root,
+                                         Thread *main_thread)
     : root_(DCHECK_NOTNULL(root))
     , main_thread_(DCHECK_NOTNULL(main_thread))
     , current_thread_(main_thread)
     , handle_header_(static_cast<HeapObject *>(::malloc(HeapObject::kListEntryOffset)))
     , gray_header_(static_cast<HeapObject *>(::malloc(HeapObject::kListEntryOffset)))
     , gray_again_header_(static_cast<HeapObject *>(::malloc(HeapObject::kListEntryOffset)))
-    , allocator_(new ManagedAllocator()) {
+    , allocator_(DCHECK_NOTNULL(allocator)) {
     handle_header_->InitEntry();
     gray_header_->InitEntry();
     gray_again_header_->InitEntry();
@@ -144,11 +146,6 @@ MSGGarbageCollector::CreateHashMap(int seed, int initial_slots,
     }
 
     return make_handle(ob);
-}
-
-MIOHashMapSurface *
-MSGGarbageCollector::MakeHashMapSurface(Handle<MIOHashMap> core) {
-    return new MIOHashMapSurface(core.get(), allocator_);
 }
 
 /*virtual*/
@@ -438,8 +435,8 @@ void MSGGarbageCollector::SweepYoung() {
     while (n < sweep_speed_ && info->iter != header) {
         auto x = info->iter; info->iter = info->iter->GetNext();
 
-        printf("kind %d, young color: %d, prev: %d\n",
-               x->GetKind(), x->GetColor(), PrevWhite());
+//        printf("kind %d, young color: %d, prev: %d\n",
+//               x->GetKind(), x->GetColor(), PrevWhite());
 
 
         if (x->GetColor() == PrevWhite()) {
@@ -484,8 +481,8 @@ void MSGGarbageCollector::SweepOld() {
     while (n < sweep_speed_ && info->iter != header) {
         auto x = info->iter; info->iter = info->iter->GetNext();
 
-        printf("kind %d, old color: %d, prev: %d\n",
-               x->GetKind(), x->GetColor(), PrevWhite());
+//        printf("kind %d, old color: %d, prev: %d\n",
+//               x->GetKind(), x->GetColor(), PrevWhite());
 
         if (x->GetColor() == PrevWhite()) {
             ++info->release;

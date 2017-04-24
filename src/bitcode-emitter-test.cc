@@ -21,6 +21,7 @@ public:
     BitCodeEmitterTest() : sfs_(CreatePlatformSimpleFileSystem()) {}
 
     virtual void SetUp() override {
+        allocator_ = new ManagedAllocator();
         zone_ = new Zone();
         global_ = new (zone_) Scope(nullptr, GLOBAL_SCOPE, zone_);
         types_ = new TypeFactory(zone_);
@@ -28,7 +29,7 @@ public:
         code_ = new MemorySegment();
         p_global_ = new MemorySegment();
         o_global_ = new MemorySegment();
-        object_factory_ = new DoNothingGarbageCollector();
+        object_factory_ = new DoNothingGarbageCollector(allocator_);
         function_register_ = new SimpleFunctionRegister(o_global_);
     }
 
@@ -41,6 +42,7 @@ public:
         delete factory_;
         delete types_;
         delete zone_;
+        delete allocator_;
     }
 
     void ParseProject(const char *project_dir, std::string *text) {
@@ -89,6 +91,7 @@ protected:
     MemorySegment    *o_global_ = nullptr;
     DoNothingGarbageCollector  *object_factory_ = nullptr;
     SimpleFunctionRegister *function_register_ = nullptr;
+    ManagedAllocator *allocator_ = nullptr;
 };
 
 TEST_F(BitCodeEmitterTest, P006_Sanity) {
@@ -246,6 +249,13 @@ TEST_F(BitCodeEmitterTest, PrimitiveHashKey) {
 TEST_F(BitCodeEmitterTest, P014_LocalFuckingFunction) {
     std::string dasm;
     ParseProject("014", &dasm);
+
+    printf("%s\n", dasm.c_str());
+}
+
+TEST_F(BitCodeEmitterTest, P015_HashMapForeach) {
+    std::string dasm;
+    ParseProject("015", &dasm);
 
     printf("%s\n", dasm.c_str());
 }

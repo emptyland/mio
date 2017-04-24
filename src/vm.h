@@ -12,6 +12,7 @@ class VM;
 class Zone;
 class Thread;
 class MemorySegment;
+class ManagedAllocator;
 class ObjectFactory;
 class GarbageCollector;
 class FunctionRegister;
@@ -31,6 +32,7 @@ public:
 
     DEF_GETTER(int, max_call_deep)
     DEF_GETTER(int, tick);
+    DEF_PROP_RW(std::string, gc_name);
 
     Thread *main_thread() const {
         return DCHECK_NOTNULL(main_thread_);
@@ -46,6 +48,10 @@ public:
 
     GarbageCollector *gc() const {
         return DCHECK_NOTNULL(gc_);
+    }
+
+    ManagedAllocator *allocator() const {
+        return allocator_;
     }
 
     void AddSerachPath(const std::string &path) {
@@ -70,6 +76,7 @@ private:
     int type_info_base_ = 0;
     int type_info_size_ = 0;
     int type_void_index = 0;
+    ManagedAllocator *allocator_;
     GarbageCollector *gc_ = nullptr;
     FunctionRegister *function_register_ = nullptr;
     ParsedModuleMap *all_modules_ = nullptr;

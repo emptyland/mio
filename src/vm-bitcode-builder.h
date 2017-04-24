@@ -265,7 +265,7 @@ public:
         return (static_cast<uint64_t>(inst) << 56)           |
                (static_cast<uint64_t>(result & 0xfff) << 44) |
                (static_cast<uint64_t>(op1 & 0xfff) << 32)    |
-               op2;
+               (static_cast<uint64_t>(op2) & 0xffffffff);
     }
 
     static uint64_t Make4OpBC(BCInstruction inst, uint16_t id, uint16_t result,

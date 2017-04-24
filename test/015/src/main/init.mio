@@ -9,9 +9,9 @@ function main: void {
         'cost' <- 100.1F
     }
     for (k, v in m) {
-        print('key: '..k..', value: '..v)
+        print('key: '..k..', value: '..v..'\n')
     }
     for (v in m) {
-        print('value: '..v)   
+        print('value: '..v..'\n')   
     }
 }

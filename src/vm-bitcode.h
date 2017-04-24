@@ -160,6 +160,20 @@ enum BCSegment : int {
  *    * val1:   Offset of key.
  *    * val2:   Offset of return union object.
  *
+ * OO_MapFirstKey
+ * -- desc: Get first key and value of map, if has first, pc + 1.
+ * -- params:
+ *    * result: Offset of map for iteration.
+ *    * val1:   Offset of first key.
+ *    * val2:   Offset of first value.
+ *
+ * OO_MapNextKey
+ * -- desc: Get next key and value of map, if has next, pc + 1.
+ * -- params:
+ *    * result: Offset of map for iteration.
+ *    * val1:   Offset of input and output key.
+ *    * val2:   Offset of value.
+ *
  * OO_ToString
  * -- desc: Make a value to string object
  *    * result: Offset of string result.
@@ -172,7 +186,6 @@ enum BCSegment : int {
  *    * val1:   Offset of first one string for connection.
  *    * val2:   Offset of last one string for connection.
  *
- * OO_
  */
 
 enum BCObjectOperatorId : int {

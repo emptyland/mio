@@ -8,8 +8,8 @@ namespace mio {
 
 #define NEW_OBJECT(name) NewObject<MIO##name>(MIO##name::kMIO##name##Offset);
 
-DoNothingGarbageCollector::DoNothingGarbageCollector()
-    : allocator_(new ManagedAllocator()) {
+DoNothingGarbageCollector::DoNothingGarbageCollector(ManagedAllocator *allocator)
+    : allocator_(DCHECK_NOTNULL(allocator)) {
 }
 
 /*virtual*/
@@ -121,12 +121,6 @@ DoNothingGarbageCollector::CreateHashMap(int seed, int initial_slots,
         ob->SetSlots(slots);
     }
     return make_handle(ob);
-}
-
-/*virtual*/
-MIOHashMapSurface *
-DoNothingGarbageCollector::MakeHashMapSurface(Handle<MIOHashMap> core) {
-    return new MIOHashMapSurface(core.get(), allocator_);
 }
 
 /*virtual*/

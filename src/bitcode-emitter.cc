@@ -629,7 +629,7 @@ void EmittingAstVisitor::VisitForeachLoop(ForeachLoop *node) {
         auto outter = builder()->jmp(builder()->pc());
         Emit(node->body());
         builder()->oop(OO_MapNextKey, container.offset, key.offset, value.offset);
-        builder()->jmp(outter - builder()->pc());
+        builder()->jmp(outter - builder()->pc() + 1);
         builder()->FillPlacement(outter,
                                  BitCodeBuilder::Make3AddrBC(BC_jmp, 0, 0, builder()->pc() - outter));
     } else {
@@ -1159,7 +1159,7 @@ void EmittingAstVisitor::VisitMapInitializer(MapInitializer *node) {
         auto value = Emit(pair->value());
         if (type->value()->IsUnion()) {
             auto tmp = current_->MakeObjectValue();
-            EmitCreateUnion(tmp, value, type->value());
+            EmitCreateUnion(tmp, value, pair->value_type());
             value = tmp;
         }
         builder()->oop(OO_MapPut, dest.offset, key.offset, value.offset);

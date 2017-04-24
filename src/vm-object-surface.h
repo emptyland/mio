@@ -178,6 +178,9 @@ class MIOHashMapStub : public MIOHashMapSurface {
 public:
     typedef MIOHashMapStubIterator<K, V> Iterator;
 
+    inline MIOHashMapStub(MIOHashMap *core, ManagedAllocator *allocator)
+        : MIOHashMapSurface(core, allocator) {}
+
     inline bool Put(K key, V value) {
         return RawPut(d::Traits<K>().Address(&key),
                       d::Traits<V>().Address(&value));

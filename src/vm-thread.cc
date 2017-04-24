@@ -13,6 +13,26 @@
 
 namespace mio {
 
+inline void FastMemoryMove(void *dest, const void *src, int size) {
+    switch (size) {
+        case 1:
+            static_cast<uint8_t *>(dest)[0] = static_cast<const uint8_t *>(src)[0];
+            break;
+        case 2:
+            static_cast<uint16_t *>(dest)[0] = static_cast<const uint16_t *>(src)[0];
+            break;
+        case 4:
+            static_cast<uint32_t *>(dest)[0] = static_cast<const uint32_t *>(src)[0];
+            break;
+        case 8:
+            static_cast<uint64_t *>(dest)[0] = static_cast<const uint64_t *>(src)[0];
+            break;
+        default:
+            DLOG(FATAL) << "not a regular size: " << size;
+            break;
+    }
+}
+
 struct CallContext {
     int p_stack_base;
     int p_stack_size;
@@ -296,6 +316,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                     ctx->bc = bc_;
                     ctx->callee = static_cast<MIOFunction*>(ob.get());
 
+                    DCHECK(fn->IsNormalFunction()) << fn->GetKind();
                     auto normal = DCHECK_NOTNULL(fn->AsNormalFunction());
                     auto base1 = BitCodeDisassembler::GetOp1(bc);
                     auto base2 = BitCodeDisassembler::GetOp2(bc);
@@ -351,8 +372,10 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                                        BitCodeDisassembler::GetVal1(bc),
                                        BitCodeDisassembler::GetVal2(bc), ok);
                 if (!*ok) {
-                    DLOG(ERROR) << "oop process fail!";
+                    DLOG(ERROR) << "oop process fail! "
+                                << kObjectOperatorText[BitCodeDisassembler::GetOp1(bc)];
                     exit_code_ = PANIC;
+                    return;
                 }
                 break;
 
@@ -558,6 +581,9 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
         case OO_UnionOrMerge: {
             auto type_info = GetTypeInfo(val2);
             auto ob = CreateOrMergeUnion(val1, type_info, ok);
+            if (!*ok) {
+                return;
+            }
             vm_->gc_->WriteBarrier(ob.get(), type_info.get());
             o_stack_->Set(result, ob.get());
         } break;
@@ -660,8 +686,69 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             } else {
                 value = p_stack_->offset(val2);
             }
-            std::unique_ptr<MIOHashMapSurface> surface(vm_->object_factory()->MakeHashMapSurface(ob));
-            surface->RawPut(key, value);
+            MIOHashMapSurface surface(ob.get(), vm_->allocator_);
+            surface.RawPut(key, value);
+        } break;
+
+        case OO_MapFirstKey: {
+            auto ob = GetHashMap(result, ok);
+            if (!*ok) {
+                exit_code_ = PANIC;
+                DLOG(ERROR) << "object not map. addr: " << result;
+                return;
+            }
+
+            MIOHashMapSurface surface(ob.get(), vm_->allocator_);
+            auto pair = surface.GetNextRoom(nullptr);
+            if (!pair) {
+                return;
+            }
+            if (ob->GetKey()->IsObject()) {
+                FastMemoryMove(o_stack_->offset(val1), pair->GetKey(),
+                               ob->GetKey()->GetTypePlacementSize());
+            } else {
+                FastMemoryMove(p_stack_->offset(val1), pair->GetKey(),
+                               ob->GetKey()->GetTypePlacementSize());
+            }
+            if (ob->GetValue()->IsObject()) {
+                FastMemoryMove(o_stack_->offset(val2), pair->GetValue(),
+                               ob->GetKey()->GetTypePlacementSize());
+            } else {
+                FastMemoryMove(p_stack_->offset(val2), pair->GetValue(),
+                               ob->GetKey()->GetTypePlacementSize());
+            }
+            ++pc_;
+        } break;
+
+        case OO_MapNextKey: {
+            auto ob = GetHashMap(result, ok);
+            if (!*ok) {
+                exit_code_ = PANIC;
+                DLOG(ERROR) << "object not map. addr: " << result;
+                return;
+            }
+
+            void *key = nullptr;
+            if (ob->GetKey()->IsObject()) {
+                key = o_stack_->offset(val1);
+            } else {
+                key = p_stack_->offset(val1);
+            }
+            MIOHashMapSurface surface(ob.get(), vm_->allocator_);
+            auto pair = surface.GetNextRoom(key);
+            if (!pair) {
+                ++pc_;
+                return;
+            }
+            FastMemoryMove(key, pair->GetKey(), ob->GetKey()->GetTypePlacementSize());
+
+            if (ob->GetValue()->IsObject()) {
+                FastMemoryMove(o_stack_->offset(val2), pair->GetValue(),
+                               ob->GetKey()->GetTypePlacementSize());
+            } else {
+                FastMemoryMove(p_stack_->offset(val2), pair->GetValue(),
+                               ob->GetKey()->GetTypePlacementSize());
+            }
         } break;
 
         default:
@@ -770,11 +857,13 @@ Thread::CreateOrMergeUnion(int inbox, Handle<MIOReflectionType> reflection,
                                          kObjectReferenceSize,
                                          reflection);
 
-fail:
+
         default:
-            *ok = false;
+            DLOG(ERROR) << "bad type for reflection: " << reflection->GetKind();
             break;
     }
+fail:
+    *ok = false;
     return make_handle<MIOUnion>(nullptr);
 }
 

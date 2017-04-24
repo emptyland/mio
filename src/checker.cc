@@ -709,6 +709,7 @@ void CheckingAstVisitor::VisitMapInitializer(MapInitializer *node) {
                        value->ToString().c_str());
             return;
         }
+        pair->set_value_type(value);
         value_types->Put(value->GenerateId(), value);
     }
 

@@ -11,7 +11,7 @@ class HeapObject;
 
 class DoNothingGarbageCollector : public GarbageCollector {
 public:
-    DoNothingGarbageCollector();
+    DoNothingGarbageCollector(ManagedAllocator *allocator);
     virtual ~DoNothingGarbageCollector() override;
 
     virtual Handle<MIOString> CreateString(const mio_strbuf_t *bufs, int n) override;
@@ -36,9 +36,6 @@ public:
     virtual Handle<MIOHashMap>
     CreateHashMap(int seed, int initial_slots, Handle<MIOReflectionType> key,
                   Handle<MIOReflectionType> value) override;
-
-    virtual
-    MIOHashMapSurface *MakeHashMapSurface(Handle<MIOHashMap> core) override;
 
     virtual
     Handle<MIOError> CreateError(const char *message, int position,

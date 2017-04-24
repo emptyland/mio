@@ -20,7 +20,8 @@ VM::VM()
     , main_thread_(new Thread(this))
     , p_global_(new MemorySegment())
     , o_global_(new MemorySegment())
-    , ast_zone_(new Zone()) {
+    , ast_zone_(new Zone())
+    , allocator_(new ManagedAllocator()) {
 }
 
 VM::~VM() {
@@ -32,9 +33,9 @@ VM::~VM() {
 
 bool VM::Init() {
     if (gc_name_.compare("msg") == 0) {
-        gc_ = new MSGGarbageCollector(o_global_, main_thread_);
+        gc_ = new MSGGarbageCollector(allocator_, o_global_, main_thread_);
     } else if (gc_name_.compare("nogc") == 0) {
-        gc_ = new DoNothingGarbageCollector();
+        gc_ = new DoNothingGarbageCollector(allocator_);
     } else {
         DLOG(ERROR) << "bad gc name: " << gc_name_;
         return false;
@@ -50,8 +51,6 @@ bool VM::CompileProject(const char *project_dir, ParsingError *error) {
     std::vector<std::string> builtin_modules = {"base"};
 
     auto scope = new (ast_zone_) Scope(nullptr, GLOBAL_SCOPE, ast_zone_);
-//    auto all_units = Compiler::ParseProject(project_dir, sfs.get(), types.get(),
-//                                            scope, ast_zone_, error);
     auto all_units = Compiler::ParseProject(project_dir, "main", builtin_modules,
                                             search_path_, sfs.get(), types.get(),
                                             scope, ast_zone_, error);

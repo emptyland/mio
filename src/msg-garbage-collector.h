@@ -52,7 +52,8 @@ public:
     static const int kDefaultPropagateSpeed = 50;
     static const int kDefaultSweepSpeed = 50;
 
-    MSGGarbageCollector(MemorySegment *root, Thread *main_thread);
+    MSGGarbageCollector(ManagedAllocator *allocator, MemorySegment *root,
+                        Thread *main_thread);
     virtual ~MSGGarbageCollector();
 
     ////////////////////////////////////////////////////////////////////////////
@@ -81,9 +82,6 @@ public:
     virtual Handle<MIOHashMap>
     CreateHashMap(int seed, int initial_slots, Handle<MIOReflectionType> key,
                   Handle<MIOReflectionType> value) override;
-
-    virtual
-    MIOHashMapSurface *MakeHashMapSurface(Handle<MIOHashMap> core) override;
 
     virtual
     Handle<MIOError> CreateError(const char *message, int position,
