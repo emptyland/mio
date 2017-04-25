@@ -172,7 +172,20 @@ public:
         }
         Indent(); WriteMapPair("value", node->value());
         Indent(); WriteMapPair("body", node->body());
+    }
 
+    virtual void VisitTypeMatch(TypeMatch *node) override {
+        WriteMapPair("target", node->target());
+        Indent(); WriteMapPair("cases", node->mutable_match_cases());
+    }
+
+    virtual void VisitTypeMatchCase(TypeMatchCase *node) override {
+        if (node->is_else_case()) {
+            WriteMapPair("else", node->body());
+        } else {
+            WriteMapPair("case", node->cast_pattern());
+            Indent(); WriteMapPair("body", node->body());
+        }
     }
 
     virtual void VisitReturn(Return *node) override {
@@ -289,18 +302,9 @@ private:
         stream_->Write(buf.data(), static_cast<int>(buf.size()));
     }
 
-//    bool TraceDeclaration(Declaration *decl) {
-//        if (printed_.find(decl) != printed_.end()) {
-//            return true;
-//        }
-//        printed_.insert(decl);
-//        return false;
-//    }
-
     TextOutputStream *stream_;
     int indent_wide_;
     int indent_ = 0;
-    //std::unordered_set<Declaration *> printed_;
 };
 
 } // namespace

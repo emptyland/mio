@@ -92,6 +92,7 @@ namespace mio {
     M(ELSE, 0, "else") \
     M(WHILE, 0, "while") \
     M(FOR, 0, "for") \
+    M(MATCH, 0, "match") \
     M(IN, 0, "in") \
     M(RETURN, 0, "return") \
     M(BREAK, 0, "break") \

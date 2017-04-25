@@ -39,7 +39,7 @@ struct mio_keyword {
 	int id;
 };
 
-#define TOTAL_KEYWORDS 41
+#define TOTAL_KEYWORDS 42
 #define MIN_WORD_LENGTH 2
 #define MAX_WORD_LENGTH 8
 #define MIN_HASH_VALUE 1
@@ -63,13 +63,13 @@ hash (register const char *str, register unsigned int len)
       111, 111, 111, 111, 111, 111, 111, 111, 111, 111,
       111, 111, 111, 111, 111, 111, 111, 111, 111, 111,
       111, 111, 111, 111, 111, 111, 111, 111, 111, 111,
-        6, 111,   1, 111,   7, 111,   2, 111, 111, 111,
+       61, 111,  31, 111,   2, 111,   6, 111, 111, 111,
       111, 111, 111, 111, 111, 111, 111, 111, 111, 111,
       111, 111, 111, 111, 111, 111, 111, 111, 111, 111,
       111, 111, 111, 111, 111, 111, 111, 111, 111, 111,
       111, 111, 111, 111, 111, 111, 111,  50,   6,  31,
-       30,   5,  40,  35,  35,  20, 111,  10,   0,  35,
-        5,  30,  36, 111,  10,  45,   0,  40,   1,  11,
+       30,   5,  40,  35,  15,  20, 111,  10,   0,  40,
+        5,  30,   6, 111,  10,  45,   0,  40,   1,  11,
       111,   5, 111, 111, 111, 111, 111, 111, 111, 111,
       111, 111, 111, 111, 111, 111, 111, 111, 111, 111,
       111, 111, 111, 111, 111, 111, 111, 111, 111, 111,
@@ -107,7 +107,7 @@ mio_parse_keyword (register const char *str, register unsigned int len)
   static const struct mio_keyword wordlist[] =
     {
       {""},
-#line 44 "keywords.gperf"
+#line 45 "keywords.gperf"
       {"val", TOKEN_VAL},
       {""}, {""}, {""},
 #line 12 "keywords.gperf"
@@ -117,7 +117,7 @@ mio_parse_keyword (register const char *str, register unsigned int len)
       {""}, {""}, {""},
 #line 18 "keywords.gperf"
       {"true", TOKEN_TRUE},
-#line 45 "keywords.gperf"
+#line 46 "keywords.gperf"
       {"var", TOKEN_VAR},
       {""}, {""}, {""},
 #line 37 "keywords.gperf"
@@ -127,46 +127,44 @@ mio_parse_keyword (register const char *str, register unsigned int len)
       {""}, {""}, {""},
 #line 24 "keywords.gperf"
       {"int", TOKEN_INT},
-#line 23 "keywords.gperf"
-      {"i64", TOKEN_I64},
-#line 20 "keywords.gperf"
-      {"i8", TOKEN_I8},
-      {""}, {""},
-#line 40 "keywords.gperf"
-      {"in", TOKEN_IN},
-#line 22 "keywords.gperf"
-      {"i32", TOKEN_I32},
+#line 13 "keywords.gperf"
+      {"package", TOKEN_PACKAGE},
 #line 21 "keywords.gperf"
       {"i16", TOKEN_I16},
       {""}, {""},
-#line 49 "keywords.gperf"
+#line 41 "keywords.gperf"
+      {"in", TOKEN_IN},
+#line 20 "keywords.gperf"
+      {"i8", TOKEN_I8},
+      {""}, {""}, {""},
+#line 50 "keywords.gperf"
       {"native", TOKEN_NATIVE},
 #line 34 "keywords.gperf"
       {"weak", TOKEN_WEAK},
       {""}, {""}, {""},
-#line 50 "keywords.gperf"
+#line 51 "keywords.gperf"
       {"export", TOKEN_EXPORT},
-#line 43 "keywords.gperf"
+#line 44 "keywords.gperf"
       {"continue", TOKEN_CONTINUE},
       {""}, {""}, {""},
 #line 11 "keywords.gperf"
       {"or", TOKEN_OR},
-#line 26 "keywords.gperf"
-      {"f64", TOKEN_F64},
+#line 14 "keywords.gperf"
+      {"with", TOKEN_WITH},
       {""}, {""}, {""},
 #line 28 "keywords.gperf"
       {"error", TOKEN_ERROR_TYPE},
-#line 25 "keywords.gperf"
-      {"f32", TOKEN_F32},
+#line 31 "keywords.gperf"
+      {"map", TOKEN_MAP},
       {""}, {""}, {""},
 #line 39 "keywords.gperf"
       {"for", TOKEN_FOR},
-#line 13 "keywords.gperf"
-      {"package", TOKEN_PACKAGE},
+#line 23 "keywords.gperf"
+      {"i64", TOKEN_I64},
       {""}, {""}, {""},
-#line 41 "keywords.gperf"
+#line 42 "keywords.gperf"
       {"return", TOKEN_RETURN},
-#line 47 "keywords.gperf"
+#line 48 "keywords.gperf"
       {"lambda", TOKEN_LAMBDA},
       {""}, {""}, {""},
 #line 36 "keywords.gperf"
@@ -176,27 +174,29 @@ mio_parse_keyword (register const char *str, register unsigned int len)
       {""}, {""}, {""},
 #line 16 "keywords.gperf"
       {"is", TOKEN_IS},
-#line 42 "keywords.gperf"
+#line 43 "keywords.gperf"
       {"break", TOKEN_BREAK},
       {""}, {""}, {""},
-#line 48 "keywords.gperf"
+#line 49 "keywords.gperf"
       {"def", TOKEN_DEF},
-#line 31 "keywords.gperf"
-      {"map", TOKEN_MAP},
+#line 26 "keywords.gperf"
+      {"f64", TOKEN_F64},
       {""}, {""}, {""},
 #line 30 "keywords.gperf"
       {"union", TOKEN_UNION},
-#line 46 "keywords.gperf"
+#line 47 "keywords.gperf"
       {"function", TOKEN_FUNCTION},
       {""}, {""}, {""},
 #line 10 "keywords.gperf"
       {"and", TOKEN_AND},
-#line 14 "keywords.gperf"
-      {"with", TOKEN_WITH},
+#line 22 "keywords.gperf"
+      {"i32", TOKEN_I32},
       {""}, {""}, {""},
 #line 33 "keywords.gperf"
       {"struct", TOKEN_STRUCT},
-      {""}, {""}, {""}, {""},
+#line 40 "keywords.gperf"
+      {"match", TOKEN_MATCH},
+      {""}, {""}, {""},
 #line 19 "keywords.gperf"
       {"false", TOKEN_FALSE},
       {""}, {""}, {""}, {""},
@@ -205,7 +205,9 @@ mio_parse_keyword (register const char *str, register unsigned int len)
       {""}, {""}, {""}, {""},
 #line 27 "keywords.gperf"
       {"string", TOKEN_STRING},
-      {""}, {""}, {""}, {""},
+#line 25 "keywords.gperf"
+      {"f32", TOKEN_F32},
+      {""}, {""}, {""},
 #line 32 "keywords.gperf"
       {"array", TOKEN_ARRAY},
       {""}, {""}, {""}, {""},

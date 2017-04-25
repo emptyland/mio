@@ -32,6 +32,54 @@ test/015/src/main/init.mio:
                     string: cost
                   value: 
                     i32: 100.099998
+          - expression: 
+              var: ::main::print
+            arguments: 
+              - op: STRCAT
+                lhs: 
+                  op: STRCAT
+                  lhs: 
+                    string: get: 
+                  rhs: 
+                    expression: 
+                      var: ::main::main::<0>::m
+                    arguments: 
+                      - string: name
+                rhs: 
+                  string: 
+
+          - expression: 
+              var: ::main::print
+            arguments: 
+              - op: STRCAT
+                lhs: 
+                  op: STRCAT
+                  lhs: 
+                    string: get: 
+                  rhs: 
+                    expression: 
+                      var: ::main::main::<0>::m
+                    arguments: 
+                      - string: id
+                rhs: 
+                  string: 
+
+          - expression: 
+              var: ::main::print
+            arguments: 
+              - op: STRCAT
+                lhs: 
+                  op: STRCAT
+                  lhs: 
+                    string: get: 
+                  rhs: 
+                    expression: 
+                      var: ::main::main::<0>::m
+                    arguments: 
+                      - string: cast
+                rhs: 
+                  string: 
+
           - container: 
               var: ::main::main::<0>::m
             key: 
@@ -53,13 +101,18 @@ test/015/src/main/init.mio:
                         lhs: 
                           op: STRCAT
                           lhs: 
-                            string: key: 
+                            op: STRCAT
+                            lhs: 
+                              string: key: 
+                            rhs: 
+                              var: ::main::main::<1>::for-loop::k
                           rhs: 
-                            var: ::main::main::<1>::for-loop::k
+                            string: , value: 
                         rhs: 
-                          string: , value: 
+                          var: ::main::main::<1>::for-loop::v
                       rhs: 
-                        var: ::main::main::<1>::for-loop::v
+                        string: 
+
           - container: 
               var: ::main::main::<0>::m
             value: 
@@ -73,6 +126,11 @@ test/015/src/main/init.mio:
                   arguments: 
                     - op: STRCAT
                       lhs: 
-                        string: value: 
+                        op: STRCAT
+                        lhs: 
+                          string: value: 
+                        rhs: 
+                          var: ::main::main::<1>::for-loop::v
                       rhs: 
-                        var: ::main::main::<1>::for-loop::v
+                        string: 
+

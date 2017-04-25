@@ -18,6 +18,7 @@ class Expression;
 class Block;
 class IfOperation;
 class ForeachLoop;
+class TypeMatch;
 
 class Lexer;
 class TextInputStream;
@@ -81,6 +82,8 @@ public:
     FunctionPrototype *ParseFunctionPrototype(bool strict, std::string *name,
                                               bool *ok);
     Map *ParseMapType(bool strict, bool *ok);
+
+    TypeMatch *PartialParseTypeMatch(Expression *target, bool *ok);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Parser)
 private:

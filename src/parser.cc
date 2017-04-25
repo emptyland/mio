@@ -659,6 +659,10 @@ Expression *Parser::ParseSuffixed(bool *ok) {
                 return factory_->CreateTypeTest(node, type, position);
             } break;
 
+            case TOKEN_MATCH:
+                node = PartialParseTypeMatch(node, CHECK_OK);
+                break;
+
             default:
                 return node;
         }
@@ -928,6 +932,48 @@ Map *Parser::ParseMapType(bool strict, bool *ok) {
     }
 
     return types_->GetMap(key, value);
+}
+
+TypeMatch *Parser::PartialParseTypeMatch(Expression *target, bool *ok) {
+    Match(TOKEN_MATCH, CHECK_OK);
+
+    Match(TOKEN_LBRACE, CHECK_OK);
+
+    auto match_cases = new (zone_) ZoneVector<TypeMatchCase *>(zone_);
+    int else_counter = 0;
+    while (!Test(TOKEN_RBRACE)) {
+        auto scope = EnterScope("match-case", BLOCK_SCOPE);
+        ValDeclaration *cast_pattern = nullptr;
+
+        auto match_case_position = ahead_.position();
+        if (Test(TOKEN_ELSE)) {
+            if (++else_counter > 1) {
+                ThrowError("too much else-case in type match.");
+                *ok = false;
+                return nullptr;
+            }
+        } else {
+            // name: type -> body
+            auto cast_pattern_position = ahead_.position();
+            std::string name;
+            Match(TOKEN_ID, &name, CHECK_OK);
+            Match(TOKEN_COLON, CHECK_OK);
+            auto type = ParseType(CHECK_OK);
+
+            cast_pattern = factory_->CreateValDeclaration(name, false, type,
+                                                          nullptr, scope, false,
+                                                          cast_pattern_position);
+            scope->Declare(cast_pattern->name(), cast_pattern);
+        }
+        Match(TOKEN_THIN_RARROW, CHECK_OK); // ->
+        auto body = ParseExpression(false, CHECK_OK);
+        auto match_case = new (zone_) TypeMatchCase(cast_pattern, body,
+                                                    scope, match_case_position);
+        match_cases->Add(match_case);
+        LeaveScope();
+    }
+
+    return factory_->CreateTypeMatch(target, match_cases, target->position());
 }
 
 void Parser::Match(Token code, std::string *txt, bool *ok) {

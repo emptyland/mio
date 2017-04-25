@@ -180,6 +180,7 @@ public:
     virtual void VisitFieldAccessing(FieldAccessing *node) override;
     virtual void VisitTypeTest(TypeTest *node) override;
     virtual void VisitTypeCast(TypeCast *node) override;
+    virtual void VisitTypeMatch(TypeMatch *node) override;
 
     Type *AnalysisType() { return type_stack_.top(); };
 
@@ -797,6 +798,52 @@ void CheckingAstVisitor::VisitTypeCast(TypeCast *node) {
 
     node->set_original(type);
     PushEvalType(node->type());
+}
+
+void CheckingAstVisitor::VisitTypeMatch(TypeMatch *node) {
+    ACCEPT_REPLACE_EXPRESSION(node, target);
+    auto type = AnalysisType();
+    PopEvalType();
+
+    if (!type->IsUnion()) {
+        ThrowError(node, "this type(%s) can not match.", type->ToString().c_str());
+        return;
+    }
+
+    AstNode *else_case = nullptr;
+    std::set<int64_t> unique_type;
+    auto uni = type->AsUnion();
+    for (int i = 0; i < node->match_case_size(); ++i) {
+        auto match_case = node->match_case(i);
+
+        ScopeHolder holder(match_case->scope(), &scope_);
+        ACCEPT_REPLACE_EXPRESSION(match_case, body);
+        if (match_case->is_else_case()) {
+            else_case = match_case;
+            continue;
+        }
+
+        auto pattern = match_case->cast_pattern()->type();
+        if (unique_type.find(pattern->GenerateId())
+            != unique_type.end()) {
+            ThrowError(match_case, "duplicated type %s in type match cases.",
+                       pattern->ToString().c_str());
+            return;
+        }
+        unique_type.insert(pattern->GenerateId());
+
+        if (!uni->CanBe(pattern)) {
+            ThrowError(match_case, "type %s never be matched in %s.",
+                       pattern->ToString().c_str(),
+                       type->ToString().c_str());
+            return;
+        }
+    }
+
+    if (else_case && unique_type.size() == uni->mutable_types()->size()) {
+        ThrowError(else_case, "else case never be run.");
+        return;
+    }
 }
 
 void CheckingAstVisitor::CheckFunctionCall(FunctionPrototype *proto, Call *node) {

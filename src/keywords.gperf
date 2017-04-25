@@ -37,6 +37,7 @@ if, TOKEN_IF
 else, TOKEN_ELSE
 while, TOKEN_WHILE
 for, TOKEN_FOR
+match, TOKEN_MATCH
 in, TOKEN_IN
 return, TOKEN_RETURN
 break, TOKEN_BREAK

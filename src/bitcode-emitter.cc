@@ -290,6 +290,7 @@ public:
     virtual void VisitFieldAccessing(FieldAccessing *node) override;
     virtual void VisitTypeTest(TypeTest *node) override;
     virtual void VisitTypeCast(TypeCast *node) override;
+    virtual void VisitTypeMatch(TypeMatch *node) override;
 
     BitCodeBuilder *builder() { return DCHECK_NOTNULL(current_)->builder(); }
 
@@ -1215,6 +1216,53 @@ void EmittingAstVisitor::VisitTypeCast(TypeCast *node) {
                     << " can not cast to " << node->type()->ToString();
     }
     PushValue(result);
+}
+
+void EmittingAstVisitor::VisitTypeMatch(TypeMatch *node) {
+    TypeMatchCase *else_case = nullptr;
+    for (int i = 0; i < node->match_case_size(); ++i) {
+        if (node->match_case(i)->is_else_case()) {
+            else_case = node->match_case(i);
+            break;
+        }
+    }
+
+    auto target = Emit(node->target());
+    DCHECK_EQ(BC_LOCAL_OBJECT_SEGMENT, target.segment);
+
+    auto cond = current_->MakePrimitiveValue(1); // mio_i8_t;
+
+    std::vector<int> else_outter, block_outter;
+    for (int i = 0; i < node->match_case_size(); ++i) {
+        auto match_case = node->match_case(i);
+        if (match_case == else_case) {
+            continue;
+        }
+
+        builder()->oop(OO_UnionTest, cond.offset, target.offset,
+                       TypeInfoIndex(match_case->cast_pattern()->type()));
+        else_outter.push_back(builder()->jz(cond.offset, builder()->pc()));
+
+        auto value = current_->MakeLocalValue(match_case->cast_pattern()->type());
+        match_case->cast_pattern()->instance()->set_bind_kind(Variable::LOCAL);
+        match_case->cast_pattern()->instance()->set_offset(value.offset);
+
+        Emit(match_case->body());
+        block_outter.push_back(builder()->jmp(builder()->pc()));
+    }
+
+    for (auto pc : else_outter) {
+        builder()->FillPlacement(pc,
+                BitCodeBuilder::Make3AddrBC(BC_jz, 0, cond.offset,
+                                            builder()->pc() - pc));
+    }
+    if (else_case) {
+        Emit(else_case->body());
+    }
+    for (auto pc : block_outter) {
+        builder()->FillPlacement(pc,
+                BitCodeBuilder::Make3AddrBC(BC_jmp, 0, 0, builder()->pc() - pc));
+    }
 }
 
 VMValue EmittingAstVisitor::EmitIntegralAdd(Type *type, Expression *lhs,

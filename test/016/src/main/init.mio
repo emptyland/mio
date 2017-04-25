@@ -1,0 +1,12 @@
+package main
+
+native function print(s: string): void
+
+function main: void {
+    val u:[i32,f32,string] = 100d
+    u match {
+        x: i32 -> print('i32: '..x)
+        x: f32 -> print('f32: '..x)
+        else -> print('string: '.. u)
+    }
+}

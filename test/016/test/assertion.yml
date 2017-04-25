@@ -1,0 +1,59 @@
+test/016/src/main/init.mio: 
+  - package: main
+  - function_def: print
+    export: no
+    native: yes
+    literal: 
+      prototype: function (s:string): void
+      assignment: no
+  - function_def: main
+    export: no
+    native: no
+    literal: 
+      prototype: function (): void
+      assignment: no
+      body: 
+        block: 
+          - declare_val: u
+            export: no
+            type: [string,f32,i32]
+            init: 
+              i32: 100
+          - target: 
+              var: ::main::main::<0>::u
+            cases: 
+              - case: 
+                  declare_val: x
+                  export: no
+                  type: i32
+                body: 
+                  expression: 
+                    var: ::main::print
+                  arguments: 
+                    - op: STRCAT
+                      lhs: 
+                        string: i32: 
+                      rhs: 
+                        var: ::main::main::<1>::match-case::x
+              - case: 
+                  declare_val: x
+                  export: no
+                  type: f32
+                body: 
+                  expression: 
+                    var: ::main::print
+                  arguments: 
+                    - op: STRCAT
+                      lhs: 
+                        string: f32: 
+                      rhs: 
+                        var: ::main::main::<1>::match-case::x
+              - else: 
+                  expression: 
+                    var: ::main::print
+                  arguments: 
+                    - op: STRCAT
+                      lhs: 
+                        string: string: 
+                      rhs: 
+                        var: ::main::main::<0>::u

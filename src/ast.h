@@ -16,7 +16,8 @@ namespace mio {
     M(ValDeclaration) \
     M(VarDeclaration) \
     M(FunctionDefine) \
-    M(ForeachLoop)
+    M(ForeachLoop) \
+    M(TypeMatch)
 
 #define DEFINE_EXPRESSION_NODES(M) \
     M(UnaryOperation) \
@@ -38,6 +39,7 @@ namespace mio {
     M(StringLiteral)
 
 #define DEFINE_AST_NODES(M)    \
+    M(TypeMatchCase)           \
     DEFINE_STATEMENT_NODES(M)  \
     DEFINE_EXPRESSION_NODES(M) \
 
@@ -56,6 +58,7 @@ namespace mio {
     AST_SETTER(field_type, name)
 
 class AstNode;
+    class TypeMatchCase;
     class Statement;
         class Expression;
             class Block;
@@ -76,6 +79,7 @@ class AstNode;
             class BinaryOperation;
             class TypeTest;
             class TypeCast;
+            class TypeMatch;
         class Declaration;
             class ValDeclaration;
             class VarDeclaration;
@@ -84,6 +88,7 @@ class AstNode;
         class Return;
         class ForeachLoop;
         class WhileLoop;
+
 
 class Type;
     class FunctionPrototype;
@@ -732,6 +737,63 @@ private:
 }; // class TypeCast
 
 
+class TypeMatch : public Expression {
+public:
+    Expression *target() const { return target_; }
+    void set_target(Expression *target) { target_ = DCHECK_NOTNULL(target); }
+
+    ZoneVector<TypeMatchCase *> *mutable_match_cases() { return match_cases_; }
+
+    int match_case_size() const { return match_cases_->size(); }
+
+    TypeMatchCase *match_case(int index) {
+        DCHECK_GE(index, 0);
+        DCHECK_LT(index, match_case_size());
+        return match_cases_->At(index);
+    }
+
+    DECLARE_AST_NODE(TypeMatch)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(TypeMatch)
+private:
+    TypeMatch(Expression *target, ZoneVector<TypeMatchCase *> *match_cases,
+              int position)
+    : Expression(position)
+    , target_(DCHECK_NOTNULL(target))
+    , match_cases_(DCHECK_NOTNULL(match_cases)) {
+    }
+    
+    Expression *target_;
+    ZoneVector<TypeMatchCase *> *match_cases_;
+}; // class ForeachLoop
+
+
+class TypeMatchCase : public AstNode {
+public:
+    TypeMatchCase(ValDeclaration *cast_pattern, Expression *body, Scope *scope,
+                  int position)
+        : AstNode(position)
+        , cast_pattern_(cast_pattern)
+        , body_(DCHECK_NOTNULL(body))
+        , scope_(DCHECK_NOTNULL(scope)) {
+    }
+
+    ValDeclaration *cast_pattern() const { return cast_pattern_; }
+
+    Expression *body() const { return body_; }
+    void set_body(Expression *body) { body_ = DCHECK_NOTNULL(body); }
+
+    Scope *scope() const { return scope_; }
+
+    bool is_else_case() const { return cast_pattern_ == nullptr; }
+
+    DECLARE_AST_NODE(TypeMatchCase)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(TypeMatchCase)
+private:
+    ValDeclaration *cast_pattern_;
+    Expression *body_;
+    Scope *scope_;
+}; // class TypeMatchCase
+
 class Variable : public Expression {
 public:
     enum BindKind {
@@ -1218,6 +1280,12 @@ public:
 
     TypeCast *CreateTypeCast(Expression *expression, Type *type, int position) {
         return new (zone_) TypeCast(expression, type, position);
+    }
+
+    TypeMatch *CreateTypeMatch(Expression *target,
+                               ZoneVector<TypeMatchCase *> *match_cases,
+                               int position) {
+        return new (zone_) TypeMatch(target, match_cases, position);
     }
 
 private:
