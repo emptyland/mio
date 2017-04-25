@@ -45,13 +45,7 @@ MSGGarbageCollector::~MSGGarbageCollector() {
 ////////////////////////////////////////////////////////////////////////////////
 
 /*virtual*/
-Handle<MIOString>
-MSGGarbageCollector::GetOrNewString(const char *z, int n) {
-    return ObjectFactory::CreateString(z, n);
-}
-
-/*virtual*/
-Handle<MIOString> MSGGarbageCollector::CreateString(const mio_strbuf_t *bufs, int n) {
+Handle<MIOString> MSGGarbageCollector::GetOrNewString(const mio_strbuf_t *bufs, int n) {
     auto payload_length = 0;
     DCHECK_GE(n, 0);
     for (int i = 0; i < n; ++i) {
@@ -68,6 +62,20 @@ Handle<MIOString> MSGGarbageCollector::CreateString(const mio_strbuf_t *bufs, in
         p += bufs[i].n;
     }
     ob->GetMutableData()[payload_length] = '\0';
+
+    if (ob->GetLength() > kMaxUniqueStringSize) {
+        return make_handle(ob);
+    }
+
+    auto iter = unique_strings_.find(ob->GetData());
+    if (iter != unique_strings_.end()) {
+        HORemove(ob);
+        allocator_->Free(ob);
+        ob = const_cast<MIOString *>(MIOString::OffsetOfData(*iter));
+    } else {
+        unique_strings_.insert(ob->GetData());
+    }
+
     return make_handle(ob);
 }
 
@@ -89,8 +97,8 @@ MSGGarbageCollector::CreateClosure(Handle<MIOFunction> function,
 Handle<MIONativeFunction>
 MSGGarbageCollector::CreateNativeFunction(const char *signature,
                                           MIOFunctionPrototype pointer) {
-    Handle<MIOString> sign(ObjectFactory::CreateString(signature,
-                                                       static_cast<int>(strlen(signature))));
+    Handle<MIOString> sign(ObjectFactory::GetOrNewString(signature,
+                                                         static_cast<int>(strlen(signature))));
     auto ob = NewObject<MIONativeFunction>(MIONativeFunction::kMIONativeFunctionOffset, 0);
     ob->SetSignature(sign.get());
     ob->SetNativePointer(pointer);
@@ -156,7 +164,10 @@ MSGGarbageCollector::CreateError(const char *message, int position,
                                    Handle<MIOError> linked) {
     auto ob = NewObject<MIOError>(MIOError::kMIOErrorOffset, 0);
     ob->SetPosition(position);
-    ob->SetMessage(GetOrNewString(message, static_cast<int>(strlen(message))).get());
+
+    auto msg = ObjectFactory::GetOrNewString(message,
+                                             static_cast<int>(strlen(message)));
+    ob->SetMessage(msg.get());
     ob->SetLinkedError(linked.get());
     return make_handle(ob);
 }
@@ -180,12 +191,19 @@ MSGGarbageCollector::CreateUnion(const void *data, int size,
 Handle<MIOUpValue>
 MSGGarbageCollector::GetOrNewUpValue(const void *data, int size,
                                     int32_t unique_id, bool is_primitive) {
+    auto iter = unique_upvals_.find(unique_id);
+    if (iter != unique_upvals_.end()) {
+        return make_handle(iter->second);
+    }
+
     auto placement_size = MIOUpValue::kHeaderOffset + size;
     auto ob = NewObject<MIOUpValue>(placement_size, 0);
 
     ob->SetFlags((unique_id << 1) | (is_primitive ? 0x0 : 0x1));
     ob->SetValueSize(size);
     memcpy(ob->GetValue(), data, size);
+
+    unique_upvals_.emplace(unique_id, ob);
     return make_handle(ob);
 }
 
@@ -531,6 +549,30 @@ void MSGGarbageCollector::SweepOld() {
 }
 
 void MSGGarbageCollector::DeleteObject(const HeapObject *ob) {
+    switch (DCHECK_NOTNULL(ob)->GetKind()) {
+        case HeapObject::kHashMap: {
+            auto map = const_cast<HeapObject *>(ob)->AsHashMap();
+            MIOHashMapSurface surface(map, allocator_);
+            surface.CleanAll();
+            allocator_->Free(map->GetSlots());
+        } break;
+
+        case HeapObject::kString: {
+            auto str = ob->AsString();
+            if (str->GetLength() <= kMaxUniqueStringSize) {
+                unique_strings_.erase(str->GetData());
+            }
+        } break;
+
+        case HeapObject::kUpValue: {
+            auto val = ob->AsUpValue();
+            unique_upvals_.erase(val->GetUniqueId());
+        } break;
+
+        default:
+            break;
+    }
+    Round32BytesFill(kFreeMemoryBytes, const_cast<HeapObject *>(ob), ob->GetSize());
     allocator_->Free(ob);
 }
 

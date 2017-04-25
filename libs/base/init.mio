@@ -2,6 +2,7 @@ package base
 
 val mioVersion = 'v0.0.1'
 val mioName = 'mio'
+val mioHomepage = 'https://github.com/emptyland/mio'
 
 native function gc: void
 

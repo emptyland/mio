@@ -6,6 +6,7 @@
 #include "managed-allocator.h"
 #include "base.h"
 #include "glog/logging.h"
+#include <unordered_set>
 
 namespace mio {
 
@@ -52,6 +53,7 @@ public:
     static const int kMaxGeneration = 2;
     static const int kDefaultPropagateSpeed = 50;
     static const int kDefaultSweepSpeed = 50;
+    static const uint32_t kFreeMemoryBytes = 0xfeedfeed;
 
     MSGGarbageCollector(ManagedAllocator *allocator, MemorySegment *root,
                         Thread *main_thread, bool trace_logging);
@@ -61,10 +63,8 @@ public:
     /// Implements for ObjectFactory
     ////////////////////////////////////////////////////////////////////////////
 
-    virtual Handle<MIOString> CreateString(const mio_strbuf_t *bufs, int n) override;
-
-    virtual Handle<MIOString>
-    GetOrNewString(const char *z, int n) override;
+    virtual
+    Handle<MIOString> GetOrNewString(const mio_strbuf_t *bufs, int n) override;
 
     virtual Handle<MIOClosure>
     CreateClosure(Handle<MIOFunction> function, int up_values_size) override;
@@ -138,6 +138,10 @@ public:
     virtual void FullGC() override;
     virtual void Active(bool active) override { pause_ = !active; }
 
+    typedef std::unordered_set<const char *,
+                               MIOStringDataHash,
+                               MIOStringDataEqualTo> UniqueStringSet;
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(MSGGarbageCollector)
 private:
     void SwitchWhite() { white_ = PrevWhite(); }
@@ -165,7 +169,7 @@ private:
     void DeleteObject(const HeapObject *ob);
 
     void White2Gray(HeapObject *ob) {
-        DCHECK_EQ(ob->GetColor(), white_);
+        DCHECK(ob->GetColor() == kWhite0 || ob->GetColor() == kWhite1) << ob->GetColor();
         ob->SetColor(kGray);
     }
 
@@ -188,6 +192,9 @@ private:
     int propagate_speed_ = kDefaultPropagateSpeed;
     int sweep_speed_ = kDefaultSweepSpeed;
     bool need_full_gc_ = false;
+
+    UniqueStringSet unique_strings_;
+    std::unordered_map<int32_t, MIOUpValue *> unique_upvals_;
 
     MemorySegment *root_;
 

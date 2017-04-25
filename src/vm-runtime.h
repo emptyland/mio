@@ -86,6 +86,9 @@ public:
         return lhs->GetLength() != rhs->GetLength() ? false :
                strcmp(lhs->GetData(), rhs->GetData()) == 0;
     }
+
+    static int ToString(TextOutputStream *stream, void *addr,
+                        Handle<MIOReflectionType> reflection, bool *ok);
 };
 
 } // namespace mio

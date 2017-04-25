@@ -20,6 +20,8 @@ namespace mio {
 #define DEFINE_TOKENS(M) \
     M(ERROR, 0, "") \
     M(EOF, 0, "") \
+    M(QUESTION, 0, "?") \
+    M(EXCLAMATION, 0, "!") \
     M(LPAREN, 0, "(") \
     M(RPAREN, 0, ")") \
     M(LBRACK, 0, "[") \

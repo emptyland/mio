@@ -58,7 +58,9 @@ struct CallContext {
     }
 
     inline mio_buf_t<UpValDesc> upvalue_buf() {
-        return DCHECK_NOTNULL(callee->AsClosure())->GetUpValuesBuf();
+        auto closure = DCHECK_NOTNULL(callee->AsClosure());
+        DCHECK(closure->IsClose());
+        return closure->GetUpValuesBuf();
     }
 };
 
@@ -91,7 +93,9 @@ private:
     CallContext *core_;
     CallContext *top_;
     int          max_deep_;
-};
+}; // class CallStack
+
+#define RunGC() (vm_->gc_->Step(vm_->tick_))
 
 Thread::Thread(VM *vm)
     : vm_(DCHECK_NOTNULL(vm))
@@ -231,6 +235,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 auto clean2 = BitCodeDisassembler::GetVal2(bc);
                 memset(o_stack_->offset(clean2), 0, size2 - clean2);
                 vm_->gc_->Active(true);
+                RunGC();
             } break;
 
             case BC_ret: {
@@ -375,6 +380,8 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                     vm_->gc_->WriteBarrier(closure.get(), upval->val);
                 }
                 closure->Close(); // close closure;
+
+                RunGC();
             } break;
 
             case BC_oop:
@@ -406,7 +413,8 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
             } return;
         } // switch
 
-        vm_->gc_->Step(++vm_->tick_);
+        ++vm_->tick_;
+        //vm_->gc_->Step(vm_->tick_);
     } // while
 }
 
@@ -597,6 +605,7 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             }
             vm_->gc_->WriteBarrier(ob.get(), type_info.get());
             o_stack_->Set(result, ob.get());
+            RunGC();
         } break;
 
         case OO_UnionTest: {
@@ -630,13 +639,14 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             } else {
                 CreateEmptyValue(result, type_info, ok);
             }
+            RunGC();
         } break;
 
         case OO_ToString: {
             auto type_info = GetTypeInfo(val2);
             std::string buf;
             MemoryOutputStream stream(&buf);
-            ToString(&stream,
+            NativeBaseLibrary::ToString(&stream,
                      type_info->IsPrimitive() ? p_stack_->offset(val1)
                      : o_stack_->offset(val1), type_info, ok);
             if (!*ok) {
@@ -646,6 +656,8 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             auto ob = vm_->gc_->GetOrNewString(buf.data(),
                     static_cast<int>(buf.size()));
             o_stack_->Set(result, ob.get());
+
+            RunGC();
         } break;
 
         case OO_StrCat: {
@@ -664,8 +676,10 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             }
 
             mio_strbuf_t buf[2] = { lhs->Get(), rhs->Get() };
-            auto rv = vm_->gc_->CreateString(buf, arraysize(buf));
+            auto rv = vm_->gc_->GetOrNewString(buf, arraysize(buf));
             o_stack_->Set(result, rv.get());
+
+            RunGC();
         } break;
 
         case OO_Map: {
@@ -674,6 +688,8 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             auto ob = vm_->object_factory()->CreateHashMap(0, 7, key, value);
 
             o_stack_->Set(result, ob.get());
+
+            RunGC();
         } break;
 
         case OO_MapPut: {
@@ -699,6 +715,40 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             }
             MIOHashMapSurface surface(ob.get(), vm_->allocator_);
             surface.RawPut(key, value);
+
+            RunGC();
+        } break;
+
+        case OO_MapGet: {
+            auto ob = GetHashMap(result, ok);
+            if (!*ok) {
+                exit_code_ = PANIC;
+                DLOG(ERROR) << "object not map. addr: " << result;
+                return;
+            }
+            MIOHashMapSurface surface(ob.get(), vm_->allocator_);
+            const void *value = nullptr;
+            if (ob->GetKey()->IsObject()) {
+                value = surface.RawGet(o_stack_->offset(val1));
+            } else {
+                value = surface.RawGet(p_stack_->offset(val1));
+            }
+            Handle<MIOUnion> rv;
+            if (value) {
+                rv = vm_->object_factory()->CreateUnion(value,
+                                                        ob->GetKey()->GetTypePlacementSize(),
+                                                        make_handle(ob->GetValue()));
+            } else {
+                auto err = vm_->object_factory()->CreateError("key not found", 0,
+                                                              Handle<MIOError>());
+                auto err_type = GetTypeInfo(vm_->type_error_index);
+                rv = vm_->object_factory()->CreateUnion(err.address(),
+                                                        err_type->GetTypePlacementSize(),
+                                                        err_type);
+            }
+            o_stack_->Set(val2, rv.get());
+
+            RunGC();
         } break;
 
         case OO_MapFirstKey: {
@@ -766,60 +816,6 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             *ok = false;
             break;
     }
-}
-
-int Thread::ToString(TextOutputStream *stream, void *addr,
-                     Handle<MIOReflectionType> reflection, bool *ok) {
-    switch (reflection->GetKind()) {
-        case HeapObject::kReflectionIntegral: {
-            switch (reflection->AsReflectionIntegral()->GetBitWide()) {
-            #define DEFINE_CASE(byte, bit) \
-                case bit: return stream->Printf("%" PRId##bit, *static_cast<mio_i##bit##_t *>(addr));
-                MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
-            #undef DEFINE_CASE
-                default:
-                    DLOG(ERROR) << "bad integral bitwide: " <<
-                        reflection->AsReflectionIntegral()->GetBitWide();
-                    goto fail;
-            }
-        } break;
-
-        case HeapObject::kReflectionFloating:
-            switch (reflection->AsReflectionFloating()->GetBitWide()) {
-            #define DEFINE_CASE(byte, bit) \
-                case bit: return stream->Printf("%0.5f", *static_cast<mio_f##bit##_t *>(addr));
-                MIO_FLOAT_BYTES_TO_BITS(DEFINE_CASE)
-            #undef DEFINE_CASE
-                default:
-                    DLOG(ERROR) << "bad floating bitwide: " <<
-                            reflection->AsReflectionFloating()->GetBitWide();
-                    goto fail;
-            }
-            break;
-
-        case HeapObject::kReflectionUnion: {
-            auto ob = make_handle<MIOUnion>(*static_cast<MIOUnion **>(addr));
-            return ToString(stream, ob->GetMutableData(), make_handle(ob->GetTypeInfo()), ok);
-        } break;
-
-        case HeapObject::kReflectionString: {
-            auto ob = make_handle<MIOString>(*static_cast<MIOString **>(addr));
-            return stream->Write(ob->GetData(), ob->GetLength());
-        } break;
-
-        case HeapObject::kReflectionVoid:
-            return stream->Write("[void]", 6);
-
-        case HeapObject::kReflectionError:
-        case HeapObject::kReflectionMap:
-        case HeapObject::kReflectionFunction:
-
-        fail:
-        default:
-            *ok = false;
-            break;
-    }
-    return 0;
 }
 
 Handle<MIOUnion>
@@ -921,5 +917,9 @@ Handle<MIOReflectionType> Thread::GetTypeInfo(int index) {
 
     return make_handle(obj->AsReflectionType());
 }
+
+//void Thread::RunGC() {
+//     vm_->gc_->Step(vm_->tick_);
+//}
 
 } // namespace mio

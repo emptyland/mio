@@ -248,6 +248,12 @@ public:
 
     inline int GetPlacementSize() const { return kHeaderOffset + GetLength(); }
 
+    bool IsUnique() const { return GetLength() <= kMaxUniqueStringSize; }
+
+    static const MIOString *OffsetOfData(const char *data) {
+        return reinterpret_cast<const MIOString *>(DCHECK_NOTNULL(data) - kDataOffset);
+    }
+
     DECLARE_VM_OBJECT_KIND(String)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOString)
 }; // class MIOString
@@ -365,7 +371,7 @@ public:
     DEFINE_HEAP_OBJ_RW(int, ValueSize)
     DEFINE_HEAP_OBJ_RW(uint32_t, Flags)
 
-    int GetUniqueId()             { return (GetFlags() >> 1) & 0x7fffffff; }
+    int GetUniqueId() const       { return (GetFlags() >> 1) & 0x7fffffff; }
     bool IsObjectValue() const    { return (GetFlags() & 0x1) != 0; }
     bool IsPrimitiveValue() const { return (GetFlags() & 0x1) == 0; }
 
@@ -709,6 +715,24 @@ public:
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionFunction)
 }; // class MIOReflectionFunction
 
+////////////////////////////////////////////////////////////////////////////////
+/// Toolkit:
+////////////////////////////////////////////////////////////////////////////////
+struct MIOStringDataHash {
+    std::size_t operator()(const char *data) const {
+        std::size_t h = 1315423911;
+        while (*data) {
+            h ^= ((h << 5) + *(data++) + (h >> 2));
+        }
+        return h;
+    }
+};
+
+struct MIOStringDataEqualTo {
+    bool operator() (const char *val1, const char *val2) const {
+        return val1 == val2 ? true : strcmp(val1, val2) == 0;
+    }
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Inline Functions:

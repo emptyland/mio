@@ -29,13 +29,13 @@ TEST_F(ObjectSurefaceTest, Sanity) {
     auto map = factory_->CreateHashMap(0, 7, string, integral);
 
     ASSERT_FALSE(map.empty());
-    auto key = factory_->CreateString("1st", 3);
+    auto key = factory_->GetOrNewString("1st", 3);
     int64_t val = 1;
 
     MIOHashMapSurface surface(map.get(), vm_->allocator());
     ASSERT_TRUE(surface.RawPut(key.address(), &val));
 
-    key = factory_->CreateString("2nd", 3);
+    key = factory_->GetOrNewString("2nd", 3);
     val = 2;
     ASSERT_TRUE(surface.RawPut(key.address(), &val));
     ASSERT_FALSE(surface.RawPut(key.address(), &val));

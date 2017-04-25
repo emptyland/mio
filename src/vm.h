@@ -76,6 +76,7 @@ private:
     int type_info_base_ = 0;
     int type_info_size_ = 0;
     int type_void_index = 0;
+    int type_error_index = 0;
     ManagedAllocator *allocator_;
     GarbageCollector *gc_ = nullptr;
     FunctionRegister *function_register_ = nullptr;

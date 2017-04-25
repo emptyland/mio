@@ -8,6 +8,10 @@ function main: void {
         'id'   <- 110,
         'cost' <- 100.1F
     }
+    print('get: '..m('name')..'\n')
+    print('get: '..m('id')..'\n')
+    print('get: '..m('cast')..'\n')
+
     for (k, v in m) {
         print('key: '..k..', value: '..v..'\n')
     }

@@ -66,9 +66,6 @@ private:
     void ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                                 int16_t val2, bool *ok);
 
-    int ToString(TextOutputStream *stream, void *addr,
-                 Handle<MIOReflectionType> reflection, bool *ok);
-
     Handle<MIOUnion> CreateOrMergeUnion(int inbox,
                                         Handle<MIOReflectionType> reflection,
                                         bool *ok);

@@ -20,13 +20,7 @@ DoNothingGarbageCollector::~DoNothingGarbageCollector() {
 }
 
 /*virtual*/
-Handle<MIOString>
-DoNothingGarbageCollector::GetOrNewString(const char *z, int n) {
-    return ObjectFactory::CreateString(z, n);
-}
-
-/*virtual*/
-Handle<MIOString> DoNothingGarbageCollector::CreateString(const mio_strbuf_t *bufs, int n) {
+Handle<MIOString> DoNothingGarbageCollector::GetOrNewString(const mio_strbuf_t *bufs, int n) {
     auto payload_length = 0;
     DCHECK_GE(n, 0);
     for (int i = 0; i < n; ++i) {
@@ -64,8 +58,8 @@ DoNothingGarbageCollector::CreateClosure(Handle<MIOFunction> function,
 Handle<MIONativeFunction>
 DoNothingGarbageCollector::CreateNativeFunction(const char *signature,
                                             MIOFunctionPrototype pointer) {
-    Handle<MIOString> sign(ObjectFactory::CreateString(signature,
-                                                       static_cast<int>(strlen(signature))));
+    Handle<MIOString> sign(ObjectFactory::GetOrNewString(signature,
+                                                         static_cast<int>(strlen(signature))));
     auto ob = NEW_OBJECT(NativeFunction);
     ob->SetSignature(sign.get());
     ob->SetNativePointer(pointer);
@@ -129,7 +123,10 @@ DoNothingGarbageCollector::CreateError(const char *message, int position,
                                    Handle<MIOError> linked) {
     auto ob = NEW_OBJECT(Error);
     ob->SetPosition(position);
-    ob->SetMessage(GetOrNewString(message, static_cast<int>(strlen(message))).get());
+
+    auto msg = ObjectFactory::GetOrNewString(message,
+                                             static_cast<int>(strlen(message)));
+    ob->SetMessage(msg.get());
     ob->SetLinkedError(linked.get());
     return make_handle(ob);
 }

@@ -67,6 +67,8 @@ static const int kDefaultMaxCallDeep = 0xfff;
 
 static const int kObjectReferenceSize = sizeof(intptr_t);
 
+static const int kMaxUniqueStringSize = 23;
+
 /**
  * disable copy constructor, assign operator function.
  *

@@ -43,6 +43,8 @@ public:
                static_cast<float>(core_->GetSlotSize());
     }
 
+    void CleanAll();
+
     MIOPair *GetNextRoom(const void *key);
     MIOPair *GetOrInsertRoom(const void *key, bool *insert);
     MIOPair *GetRoom(const void *key, int *slot);

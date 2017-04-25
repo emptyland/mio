@@ -16,6 +16,17 @@ MIOHashMapSurface::MIOHashMapSurface(MIOHashMap *core, ManagedAllocator *allocat
     }
 }
 
+void MIOHashMapSurface::CleanAll() {
+    for (int i = 0; i < core_->GetSlotSize(); ++i) {
+        while (core_->GetSlot(i)->head) {
+            auto node = core_->GetSlot(i)->head;
+            core_->GetSlot(i)->head = node->GetNext();
+            allocator_->Free(node);
+        }
+    }
+    core_->SetSize(0);
+}
+
 MIOPair *MIOHashMapSurface::GetNextRoom(const void *key) {
     if (key) {
         int index;

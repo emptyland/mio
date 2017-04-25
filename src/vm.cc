@@ -67,12 +67,12 @@ bool VM::CompileProject(const char *project_dir, ParsingError *error) {
     CompiledInfo info;
     Compiler::AstEmitToBitCode(all_modules_, p_global_, o_global_, types.get(),
                                gc_, function_register_, &info);
-    DLOG(INFO) << "cs: " << info.constatns_segment_bytes << "\n"
-               << "pg: " << info.global_primitive_segment_bytes << "\n"
+    DLOG(INFO) << "pg: " << info.global_primitive_segment_bytes << "\n"
                << "og: " << info.global_object_segment_bytes;
 
-    type_info_base_ = info.all_type_base;
-    type_void_index = info.void_type_index;
+    type_info_base_  = info.all_type_base;
+    type_void_index  = info.void_type_index;
+    type_error_index = info.error_type_index;
 
     auto nafn = &kRtNaFn[0];
     while (nafn->name != nullptr) {

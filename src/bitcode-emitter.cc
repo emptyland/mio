@@ -1398,13 +1398,11 @@ void EmittingAstVisitor::EmitMapAccessor(const VMValue &callee, Call *node) {
     auto map = Emit(node->expression());
 
     DCHECK_EQ(node->mutable_arguments()->size(), 1);
-    if (node->mutable_arguments()->size() == 1) {
-        auto key = Emit(node->mutable_arguments()->At(0));
-        auto result = current_->MakeObjectValue();
+    auto key = Emit(node->mutable_arguments()->At(0));
+    auto result = current_->MakeObjectValue();
 
-        builder()->oop(OO_MapGet, map.offset,  key.offset, result.offset);
-        PushValue(result);
-    }
+    builder()->oop(OO_MapGet, map.offset,  key.offset, result.offset);
+    PushValue(result);
 }
 
 VMValue EmittingAstVisitor::EmitLoadMakeRoom(const VMValue &src) {
@@ -1778,7 +1776,8 @@ bool BitCodeEmitter::Run(ParsedModuleMap *all_modules, CompiledInfo *info) {
 
     if (info) {
         info->all_type_base   = all_type_base_;
-        info->void_type_index = type_id2index_[types_->GetVoid()->GenerateId()];
+        info->void_type_index  = type_id2index_[types_->GetVoid()->GenerateId()];
+        info->error_type_index = type_id2index_[types_->GetError()->GenerateId()];
         info->global_primitive_segment_bytes = p_global_->size();
         info->global_object_segment_bytes    = o_global_->size();
     }

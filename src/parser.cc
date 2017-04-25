@@ -637,6 +637,28 @@ Expression *Parser::ParseSuffixed(bool *ok) {
                 return factory_->CreateTypeTest(node, type, position);
             } break;
 
+            // expr![type]
+            case TOKEN_EXCLAMATION: {
+                Match(TOKEN_EXCLAMATION, CHECK_OK);
+
+                Match(TOKEN_LBRACK, CHECK_OK);
+                auto type = ParseType(CHECK_OK);
+                Match(TOKEN_RBRACK, CHECK_OK);
+                
+                return factory_->CreateTypeCast(node, type, position);
+            } break;
+
+            // expr?[type]
+            case TOKEN_QUESTION: {
+                Match(TOKEN_QUESTION, CHECK_OK);
+
+                Match(TOKEN_LBRACK, CHECK_OK);
+                auto type = ParseType(CHECK_OK);
+                Match(TOKEN_RBRACK, CHECK_OK);
+
+                return factory_->CreateTypeTest(node, type, position);
+            } break;
+
             default:
                 return node;
         }
