@@ -211,6 +211,16 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
             MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
         #undef DEFINE_CASE
 
+            case BC_store_o: {
+                auto src = BitCodeDisassembler::GetOp1(bc);
+                auto segment = BitCodeDisassembler::GetOp2(bc);
+                auto dest = BitCodeDisassembler::GetImm32(bc);
+                ProcessStoreObject(top, src, segment, dest, ok);
+                if (!*ok) {
+                    return;
+                }
+            } break;
+
             case BC_frame: {
                 auto size1 = BitCodeDisassembler::GetOp1(bc);
                 auto size2 = BitCodeDisassembler::GetOp2(bc);
@@ -220,7 +230,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
 
                 auto clean2 = BitCodeDisassembler::GetVal2(bc);
                 memset(o_stack_->offset(clean2), 0, size2 - clean2);
-                vm_->gc_->Active(false);
+                vm_->gc_->Active(true);
             } break;
 
             case BC_ret: {
@@ -326,7 +336,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                     pc_ = 0;
                     bc_ = static_cast<uint64_t *>(normal->GetCode());
 
-                    vm_->gc_->Active(true);
+                    vm_->gc_->Active(false);
                 }
             } break;
 
@@ -364,6 +374,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                             kMaxReferenceValueSize, id, is_primitive).get();
                     vm_->gc_->WriteBarrier(closure.get(), upval->val);
                 }
+                closure->Close(); // close closure;
             } break;
 
             case BC_oop:
@@ -541,11 +552,11 @@ void Thread::ProcessStoreObject(CallContext *top, uint16_t addr,
                                 uint16_t segment, int dest, bool *ok) {
     auto src = make_handle(o_stack_->Get<HeapObject *>(addr));
     switch (static_cast<BCSegment>(segment)) {
-        case BC_GLOBAL_PRIMITIVE_SEGMENT:
+        case BC_GLOBAL_OBJECT_SEGMENT:
             vm_->o_global_->Set(dest, src.get());
             return;
 
-        case BC_UP_PRIMITIVE_SEGMENT: {
+        case BC_UP_OBJECT_SEGMENT: {
             auto idx = dest / kObjectReferenceSize;
             auto buf = top->upvalue_buf();
             if (idx < 0 || idx >= buf.n) {
@@ -567,7 +578,7 @@ void Thread::ProcessStoreObject(CallContext *top, uint16_t addr,
         } return;
 
         default:
-            DLOG(ERROR) << "store_xb segment error." << segment;
+            DLOG(ERROR) << "store_o segment error. segment: " << segment;
             break;
     }
 fail:

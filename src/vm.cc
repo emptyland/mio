@@ -33,7 +33,7 @@ VM::~VM() {
 
 bool VM::Init() {
     if (gc_name_.compare("msg") == 0) {
-        gc_ = new MSGGarbageCollector(allocator_, o_global_, main_thread_);
+        gc_ = new MSGGarbageCollector(allocator_, o_global_, main_thread_, false);
     } else if (gc_name_.compare("nogc") == 0) {
         gc_ = new DoNothingGarbageCollector(allocator_);
     } else {

@@ -10,8 +10,10 @@ namespace mio {
 
 MSGGarbageCollector::MSGGarbageCollector(ManagedAllocator *allocator,
                                          MemorySegment *root,
-                                         Thread *main_thread)
-    : root_(DCHECK_NOTNULL(root))
+                                         Thread *main_thread,
+                                         bool trace_logging)
+    : trace_logging_(trace_logging)
+    , root_(DCHECK_NOTNULL(root))
     , main_thread_(DCHECK_NOTNULL(main_thread))
     , current_thread_(main_thread)
     , handle_header_(static_cast<HeapObject *>(::malloc(HeapObject::kListEntryOffset)))
@@ -307,7 +309,9 @@ void MSGGarbageCollector::Step(int tick) {
 
         case kFinialize:
             phase_ = kPause;
-            DLOG(INFO) << "gc finialize, total tick: " << tick - start_tick_;
+            if (trace_logging_) {
+                DLOG(INFO) << "gc finialize, total tick: " << tick - start_tick_;
+            }
             start_tick_ = 0;
             break;
 
@@ -369,6 +373,17 @@ void MSGGarbageCollector::MarkRoot() {
         MarkGray(call_stack[i]);
     }
 
+    while (HOIsNotEmpty(handle_header_)) {
+        auto x = handle_header_->GetNext();
+        HORemove(x);
+        if (x->IsGrabbed()) {
+            x->SetColor(kGray);
+            HOInsertHead(gray_header_, x);
+        } else {
+            HOInsertHead(generations_[x->GetGeneration()], x);
+        }
+    }
+
     phase_ = kPropagate;
 }
 
@@ -400,7 +415,9 @@ void MSGGarbageCollector::Propagate() {
         });
     }
 
-    DLOG(INFO) << "propagate: " << n << " objects.";
+    if (trace_logging_) {
+        DLOG(INFO) << "propagate: " << n << " objects.";
+    }
 }
 
 void MSGGarbageCollector::Atomic() {
@@ -434,12 +451,12 @@ void MSGGarbageCollector::SweepYoung() {
     ++info->times;
     while (n < sweep_speed_ && info->iter != header) {
         auto x = info->iter; info->iter = info->iter->GetNext();
-
-//        printf("kind %d, young color: %d, prev: %d\n",
-//               x->GetKind(), x->GetColor(), PrevWhite());
-
-
-        if (x->GetColor() == PrevWhite()) {
+        if (x->IsGrabbed()) {
+            ++info->grabbed;
+            x->SetColor(white_);
+            HORemove(x);
+            HOInsertHead(handle_header_, x);
+        } else if (x->GetColor() == PrevWhite()) {
             ++info->release;
             info->release_bytes += x->GetSize();
             HORemove(x);
@@ -465,10 +482,13 @@ void MSGGarbageCollector::SweepYoung() {
             phase_ = kFinialize;
         }
 
-        DLOG(INFO) << "------[young generation]------";
-        DLOG(INFO) << "-- release: " << info->release << ", " << info->release_bytes;
-        DLOG(INFO) << "-- junks: "   << info->junks   << ", " << info->junks_bytes;
-        DLOG(INFO) << "-- grow up: " << info->grow_up;
+        if (trace_logging_) {
+            DLOG(INFO) << "------[young generation]------";
+            DLOG(INFO) << "-- release: " << info->release << ", " << info->release_bytes;
+            DLOG(INFO) << "-- junks: "   << info->junks   << ", " << info->junks_bytes;
+            DLOG(INFO) << "-- grabbed: " << info->grabbed;
+            DLOG(INFO) << "-- grow up: " << info->grow_up;
+        }
     }
 }
 
@@ -481,10 +501,12 @@ void MSGGarbageCollector::SweepOld() {
     while (n < sweep_speed_ && info->iter != header) {
         auto x = info->iter; info->iter = info->iter->GetNext();
 
-//        printf("kind %d, old color: %d, prev: %d\n",
-//               x->GetKind(), x->GetColor(), PrevWhite());
-
-        if (x->GetColor() == PrevWhite()) {
+        if (x->IsGrabbed()) {
+            ++info->grabbed;
+            x->SetColor(white_);
+            HORemove(x);
+            HOInsertHead(handle_header_, x);
+        } else if (x->GetColor() == PrevWhite()) {
             ++info->release;
             info->release_bytes += x->GetSize();
             HORemove(x);
@@ -499,9 +521,12 @@ void MSGGarbageCollector::SweepOld() {
     if (info->iter == header) {
         phase_ = kFinialize;
 
-        DLOG(INFO) << "------[old generation]------";
-        DLOG(INFO) << "-- release: " << info->release << ", " << info->release_bytes;
-        DLOG(INFO) << "-- junks: "   << info->junks   << ", " << info->junks_bytes;
+        if (trace_logging_) {
+            DLOG(INFO) << "------[old generation]------";
+            DLOG(INFO) << "-- release: " << info->release << ", " << info->release_bytes;
+            DLOG(INFO) << "-- junks: "   << info->junks   << ", " << info->junks_bytes;
+            DLOG(INFO) << "-- grabbed: " << info->grabbed;
+        }
     }
 }
 

@@ -11,39 +11,39 @@ public:
     template<class U>
     explicit Handle(U *object) : object_(object) {
         if (object_) {
-            object_->GrabOrNothing();
+            object_->Grab();
         }
     }
 
     explicit Handle(T *object) : object_(object) {
         if (object_) {
-            object_->GrabOrNothing();
+            object_->Grab();
         }
     }
 
     template<class U>
     Handle(const Handle<U> &other) : object_(other.get()) {
         if (object_) {
-            object_->GrabOrNothing();
+            object_->Grab();
         }
     }
 
     Handle(const Handle<T> &other) : object_(other.object_) {
         if (object_) {
-            object_->GrabOrNothing();
+            object_->Grab();
         }
     }
 
     Handle(Handle &&other) : object_(other.object_) {
         other.object_ = nullptr;
         if (object_) {
-            object_->GrabOrNothing();
+            object_->Grab();
         }
     }
 
     ~Handle() {
         if (object_) {
-            object_->DropOrNothing();
+            object_->Drop();
         }
     }
 

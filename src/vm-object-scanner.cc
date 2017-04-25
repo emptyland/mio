@@ -48,6 +48,7 @@ void ObjectScanner::Scan(HeapObject *ob, Callback callback) {
             auto buf = fn->GetUpValuesBuf();
             for (int i = 0; i < buf.n; ++i) {
                 auto val = buf.z[i].val;
+                Scan(val, callback);
                 if (val->IsObjectValue()) {
                     Scan(val->GetObject(), callback);
                 }

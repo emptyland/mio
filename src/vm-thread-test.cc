@@ -17,7 +17,7 @@ public:
     virtual void SetUp() override {
         vm_ = new VM();
         vm_->AddSerachPath("libs");
-        vm_->set_gc_name("nogc");
+        //vm_->set_gc_name("nogc");
         ASSERT_TRUE(vm_->Init());
     }
 

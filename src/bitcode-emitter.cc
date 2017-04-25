@@ -40,6 +40,8 @@
 
 namespace mio {
 
+static const HeapObject * const kNullObject = nullptr;
+
 namespace {
 
 struct PrimitiveKey {
@@ -679,10 +681,8 @@ void EmittingAstVisitor::VisitValDeclaration(ValDeclaration *node) {
         return;
     }
 
-    // local vals
     VMValue value;
-    if (node->scope()->type() == MODULE_SCOPE ||
-        node->scope()->type() == UNIT_SCOPE) {
+    if (node->scope()->is_universal()) {
 
         VMValue tmp;
         if (node->type()->is_primitive()) {
@@ -739,8 +739,7 @@ void EmittingAstVisitor::VisitVarDeclaration(VarDeclaration *node) {
 
     // local vars
     VMValue value;
-    if (node->scope()->type() == MODULE_SCOPE ||
-        node->scope()->type() == UNIT_SCOPE) {
+    if (node->scope()->is_universal()) {
 
         VMValue tmp;
         if (node->type()->is_primitive()) {
@@ -1487,7 +1486,7 @@ VMValue EmittingAstVisitor::EmitStoreMakeRoom(const VMValue &src) {
                 .offset  = emitter_->o_global_->size(),
                 .size    = src.size,
             };
-            emitter_->o_global_->AlignAdvance(kObjectReferenceSize);
+            emitter_->o_global_->Add(kNullObject);
 
             builder()->store_o(value.offset, value.segment, src.offset);
             return value;

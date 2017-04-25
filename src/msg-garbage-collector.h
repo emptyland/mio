@@ -22,6 +22,7 @@ struct SweepInfo {
     int grow_up       = 0;
     int junks         = 0;
     int junks_bytes   = 0;
+    int grabbed       = 0;
     HeapObject *iter  = nullptr;
 
     SweepInfo() = default;
@@ -53,7 +54,7 @@ public:
     static const int kDefaultSweepSpeed = 50;
 
     MSGGarbageCollector(ManagedAllocator *allocator, MemorySegment *root,
-                        Thread *main_thread);
+                        Thread *main_thread, bool trace_logging);
     virtual ~MSGGarbageCollector();
 
     ////////////////////////////////////////////////////////////////////////////
@@ -135,7 +136,7 @@ public:
     virtual void Step(int tick) override;
     virtual void WriteBarrier(HeapObject *target, HeapObject *other) override;
     virtual void FullGC() override;
-    virtual void Active(bool pause) override { pause_ = pause; }
+    virtual void Active(bool active) override { pause_ = !active; }
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MSGGarbageCollector)
 private:
@@ -179,6 +180,7 @@ private:
     }
 
     bool pause_ = false;
+    bool trace_logging_;
     Color white_ = kWhite0;
     Phase phase_ = kPause;
     int tick_ = 0;

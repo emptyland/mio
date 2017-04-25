@@ -127,16 +127,16 @@ public:
     DEFINE_HEAP_OBJ_RW(HeapObject *, Next)
     DEFINE_HEAP_OBJ_RW(HeapObject *, Prev)
 
-    bool IsHandle() const { return GetHandleCount() > 0; }
+    bool IsGrabbed() const { return GetHandleCount() > 0; }
 
     int GetHandleCount() const { return (GetHeaderFlags() & GC_HANDLE_COUNT_MASK); }
 
-    void GrabOrNothing() {
+    void Grab() {
         SetHeaderFlags((GetHeaderFlags() & ~GC_HANDLE_COUNT_MASK) |
                        ((GetHandleCount() + 1) & GC_HANDLE_COUNT_MASK));
     }
 
-    void DropOrNothing() {
+    void Drop() {
         SetHeaderFlags((GetHeaderFlags() & ~GC_HANDLE_COUNT_MASK) |
                        ((GetHandleCount() - 1) & GC_HANDLE_COUNT_MASK));
     }
