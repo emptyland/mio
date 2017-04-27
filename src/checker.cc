@@ -463,7 +463,11 @@ private:
     }
 
     if (var->type() == types_->GetUnknown()) {
-        if (!var->is_function()) {
+        ScopeHolder holder(var->scope(), &scope_);
+        var->declaration()->Accept(this);
+        PopEvalType();
+
+        if (var->type() == types_->GetUnknown()) {
             ThrowError(node, "symbol \'%s\', its' type unknown.",
                        node->name()->c_str());
             return;

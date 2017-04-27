@@ -206,6 +206,10 @@ public:
         return Emit4Op(BC_frame, size1, size2, 0, clean2);
     }
 
+    void frame(int pc, uint16_t size1, uint16_t size2, int16_t clean2) {
+        FillPlacement(pc, Make4OpBC(BC_frame, size1, size2, 0, clean2));
+    }
+
     int oop(BCObjectOperatorId id, uint16_t result, int16_t val1, int16_t val2) {
         return Emit4Op(BC_oop, id, result, val1, val2);
     }
@@ -214,12 +218,24 @@ public:
         return Emit3Addr(BC_jmp, 0, 0, delta);
     }
 
+    void jmp(int pc, int32_t delta) {
+        FillPlacement(pc, Make3AddrBC(BC_jmp, 0, 0, delta));
+    }
+
     int jnz(uint16_t cond, int32_t delta) {
         return Emit3Addr(BC_jnz, 0, cond, delta);
     }
 
+    void jnz(int pc, uint16_t cond, int32_t delta) {
+        FillPlacement(pc, Make3AddrBC(BC_jnz, 0, cond, delta));
+    }
+
     int jz(uint16_t cond, int32_t delta) {
         return Emit3Addr(BC_jz, 0, cond, delta);
+    }
+
+    void jz(int pc, uint16_t cond, int32_t delta) {
+        FillPlacement(pc, Make3AddrBC(BC_jz, 0, cond, delta));
     }
 
     ////////////////////////////////////////////////////////////////////////////

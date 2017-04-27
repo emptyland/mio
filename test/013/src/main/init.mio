@@ -1,13 +1,14 @@
 package main
 
+native function print(s: string): void
+
 function main: void {
     var n: [int, string, f32]
-    base::print('assertion: '.. 0 ..', n = '..n..'\n')
+    print('assertion: '.. 0 ..', n = '..n..'\n')
     n = 1
-    base::print('assertion: '..(n is int)..', n = '..n..'\n')
+    print('assertion: '..(n is int)..', n = '..n..'\n')
     n = 'ok'
-    base::print('assertion: '..(n is string)..', n = '..n..'\n')
+    print('assertion: '..(n is string)..', n = '..n..'\n')
     n = 1.1F
-    base::print('assertion: '..(n is f32)..', n = '..n..'\n')
-    base::fullGC()
+    print('assertion: '..(n is f32)..', n = '..n..'\n')
 }
