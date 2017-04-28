@@ -40,6 +40,10 @@ public:
 
     inline Handle<MIOString> GetOrNewString(const char *z, int n);
 
+    inline Handle<MIOString> GetOrNewString(const char *z) {
+        return GetOrNewString(z, static_cast<int>(strlen(z)));
+    }
+
     virtual Handle<MIOString> GetOrNewString(const mio_strbuf_t *buf, int n) = 0;
 
     virtual Handle<MIONativeFunction>

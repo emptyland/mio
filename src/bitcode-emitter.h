@@ -12,6 +12,7 @@ class EmittingAstVisitor;
 class BitCodeBuilder;
 class TypeFactory;
 class ObjectFactory;
+class ObjectExtraFactory;
 class FunctionRegister;
 class Declaration;
 class PackageImporter;
@@ -23,6 +24,7 @@ public:
                    MemorySegment *o_global,
                    TypeFactory *types,
                    ObjectFactory *object_factory,
+                   ObjectExtraFactory *extra_factory,
                    FunctionRegister *function_register);
     ~BitCodeEmitter();
 
@@ -49,6 +51,7 @@ private:
     MemorySegment *o_global_;
     TypeFactory *types_;
     ObjectFactory *object_factory_;
+    ObjectExtraFactory *extra_factory_;
     FunctionRegister *function_register_;
     std::unordered_set<Declaration *> emitted_;
     std::unordered_set<std::string> imported_;

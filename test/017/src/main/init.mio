@@ -1,0 +1,5 @@
+package main with ('foo')
+
+function main: void {
+    foo::foo()
+}

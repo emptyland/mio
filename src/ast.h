@@ -29,6 +29,7 @@ namespace mio {
     M(MapInitializer) \
     M(Pair) \
     M(Variable) \
+    M(Reference) \
     M(Symbol) \
     M(Call) \
     M(FieldAccessing) \
@@ -65,6 +66,7 @@ class AstNode;
             class Assignment;
             class IfOperation;
             class Variable;
+            class Reference;
             class Symbol;
             class Call;
             class FieldAccessing;
@@ -856,6 +858,20 @@ private:
 }; // class Variable
 
 
+class Reference : public Expression {
+public:
+    Variable *variable() const { return variable_; }
+
+    DECLARE_AST_NODE(Reference)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Reference)
+private:
+    Reference(Variable *variable, int position)
+        : Expression(position)
+        , variable_(DCHECK_NOTNULL(variable)) {}
+
+    Variable *variable_;
+}; // class Reference
+
 
 class Symbol : public Expression {
 public:
@@ -888,6 +904,10 @@ public:
     void set_callee_type(Type *type) { callee_type_ = DCHECK_NOTNULL(type); }
 
     ZoneVector<Expression *> *mutable_arguments() { return arguments_; }
+
+    int argument_size() const { return arguments_->size(); }
+
+    Expression *argument(int index) const { return arguments_->At(index); }
 
     DECLARE_AST_NODE(Call)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Call)
@@ -1272,6 +1292,10 @@ public:
     Variable *CreateVariable(Declaration *declaration, int64_t unique_id,
                              int position) {
         return new (zone_) Variable(declaration, unique_id, position);
+    }
+
+    Reference *CreateReference(Variable *variable, int position) {
+        return new (zone_) Reference(variable, position);
     }
 
     TypeTest *CreateTypeTest(Expression *expression, Type *type, int position) {

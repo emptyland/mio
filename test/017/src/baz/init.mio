@@ -1,0 +1,6 @@
+package baz
+
+function baz: void {
+    base::print('baz\n')
+    base::panic('fail')
+}

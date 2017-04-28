@@ -44,6 +44,15 @@ public:
         return 0;
     }
 
+    static int Panic(VM *vm, Thread *thread) {
+        bool ok = true;
+        auto ob = thread->GetString(0, &ok);
+        DCHECK(ok);
+        thread->Panic(Thread::PANIC, &ok, "%s", ob->GetData());
+        thread->set_should_exit(true);
+        return 0;
+    }
+
     static int PrimitiveHash(const void *z, int n) {
         auto p = static_cast<const uint8_t *>(z);
         uint32_t h = 1315423911;

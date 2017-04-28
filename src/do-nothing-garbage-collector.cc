@@ -81,6 +81,8 @@ DoNothingGarbageCollector::CreateNormalFunction(const std::vector<Handle<HeapObj
 
     auto ob = NewObject<MIONormalFunction>(placement_size);
     ob->SetName(nullptr);
+    ob->SetDebugInfo(nullptr);
+
     ob->SetConstantPrimitiveSize(constant_primitive_size);
     memcpy(ob->GetConstantPrimitiveData(), constant_primitive_data, constant_primitive_size);
 

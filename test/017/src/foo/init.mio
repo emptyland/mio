@@ -1,0 +1,6 @@
+package foo with ('bar')
+
+function foo: void {
+    base::print('foo\n')
+    bar::bar()
+}

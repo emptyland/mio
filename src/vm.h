@@ -17,9 +17,16 @@ class ObjectFactory;
 class GarbageCollector;
 class FunctionRegister;
 class TextOutputStream;
+class MIOString;
 struct ParsingError;
 
 typedef int (*MIOFunctionPrototype)(VM *, Thread *);
+
+struct BacktraceLayout {
+    Handle<MIOFunction> function_object;
+    Handle<MIOString>   file_name;
+    int                 position;
+};
 
 class VM {
 public:
@@ -33,6 +40,7 @@ public:
     DEF_GETTER(int, max_call_deep)
     DEF_GETTER(int, tick);
     DEF_PROP_RW(std::string, gc_name);
+    DEF_GETTER(std::vector<BacktraceLayout>, backtrace);
 
     Thread *main_thread() const {
         return DCHECK_NOTNULL(main_thread_);
@@ -61,6 +69,9 @@ public:
     void DisassembleAll(TextOutputStream *stream);
     void DisassembleAll(std::string *buf);
 
+    void PrintBackstrace(std::string *buf);
+    void PrintBackstream(TextOutputStream *stream);
+
     friend class Thread;
     DISALLOW_IMPLICIT_CONSTRUCTORS(VM)
 private:
@@ -81,6 +92,8 @@ private:
     GarbageCollector *gc_ = nullptr;
     FunctionRegister *function_register_ = nullptr;
     ParsedModuleMap *all_modules_ = nullptr;
+
+    std::vector<BacktraceLayout> backtrace_;
 };
 
 } // namespace mio

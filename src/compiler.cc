@@ -284,12 +284,14 @@ ParsedUnitMap *Compiler::ParseProject(const char *project_dir,
                                            MemorySegment *o_global,
                                            TypeFactory *types,
                                            ObjectFactory *object_factory,
+                                           ObjectExtraFactory *extra_factory,
                                            FunctionRegister *function_register,
                                            CompiledInfo *info) {
     BitCodeEmitter emitter(p_global,
                            o_global,
                            types,
                            object_factory,
+                           extra_factory,
                            function_register);
     emitter.Init();
     emitter.Run(all_modules, info);

@@ -222,6 +222,10 @@ public:
         }
     }
 
+    virtual void VisitReference(Reference *node) override {
+        VisitVariable(node->variable());
+    }
+
     // block:
     //   - node 1
     //   - node 2

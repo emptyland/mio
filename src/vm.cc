@@ -1,6 +1,7 @@
 #include "vm.h"
 #include "vm-memory-segment.h"
 #include "vm-thread.h"
+#include "vm-object-extra-factory.h"
 #include "vm-objects.h"
 #include "vm-bitcode-disassembler.h"
 #include "vm-runtime.h"
@@ -65,8 +66,9 @@ bool VM::CompileProject(const char *project_dir, ParsingError *error) {
     }
 
     CompiledInfo info;
+    ObjectExtraFactory extra_factory(allocator_);
     Compiler::AstEmitToBitCode(all_modules_, p_global_, o_global_, types.get(),
-                               gc_, function_register_, &info);
+                               gc_, &extra_factory, function_register_, &info);
     DLOG(INFO) << "pg: " << info.global_primitive_segment_bytes << "\n"
                << "og: " << info.global_object_segment_bytes;
 
@@ -114,6 +116,32 @@ void VM::DisassembleAll(TextOutputStream *stream) {
 void VM::DisassembleAll(std::string *buf) {
     MemoryOutputStream stream(buf);
     DisassembleAll(&stream);
+}
+
+void VM::PrintBackstrace(std::string *buf) {
+    MemoryOutputStream stream(buf);
+    PrintBackstream(&stream);
+}
+
+void VM::PrintBackstream(TextOutputStream *stream) {
+    for (const auto &layout : backtrace_) {
+        auto fn = layout.function_object;
+
+        if (fn->IsClosure()) {
+            fn = fn->AsClosure()->GetFunction();
+        }
+
+        stream->Printf("%s() ", fn->GetName()->GetData());
+        if (fn->IsNativeFunction()) {
+            stream->Printf("[native %p]", fn->AsNativeFunction()->GetNativePointer());
+        } else {
+            auto info = fn->AsNormalFunction()->GetDebugInfo();
+            if (info) {
+                stream->Printf("%s(position:%d)", info->file_name, layout.position);
+            }
+        }
+        stream->Write("\n", 1);
+    }
 }
 
 } // namespace mio

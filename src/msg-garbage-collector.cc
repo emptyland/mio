@@ -120,6 +120,7 @@ MSGGarbageCollector::CreateNormalFunction(const std::vector<Handle<HeapObject>> 
     auto ob = NewObject<MIONormalFunction>(placement_size, 0);
 
     ob->SetName(nullptr);
+    ob->SetDebugInfo(nullptr);
 
     ob->SetConstantPrimitiveSize(constant_primitive_size);
     memcpy(ob->GetConstantPrimitiveData(), constant_primitive_data, constant_primitive_size);
@@ -567,6 +568,11 @@ void MSGGarbageCollector::DeleteObject(const HeapObject *ob) {
         case HeapObject::kUpValue: {
             auto val = ob->AsUpValue();
             unique_upvals_.erase(val->GetUniqueId());
+        } break;
+
+        case HeapObject::kNormalFunction: {
+            auto fn = ob->AsNormalFunction();
+            allocator_->Free(fn->GetDebugInfo());
         } break;
 
         default:

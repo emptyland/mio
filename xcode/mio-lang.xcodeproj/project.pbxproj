@@ -101,6 +101,8 @@
 		23E3D5C11E77C51800C51DDE /* memory-output-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5BF1E77C51800C51DDE /* memory-output-stream.cc */; };
 		23E3D5C81E77CBCC00C51DDE /* file-output-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5C71E77CBCC00C51DDE /* file-output-stream.cc */; };
 		23E3D5C91E77CBCC00C51DDE /* file-output-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5C71E77CBCC00C51DDE /* file-output-stream.cc */; };
+		23E6BA0E1EB1DD3600FC1A55 /* vm-object-extra-factory.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA0D1EB1DD3600FC1A55 /* vm-object-extra-factory.cc */; };
+		23E6BA0F1EB1DD3600FC1A55 /* vm-object-extra-factory.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA0D1EB1DD3600FC1A55 /* vm-object-extra-factory.cc */; };
 		23ECD44F1EA4B4C700A0091D /* msg-garbage-collector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23ECD44E1EA4B4C700A0091D /* msg-garbage-collector.cc */; };
 		23ECD4501EA4B4C700A0091D /* msg-garbage-collector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23ECD44E1EA4B4C700A0091D /* msg-garbage-collector.cc */; };
 		23ECD4531EA5C1A000A0091D /* vm-object-scanner.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23ECD4521EA5C1A000A0091D /* vm-object-scanner.cc */; };
@@ -229,6 +231,8 @@
 		23E3D5BF1E77C51800C51DDE /* memory-output-stream.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "memory-output-stream.cc"; sourceTree = "<group>"; };
 		23E3D5C61E77CAFF00C51DDE /* file-output-stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "file-output-stream.h"; sourceTree = "<group>"; };
 		23E3D5C71E77CBCC00C51DDE /* file-output-stream.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "file-output-stream.cc"; sourceTree = "<group>"; };
+		23E6BA0C1EB1D4B400FC1A55 /* vm-object-extra-factory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-object-extra-factory.h"; sourceTree = "<group>"; };
+		23E6BA0D1EB1DD3600FC1A55 /* vm-object-extra-factory.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-object-extra-factory.cc"; sourceTree = "<group>"; };
 		23ECD44D1EA4B3D900A0091D /* msg-garbage-collector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "msg-garbage-collector.h"; sourceTree = "<group>"; };
 		23ECD44E1EA4B4C700A0091D /* msg-garbage-collector.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "msg-garbage-collector.cc"; sourceTree = "<group>"; };
 		23ECD4511EA5C08700A0091D /* vm-object-scanner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-object-scanner.h"; sourceTree = "<group>"; };
@@ -313,13 +317,14 @@
 				2324347B1E7A84C20054C385 /* vm-bitcode-disassembler.cc */,
 				232434891E7BBEA00054C385 /* vm-objects.cc */,
 				2311E3881EA9F0BC007B5305 /* vm-object-surface.cc */,
-				2361991B1E83FE1100682485 /* vm-function-register.cc */,
+				23ECD4521EA5C1A000A0091D /* vm-object-scanner.cc */,
 				2361991F1E84CCB900682485 /* vm-object-factory.cc */,
+				23E6BA0D1EB1DD3600FC1A55 /* vm-object-extra-factory.cc */,
+				2311E3841EA8AD58007B5305 /* vm-runtime.cc */,
+				2361991B1E83FE1100682485 /* vm-function-register.cc */,
 				231378E41E8A5514009384DF /* simple-function-register.cc */,
 				23ECD44E1EA4B4C700A0091D /* msg-garbage-collector.cc */,
 				23658AF61E8A3FD700F7F72A /* do-nothing-garbage-collector.cc */,
-				23ECD4521EA5C1A000A0091D /* vm-object-scanner.cc */,
-				2311E3841EA8AD58007B5305 /* vm-runtime.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -361,12 +366,13 @@
 				2324346A1E7925000054C385 /* vm-memory-segment.h */,
 				2324346E1E7928B60054C385 /* vm-bitcode-builder.h */,
 				2324347A1E7A83470054C385 /* vm-bitcode-disassembler.h */,
-				2361991E1E84CC6500682485 /* vm-object-factory.h */,
 				23ECD4551EA6EF1D00A0091D /* vm-garbage-collector.h */,
 				2361991A1E83FC5B00682485 /* vm-function-register.h */,
 				232434881E7BBDD30054C385 /* vm-objects.h */,
 				2311E3871EA9A481007B5305 /* vm-object-surface.h */,
 				23ECD4511EA5C08700A0091D /* vm-object-scanner.h */,
+				2361991E1E84CC6500682485 /* vm-object-factory.h */,
+				23E6BA0C1EB1D4B400FC1A55 /* vm-object-extra-factory.h */,
 				2311E3831EA8A95F007B5305 /* vm-runtime.h */,
 				2324348C1E7BCCAA0054C385 /* handles.h */,
 				231378E31E8A54CA009384DF /* simple-function-register.h */,
@@ -510,6 +516,7 @@
 				235808131E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
 				2362023D1E45B9EB00B6B949 /* base.cc in Sources */,
 				2349E58A1E56F3DB002883BC /* raw-string.cc in Sources */,
+				23E6BA0E1EB1DD3600FC1A55 /* vm-object-extra-factory.cc in Sources */,
 				23E3D5C81E77CBCC00C51DDE /* file-output-stream.cc in Sources */,
 				2349E56C1E4AA77F002883BC /* number-parser.cc in Sources */,
 				23E3D5B81E700A7000C51DDE /* simple-file-system.cc in Sources */,
@@ -558,6 +565,7 @@
 				2349E5831E56E378002883BC /* ast-test.cc in Sources */,
 				235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
 				23E3D59B1E5C1A7900C51DDE /* ast-printer.cc in Sources */,
+				23E6BA0F1EB1DD3600FC1A55 /* vm-object-extra-factory.cc in Sources */,
 				2311E3861EA8AD58007B5305 /* vm-runtime.cc in Sources */,
 				236202561E45BE2900B6B949 /* lexer.cc in Sources */,
 				2311E38A1EA9F0BC007B5305 /* vm-object-surface.cc in Sources */,

@@ -62,6 +62,10 @@ struct CallContext {
         DCHECK(closure->IsClose());
         return closure->GetUpValuesBuf();
     }
+
+    inline FunctionDebugInfo *debug_info() {
+        return DCHECK_NOTNULL(normal_function())->GetDebugInfo();
+    }
 };
 
 class CallStack {
@@ -119,13 +123,14 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
     init->o_stack_size = o_stack_->size(),
     init->bc = static_cast<uint64_t *>(callee->GetCode());
     init->pc = 0;
-    init->callee = callee;
+    init->callee = nullptr;
 
     pc_ = init->pc;
     bc_ = init->bc;
+    callee_ = callee;
+
     while (!should_exit_) {
         auto bc = bc_[pc_++];
-        auto top = call_stack_->size() ? call_stack_->Top() : nullptr;
 
         switch (BitCodeDisassembler::GetInst(bc)) {
             case BC_debug:
@@ -138,7 +143,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 auto dest = BitCodeDisassembler::GetOp1(bc); \
                 auto segment = BitCodeDisassembler::GetOp2(bc); \
                 auto offset = BitCodeDisassembler::GetImm32(bc); \
-                ProcessLoadPrimitive(top, byte, dest, segment, offset, ok); \
+                ProcessLoadPrimitive(byte, dest, segment, offset, ok); \
                 if (!*ok) { \
                     return; \
                 } \
@@ -150,7 +155,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 auto dest = BitCodeDisassembler::GetOp1(bc);
                 auto segment = BitCodeDisassembler::GetOp2(bc);
                 auto offset = BitCodeDisassembler::GetImm32(bc);
-                ProcessLoadObject(top, dest, segment, offset, ok);
+                ProcessLoadObject(dest, segment, offset, ok);
                 if (!*ok) {
                     return;
                 }
@@ -207,7 +212,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 auto src = BitCodeDisassembler::GetOp1(bc); \
                 auto segment = BitCodeDisassembler::GetOp2(bc); \
                 auto dest = BitCodeDisassembler::GetImm32(bc); \
-                ProcessStorePrimitive(top, byte, src, segment, dest, ok); \
+                ProcessStorePrimitive(byte, src, segment, dest, ok); \
                 if (!*ok) { \
                     return; \
                 } \
@@ -219,7 +224,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 auto src = BitCodeDisassembler::GetOp1(bc);
                 auto segment = BitCodeDisassembler::GetOp2(bc);
                 auto dest = BitCodeDisassembler::GetImm32(bc);
-                ProcessStoreObject(top, src, segment, dest, ok);
+                ProcessStoreObject(src, segment, dest, ok);
                 if (!*ok) {
                     return;
                 }
@@ -240,8 +245,9 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
 
             case BC_ret: {
                 auto ctx = call_stack_->Top();
-                pc_ = ctx->pc;
-                bc_ = ctx->bc;
+                pc_     = ctx->pc;
+                bc_     = ctx->bc;
+                callee_ = ctx->callee;
 
                 p_stack_->SetFrame(ctx->p_stack_base, ctx->p_stack_size);
                 o_stack_->SetFrame(ctx->o_stack_base, ctx->o_stack_size);
@@ -277,8 +283,8 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
 
             case BC_call_val: {
                 if (call_stack_->size() >= vm_->max_call_deep()) {
-                    *ok = false;
-                    exit_code_ = STACK_OVERFLOW;
+                    Panic(STACK_OVERFLOW, ok, "stack overflow, max calling deep %d",
+                          vm_->max_call_deep());
                     return;
                 }
 
@@ -298,29 +304,36 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 if (fn->IsNativeFunction()) {
                     auto native = fn->AsNativeFunction();
                     if (!native->GetNativePointer()) {
-                        DLOG(ERROR) << "NULL native function!";
-                        *ok = false;
-                        exit_code_ = NULL_NATIVE_FUNCTION;
+                        Panic(NULL_NATIVE_FUNCTION, ok, "NULL native function!");
                         return;
                     }
 
-                    CallContext ctx = {
-                        .p_stack_base = p_stack_->base_size(),
-                        .p_stack_size = p_stack_->size(),
-                        .o_stack_base = o_stack_->base_size(),
-                        .o_stack_size = o_stack_->size(),
-                        .callee       = static_cast<MIOFunction*>(ob.get()),
-                    };
+                    auto ctx = call_stack_->Push();
+                    ctx->p_stack_base = p_stack_->base_size();
+                    ctx->p_stack_size = p_stack_->size();
+                    ctx->o_stack_base = o_stack_->base_size();
+                    ctx->o_stack_size = o_stack_->size();
+                    ctx->pc           = pc_;
+                    ctx->bc           = bc_;
+                    //ctx->callee       = static_cast<MIOFunction*>(ob.get());
+                    ctx->callee       = callee_.get();
 
                     auto base1 = BitCodeDisassembler::GetOp1(bc);
                     auto base2 = BitCodeDisassembler::GetOp2(bc);
                     p_stack_->AdjustFrame(base1, native->GetPrimitiveArgumentsSize());
                     o_stack_->AdjustFrame(base2, native->GetObjectArgumentsSize());
 
+                    callee_ = fn;
                     (*native->GetNativePointer())(vm_, this);
+                    callee_ = ctx->callee;
 
-                    p_stack_->SetFrame(ctx.p_stack_base, ctx.p_stack_size);
-                    o_stack_->SetFrame(ctx.o_stack_base, ctx.o_stack_size);
+                    p_stack_->SetFrame(ctx->p_stack_base, ctx->p_stack_size);
+                    o_stack_->SetFrame(ctx->o_stack_base, ctx->o_stack_size);
+                    call_stack_->Pop();
+                    if (call_stack_->size() == 0) {
+                        exit_code_ = SUCCESS;
+                        return;
+                    }
                 } else {
                     auto ctx = call_stack_->Push();
                     ctx->p_stack_base = p_stack_->base_size();
@@ -329,7 +342,9 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                     ctx->o_stack_size = o_stack_->size();
                     ctx->pc = pc_;
                     ctx->bc = bc_;
-                    ctx->callee = static_cast<MIOFunction*>(ob.get());
+                    //ctx->callee = static_cast<MIOFunction*>(ob.get());
+                    ctx->callee = callee_.get();
+                    callee_ = fn;
 
                     DCHECK(fn->IsNormalFunction()) << fn->GetKind();
                     auto normal = DCHECK_NOTNULL(fn->AsNormalFunction());
@@ -349,14 +364,12 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 auto dest = BitCodeDisassembler::GetOp1(bc);
                 auto closure = GetClosure(dest, ok);
                 if (!*ok) {
-                    DLOG(ERROR) << "not closure for close.";
-                    exit_code_ = PANIC;
+                    Panic(PANIC, ok, "not closure for close.");
                     return;
                 }
 
                 if (closure->IsClose()) {
-                    DLOG(ERROR) << "closure already closed.";
-                    exit_code_ = PANIC;
+                    Panic(PANIC, ok, "closure already closed.");
                     return;
                 }
 
@@ -390,9 +403,8 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                                        BitCodeDisassembler::GetVal1(bc),
                                        BitCodeDisassembler::GetVal2(bc), ok);
                 if (!*ok) {
-                    DLOG(ERROR) << "oop process fail! "
-                                << kObjectOperatorText[BitCodeDisassembler::GetOp1(bc)];
-                    exit_code_ = PANIC;
+                    Panic(PANIC, ok, "oop process fail! %s",
+                          kObjectOperatorText[BitCodeDisassembler::GetOp1(bc)]);
                     return;
                 }
                 break;
@@ -400,21 +412,15 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
             default: {
                 auto cmd = BitCodeDisassembler::GetInst(bc);
                 if (cmd >= 0 && cmd < MAX_BC_INSTRUCTIONS) {
-                    DLOG(ERROR)
-                        << "bitcode command: \""
-                        << kInstructionMetadata[cmd].text
-                        << "\" not support yet.";
-                    exit_code_ = PANIC;
+                    Panic(PANIC, ok, "bitcode command: \"%s\" not support yet.",
+                          kInstructionMetadata[cmd].text);
                 } else {
-                    DLOG(ERROR) << "bad bit code command: " << cmd;
-                    exit_code_ = BAD_BIT_CODE;
+                    Panic(BAD_BIT_CODE, ok, "bad bit code command: %d", cmd);
                 }
-                *ok = false;
             } return;
         } // switch
 
         ++vm_->tick_;
-        //vm_->gc_->Step(vm_->tick_);
     } // while
 }
 
@@ -425,180 +431,210 @@ int Thread::GetCallStack(std::vector<MIOFunction *> *call_stack) {
     return call_stack_->size();
 }
 
-void Thread::ProcessLoadPrimitive(CallContext *top, int bytes, uint16_t dest,
-                                  uint16_t segment, int32_t offset, bool *ok) {
+void Thread::Panic(ExitCode exit_code, bool *ok, const char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    PanicV(exit_code, ok, fmt, ap);
+    va_end(ap);
+}
+
+void Thread::PanicV(ExitCode exit_code, bool *ok, const char *fmt, va_list ap) {
+    exit_code_ = exit_code;
+    *ok = false;
+
+    vm_->backtrace_.clear();
+
+    int i = call_stack_->size();
+    while (i--) {
+        auto ctx = call_stack_->base() + i;
+        if (!ctx->callee) {
+            break;
+        }
+
+        BacktraceLayout layout;
+        layout.function_object = ctx->callee;
+        if (!ctx->callee->IsNativeFunction()) {
+            auto info = ctx->debug_info();
+            if (info) {
+                layout.file_name = vm_->object_factory()->GetOrNewString(info->file_name);
+
+                auto pc = ctx->pc - 1;
+                DCHECK_GE(pc, 0); DCHECK_LT(pc, info->pc_size);
+                layout.position = info->pc_to_position[pc];
+            }
+        }
+        vm_->backtrace_.push_back(layout);
+    }
+
+    auto msg = TextOutputStream::vsprintf(fmt, ap);
+    DLOG(ERROR) << "panic: (" << exit_code << ") " << msg;
+}
+
+void Thread::ProcessLoadPrimitive(int bytes, uint16_t dest, uint16_t segment,
+                                  int32_t offset, bool *ok) {
     switch (static_cast<BCSegment>(segment)) {
         case BC_FUNCTION_CONSTANT_PRIMITIVE_SEGMENT: {
-            auto buf = top->const_primitive_buf();
+            auto buf = const_primitive_buf();
             if (offset < 0 || offset >= buf.n) {
-                DLOG(ERROR) << "function: " << top->callee->GetName()->GetData()
-                            << " constant primitive data out of range. "
-                            << offset << " vs. " << buf.n;
-                goto fail;
+                Panic(BAD_BIT_CODE, ok, "function: %s constant primitive data"
+                      " out of range. %d vs. %d",
+                      callee_->GetName()->GetData(), offset, buf.n);
+                return;
             }
-            memcpy(p_stack_->offset(dest), buf.z + offset, bytes);
-        } return;
+            FastMemoryMove(p_stack_->offset(dest), buf.z + offset, bytes);
+        } break;
 
         case BC_UP_PRIMITIVE_SEGMENT: {
-            auto buf = top->upvalue_buf();
+            auto buf = upvalue_buf();
             auto idx = offset / kObjectReferenceSize;
             if (idx < 0 || idx >= buf.n) {
-                DLOG(ERROR) << "up value data out of range. "
-                            << idx << " vs. " << buf.n;
-                goto fail;
+                Panic(BAD_BIT_CODE, ok, "up value data out of range. %d vs %d",
+                      idx, buf.n);
+                return;
             }
             auto upval = buf.z[idx].val;
             if (upval->GetValueSize() < bytes) {
-                DLOG(ERROR) << "upvalue size too small, " << upval->GetValueSize()
-                            << " vs. " << bytes;
-                goto fail;
+                Panic(BAD_BIT_CODE, ok, "upvalue size too small, %d vs. %d",
+                      upval->GetValueSize(), bytes);
+                return;
             }
             if (!upval->IsPrimitiveValue()) {
-                DLOG(ERROR) << "upvalue is not primitive value!";
-                goto fail;
+                Panic(BAD_BIT_CODE, ok, "upvalue is not primitive value!");
+                return;
             }
-            memcpy(p_stack_->offset(dest), upval->GetValue(), bytes);
-        } return;
+            FastMemoryMove(p_stack_->offset(dest), upval->GetValue(), bytes);
+        } break;
 
         case BC_GLOBAL_PRIMITIVE_SEGMENT:
-            memcpy(p_stack_->offset(dest), vm_->p_global_->offset(offset), bytes);
-            return;
+            FastMemoryMove(p_stack_->offset(dest), vm_->p_global_->offset(offset), bytes);
+            break;
 
         default:
-            DLOG(ERROR) << "load_xb segment error.";
+            Panic(BAD_BIT_CODE, ok, "load_%db segment(%d) error. ", bytes,
+                  segment);
             break;
     }
-fail:
-    exit_code_ = BAD_BIT_CODE;
-    *ok = false;
 }
 
-void Thread::ProcessStorePrimitive(CallContext *top, int bytes, uint16_t addr,
-                                   uint16_t segment, int dest, bool *ok) {
+void Thread::ProcessStorePrimitive(int bytes, uint16_t addr, uint16_t segment,
+                                   int dest, bool *ok) {
     auto src = p_stack_->offset(addr);
     switch (static_cast<BCSegment>(segment)) {
         case BC_GLOBAL_PRIMITIVE_SEGMENT:
-            memcpy(vm_->p_global_->offset(dest), src, bytes);
-            return;
+            FastMemoryMove(vm_->p_global_->offset(dest), src, bytes);
+            break;
 
         case BC_UP_PRIMITIVE_SEGMENT: {
             auto idx = dest / kObjectReferenceSize;
-            auto buf = top->upvalue_buf();
+            auto buf = upvalue_buf();
             if (idx < 0 || idx >= buf.n) {
-                DLOG(ERROR) << "up value data out of range. "
-                << idx << " vs. " << buf.n;
-                goto fail;
+                Panic(BAD_BIT_CODE, ok, "up value data out of range. %d vs. %d",
+                      idx, buf.n);
+                return;
             }
             auto upval = buf.z[idx].val;
             if (upval->GetValueSize() < bytes) {
-                DLOG(ERROR) << "upvalue size too small, " << upval->GetValueSize()
-                << " vs. " << bytes;
-                goto fail;
+                Panic(BAD_BIT_CODE, ok, "upvalue size too small, %d vs. %d",
+                      upval->GetValueSize(), bytes);
+                return;
             }
             if (!upval->IsPrimitiveValue()) {
-                DLOG(ERROR) << "upvalue is not primitive value!";
-                goto fail;
+                Panic(BAD_BIT_CODE, ok, "upvalue is not primitive value!");
+                return;
             }
-            memcpy(upval->GetValue(), src, bytes);
-        } return;
+            FastMemoryMove(upval->GetValue(), src, bytes);
+        } break;
 
         default:
-            DLOG(ERROR) << "store_xb segment error." << segment;
+            Panic(BAD_BIT_CODE, ok, "store_%db segment(%d) error.", bytes, segment);
             break;
     }
-fail:
-    exit_code_ = BAD_BIT_CODE;
-    *ok = false;
 }
 
-void Thread::ProcessLoadObject(CallContext *top, uint16_t dest, uint16_t segment,
-                               int32_t offset, bool *ok) {
+void Thread::ProcessLoadObject(uint16_t dest, uint16_t segment, int32_t offset,
+                               bool *ok) {
     switch (segment) {
         case BC_FUNCTION_CONSTANT_OBJECT_SEGMENT: {
-            auto buf = top->const_object_buf();
+            auto buf = const_object_buf();
             auto idx = offset / kObjectReferenceSize;
             if (idx < 0 || idx >= buf.n) {
-                DLOG(ERROR) << "constant object data out of range. " << idx
-                            << " vs. " <<  buf.n;
-                goto fail;
+                Panic(BAD_BIT_CODE, ok, "constant object data out of range. %d"
+                      " vs. %d", idx, buf.n);
+                return;
             }
             o_stack_->Set(dest, buf.z[idx]);
-        } return;
+        } break;
 
         case BC_UP_OBJECT_SEGMENT: {
-            auto buf = top->upvalue_buf();
+            auto buf = upvalue_buf();
             auto idx = offset / kObjectReferenceSize;
             if (idx < 0 || idx >= buf.n) {
-                DLOG(ERROR) << "upvalue object data out of range. " << idx
-                            << " vs. " << buf.n;
-                goto fail;
+                Panic(BAD_BIT_CODE, ok, "upvalue object data out of range. %d"
+                      " vs. %d", idx, buf.n);
+                return;
             }
 
             auto upval = buf.z[idx].val;
             if (!upval->IsObjectValue()) {
-                DLOG(ERROR) << "upval is not object!";
-                goto fail;
+                Panic(BAD_BIT_CODE, ok, "upval is not object!");
+                return;
             }
 
             o_stack_->Set(dest, upval->GetObject());
-        } return;
+        } break;
 
         case BC_GLOBAL_OBJECT_SEGMENT:
             o_stack_->Set(dest, vm_->o_global_->Get<HeapObject *>(offset));
-            return;
+            break;
 
         default:
             DLOG(ERROR) << "load_o segment error.";
             break;
     }
-fail:
-    exit_code_ = BAD_BIT_CODE;
-    *ok = false;
 }
 
-void Thread::ProcessStoreObject(CallContext *top, uint16_t addr,
-                                uint16_t segment, int dest, bool *ok) {
+void Thread::ProcessStoreObject(uint16_t addr, uint16_t segment, int dest, bool *ok) {
     auto src = make_handle(o_stack_->Get<HeapObject *>(addr));
     switch (static_cast<BCSegment>(segment)) {
         case BC_GLOBAL_OBJECT_SEGMENT:
             vm_->o_global_->Set(dest, src.get());
-            return;
+            break;
 
         case BC_UP_OBJECT_SEGMENT: {
             auto idx = dest / kObjectReferenceSize;
-            auto buf = top->upvalue_buf();
+            auto buf = upvalue_buf();
             if (idx < 0 || idx >= buf.n) {
-                DLOG(ERROR) << "up value data out of range. "
-                << idx << " vs. " << buf.n;
-                goto fail;
+                Panic(BAD_BIT_CODE, ok, "up value data out of range. %d vs. %d",
+                      idx, buf.n);
+                return;
             }
             auto upval = buf.z[idx].val;
             if (upval->GetValueSize() < kObjectReferenceSize) {
-                DLOG(ERROR) << "upvalue size too small, " << upval->GetValueSize()
-                            << " vs. " << kObjectReferenceSize;
-                goto fail;
+                Panic(BAD_BIT_CODE, ok, "upvalue size too small, %d vs. %d",
+                      upval->GetValueSize(), kObjectReferenceSize);
+                return;
             }
             if (!upval->IsObjectValue()) {
-                DLOG(ERROR) << "upvalue is not object value!";
-                goto fail;
+                Panic(BAD_BIT_CODE, ok, "upvalue is not object value!");
+                return;
             }
             upval->SetObject(src.get());
-        } return;
+        } break;
 
         default:
-            DLOG(ERROR) << "store_o segment error. segment: " << segment;
+            Panic(BAD_BIT_CODE, ok, "store_o segment(%d) error.", segment);
             break;
     }
-fail:
-    exit_code_ = BAD_BIT_CODE;
-    *ok = false;
 }
 
 void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                                     int16_t val2, bool *ok) {
     switch (static_cast<BCObjectOperatorId>(id)) {
         case OO_UnionOrMerge: {
-            auto type_info = GetTypeInfo(val2);
+            auto type_info = GetTypeInfo(val2, ok);
+            if (!*ok) {
+                return;
+            }
             auto ob = CreateOrMergeUnion(val1, type_info, ok);
             if (!*ok) {
                 return;
@@ -609,9 +645,13 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
         } break;
 
         case OO_UnionTest: {
-            auto type_info = GetTypeInfo(val2);
+            auto type_info = GetTypeInfo(val2, ok);
+            if (!*ok) {
+                return;
+            }
             auto ob = GetUnion(val1, ok);
             if (!*ok) {
+                Panic(PANIC, ok, "object is not union, addr: %d", val1);
                 return;
             }
             if (ob->GetTypeInfo() == type_info.get()) {
@@ -622,19 +662,23 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
         } break;
 
         case OO_UnionUnbox: {
-            auto type_info = GetTypeInfo(val2);
+            auto type_info = GetTypeInfo(val2, ok);
+            if (!*ok) {
+                return;
+            }
             auto ob = GetUnion(val1, ok);
             if (!*ok) {
+                Panic(PANIC, ok, "object is not union, addr: %d", val1);
                 return;
             }
 
             if (ob->GetTypeInfo() == type_info.get()) {
                 if (type_info->IsPrimitive()) {
-                    memcpy(p_stack_->offset(result), ob->GetData(),
-                           type_info->GetTypePlacementSize());
+                    FastMemoryMove(p_stack_->offset(result), ob->GetData(),
+                                   type_info->GetTypePlacementSize());
                 } else {
-                    memcpy(o_stack_->offset(result), ob->GetData(),
-                           kObjectReferenceSize);
+                    FastMemoryMove(o_stack_->offset(result), ob->GetData(),
+                                   kObjectReferenceSize);
                 }
             } else {
                 CreateEmptyValue(result, type_info, ok);
@@ -643,7 +687,10 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
         } break;
 
         case OO_ToString: {
-            auto type_info = GetTypeInfo(val2);
+            auto type_info = GetTypeInfo(val2, ok);
+            if (!*ok) {
+                return;
+            }
             std::string buf;
             MemoryOutputStream stream(&buf);
             NativeBaseLibrary::ToString(&stream,
@@ -655,6 +702,10 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
 
             auto ob = vm_->gc_->GetOrNewString(buf.data(),
                     static_cast<int>(buf.size()));
+            if (ob.empty()) {
+                Panic(OUT_OF_MEMORY, ok, "no memory for create string.");
+                return;
+            }
             o_stack_->Set(result, ob.get());
 
             RunGC();
@@ -663,30 +714,38 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
         case OO_StrCat: {
             auto lhs = GetString(val1, ok);
             if (lhs.empty()) {
-                exit_code_ = PANIC;
-                DLOG(ERROR) << "object not string. addr: " << val1;
+                Panic(PANIC, ok, "object not string. addr: %d", val1);
                 return;
             }
 
             auto rhs = GetString(val2, ok);
             if (rhs.empty()) {
-                exit_code_ = PANIC;
-                DLOG(ERROR) << "object not string. addr: " << val2;
+                Panic(PANIC, ok, "object not string. addr: %d", val2);
                 return;
             }
 
             mio_strbuf_t buf[2] = { lhs->Get(), rhs->Get() };
             auto rv = vm_->gc_->GetOrNewString(buf, arraysize(buf));
+            if (rv.empty()) {
+                Panic(OUT_OF_MEMORY, ok, "no memory for create string.");
+                return;
+            }
             o_stack_->Set(result, rv.get());
 
             RunGC();
         } break;
 
         case OO_Map: {
-            auto key = GetTypeInfo(val1);
-            auto value = GetTypeInfo(val2);
+            auto key = GetTypeInfo(val1, ok);
+            auto value = GetTypeInfo(val2, ok);
+            if (!*ok) {
+                return;
+            }
             auto ob = vm_->object_factory()->CreateHashMap(0, 7, key, value);
-
+            if (ob.empty()) {
+                Panic(OUT_OF_MEMORY, ok, "no memory for create map.");
+                return;
+            }
             o_stack_->Set(result, ob.get());
 
             RunGC();
@@ -695,8 +754,7 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
         case OO_MapPut: {
             auto ob = GetHashMap(result, ok);
             if (!*ok) {
-                exit_code_ = PANIC;
-                DLOG(ERROR) << "object not map. addr: " << result;
+                Panic(PANIC, ok, "object not map. addr: %d", result);
                 return;
             }
 
@@ -715,6 +773,7 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             }
             MIOHashMapSurface surface(ob.get(), vm_->allocator_);
             surface.RawPut(key, value);
+            // TODO: out of memory.
 
             RunGC();
         } break;
@@ -722,8 +781,7 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
         case OO_MapGet: {
             auto ob = GetHashMap(result, ok);
             if (!*ok) {
-                exit_code_ = PANIC;
-                DLOG(ERROR) << "object not map. addr: " << result;
+                Panic(PANIC, ok, "object not map. addr: %d", result);
                 return;
             }
             MIOHashMapSurface surface(ob.get(), vm_->allocator_);
@@ -741,10 +799,17 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             } else {
                 auto err = vm_->object_factory()->CreateError("key not found", 0,
                                                               Handle<MIOError>());
-                auto err_type = GetTypeInfo(vm_->type_error_index);
+                auto err_type = GetTypeInfo(vm_->type_error_index, ok);
+                if (!*ok) {
+                    return;
+                }
                 rv = vm_->object_factory()->CreateUnion(err.address(),
                                                         err_type->GetTypePlacementSize(),
                                                         err_type);
+            }
+            if (rv.empty()) {
+                Panic(OUT_OF_MEMORY, ok, "no memory for create union.");
+                return;
             }
             o_stack_->Set(val2, rv.get());
 
@@ -754,8 +819,7 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
         case OO_MapFirstKey: {
             auto ob = GetHashMap(result, ok);
             if (!*ok) {
-                exit_code_ = PANIC;
-                DLOG(ERROR) << "object not map. addr: " << result;
+                Panic(PANIC, ok, "object not map. addr: %d", result);
                 return;
             }
 
@@ -784,8 +848,7 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
         case OO_MapNextKey: {
             auto ob = GetHashMap(result, ok);
             if (!*ok) {
-                exit_code_ = PANIC;
-                DLOG(ERROR) << "object not map. addr: " << result;
+                Panic(PANIC, ok, "object not map. addr: %d", result);
                 return;
             }
 
@@ -837,7 +900,8 @@ Thread::CreateOrMergeUnion(int inbox, Handle<MIOReflectionType> reflection,
                 MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
             #undef DEFINE_CASE
                 default:
-                    DLOG(ERROR) << "bad integral size.";
+                    Panic(BAD_BIT_CODE, ok, "bad integral bit size. %d",
+                          reflection->AsReflectionIntegral()->GetBitWide());
                     goto fail;
             }
             break;
@@ -851,7 +915,8 @@ Thread::CreateOrMergeUnion(int inbox, Handle<MIOReflectionType> reflection,
                 MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
             #undef DEFINE_CASE
                 default:
-                    DLOG(ERROR) << "bad integral size.";
+                    Panic(BAD_BIT_CODE, ok, "bad floating bit size. %d",
+                          reflection->AsReflectionFloating()->GetBitWide());
                     goto fail;
             }
             break;
@@ -866,11 +931,11 @@ Thread::CreateOrMergeUnion(int inbox, Handle<MIOReflectionType> reflection,
 
 
         default:
-            DLOG(ERROR) << "bad type for reflection: " << reflection->GetKind();
+            Panic(BAD_BIT_CODE, ok, "bad type for reflection: %d",
+                  reflection->GetKind());
             break;
     }
 fail:
-    *ok = false;
     return make_handle<MIOUnion>(nullptr);
 }
 
@@ -890,7 +955,10 @@ void Thread::CreateEmptyValue(int result, Handle<MIOReflectionType> reflection,
 
         case HeapObject::kReflectionUnion: {
             auto ob = vm_->gc_->CreateUnion(
-                    nullptr, 0, GetTypeInfo(vm_->type_void_index));
+                    nullptr, 0, GetTypeInfo(vm_->type_void_index, ok));
+            if (!*ok) {
+                return;
+            }
             o_stack_->Set(result, ob.get());
         } break;
 
@@ -898,20 +966,18 @@ void Thread::CreateEmptyValue(int result, Handle<MIOReflectionType> reflection,
         case HeapObject::kReflectionError:
         case HeapObject::kReflectionFunction:
         case HeapObject::kReflectionVoid:
-            DLOG(ERROR) << "not support yet.";
         default:
-            *ok = false;
+            Panic(PANIC, ok, "not support yet kind %d", reflection->GetKind());
             break;
     }
 }
 
-Handle<MIOReflectionType> Thread::GetTypeInfo(int index) {
+Handle<MIOReflectionType> Thread::GetTypeInfo(int index, bool *ok) {
     auto addr = vm_->type_info_base_ + index * sizeof(MIOReflectionType *);
     auto obj = make_handle(vm_->o_global_->Get<HeapObject *>(static_cast<int>(addr)));
 
     if (!obj->IsReflectionType()) {
-        exit_code_ = PANIC;
-        DLOG(ERROR) << "can not get reflection object! index = " << index;
+        Panic(PANIC, ok, "can not get reflection object! index: %d", index);
         return make_handle<MIOReflectionType>(nullptr);
     }
 

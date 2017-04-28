@@ -8,13 +8,20 @@ namespace mio {
 
 void BitCodeDisassembler::Run(Handle<MIONormalFunction> fn) {
     stream_->Printf("-----[ %s ]-----\n", fn->GetName() ? fn->GetName()->GetData() : "null");
-    Run(fn->GetCode(), fn->GetCodeSize());
+
+    Run(fn->GetCode(),
+        !fn->GetDebugInfo() ? nullptr : fn->GetDebugInfo()->pc_to_position,
+        fn->GetCodeSize());
 }
 
-void BitCodeDisassembler::Run(const void *buf, int size) {
+void BitCodeDisassembler::Run(const void *buf, const int *p2p, int size) {
     auto bc = static_cast<const uint64_t *>(buf);
     for (int i = 0; i < size; ++i) {
-        stream_->Printf("[%03d] ", i);
+        if (p2p) {
+            stream_->Printf("[%03d]:%d ", i, p2p[i]);
+        } else {
+            stream_->Printf("[%03d] ", i);
+        }
         Disassemble(bc[i]);
         stream_->Write("\n");
     }
@@ -148,7 +155,7 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
 void BitCodeDisassembler::Disassemble(MemorySegment *code, int number_of_inst,
                                       TextOutputStream *stream) {
     BitCodeDisassembler dis(stream);
-    dis.Run(code->offset(0), number_of_inst);
+    dis.Run(code->offset(0), nullptr, number_of_inst);
 }
 
 /*static*/

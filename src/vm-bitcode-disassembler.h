@@ -17,7 +17,7 @@ public:
         : stream_(DCHECK_NOTNULL(stream)) {}
 
     void Run(Handle<MIONormalFunction> func);
-    void Run(const void *bc, int size);
+    void Run(const void *bc, const int *p2p, int size);
     void Disassemble(uint64_t inst);
 
     static uint8_t GetInst(uint64_t bc) {

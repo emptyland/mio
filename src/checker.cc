@@ -104,8 +104,8 @@ private:
     } \
     if (has_analysis_expression()) { \
         auto expr = AnalysisExpression(); \
-        if (expr->IsVariable()) { \
-            auto var = expr->AsVariable(); \
+        if (expr->IsReference()) { \
+            auto var = expr->AsReference()->variable(); \
             if (var->scope()->type() != MODULE_SCOPE && \
                 var->scope()->type() != UNIT_SCOPE && \
                 var->declaration()->position() > node->position()) { \
@@ -125,8 +125,8 @@ private:
     } \
     if (has_analysis_expression()) { \
         auto expr = AnalysisExpression(); \
-        if (expr->IsVariable()) { \
-            auto var = expr->AsVariable(); \
+        if (expr->IsReference()) { \
+            auto var = expr->AsReference()->variable(); \
             if (var->scope()->type() != MODULE_SCOPE && \
                 var->scope()->type() != UNIT_SCOPE && \
                 var->declaration()->position() > node->position()) { \
@@ -474,7 +474,7 @@ private:
         }
     }
 
-    PushAnalysisExpression(var);
+    PushAnalysisExpression(factory_->CreateReference(var, node->position()));
     PushEvalType(var->type());
 }
 

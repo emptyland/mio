@@ -1,0 +1,6 @@
+package bar with ('baz')
+
+function bar: void {
+    base::print('bar\n')
+    baz::baz()
+}

@@ -9,6 +9,7 @@ const RtNativeFunctionEntry kRtNaFn[] = {
     { "::base::tick",   &NativeBaseLibrary::Tick,   },
     { "::base::gc",     &NativeBaseLibrary::GC,     },
     { "::base::fullGC", &NativeBaseLibrary::FullGC, },
+    { "::base::panic",  &NativeBaseLibrary::Panic,  },
 
     { .name = nullptr, .pointer = nullptr, } // end of functions
 };

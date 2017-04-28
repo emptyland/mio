@@ -15,6 +15,7 @@ class SimpleFileSystem;
 class FunctionEntry;
 class MemorySegment;
 class ObjectFactory;
+class ObjectExtraFactory;
 class FunctionRegister;
 
 class MIOFunction;
@@ -94,6 +95,7 @@ public:
                                  MemorySegment *o_global,
                                  TypeFactory *types,
                                  ObjectFactory *object_factory,
+                                 ObjectExtraFactory *extra_factory,
                                  FunctionRegister *function_register,
                                  CompiledInfo *info);
 

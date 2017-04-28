@@ -11,3 +11,5 @@ native function fullGC: void
 native function tick: i32
 
 native function print(s: string): void
+
+native function panic(message: string): void

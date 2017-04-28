@@ -5,6 +5,7 @@
 #include "vm-stack.h"
 #include "handles.h"
 #include "base.h"
+#include <stdarg.h>
 
 namespace mio {
 
@@ -23,12 +24,15 @@ public:
         STACK_OVERFLOW,
         NULL_NATIVE_FUNCTION,
         BAD_BIT_CODE,
+        OUT_OF_MEMORY,
     };
 
     Thread(VM *vm);
     ~Thread();
 
     DEF_GETTER(ExitCode, exit_code)
+    DEF_PROP_RW(bool, should_exit)
+
     Stack *p_stack() const { return p_stack_; }
     Stack *o_stack() const { return o_stack_; }
 
@@ -53,16 +57,20 @@ public:
 
     int GetCallStack(std::vector<MIOFunction *> *call_stack);
 
+    __attribute__ (( __format__ (__printf__, 4, 5)))
+    void Panic(ExitCode exit_code, bool *ok, const char *fmt, ...);
+
+    void PanicV(ExitCode exit_code, bool *ok, const char *fmt, va_list ap);
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(Thread)
 private:
-    void ProcessLoadPrimitive(CallContext *top, int bytes, uint16_t dest,
-                              uint16_t segment, int32_t offset, bool *ok);
-    void ProcessStorePrimitive(CallContext *top, int bytes, uint16_t addr,
-                               uint16_t segment, int dest, bool *ok);
-    void ProcessLoadObject(CallContext *top, uint16_t dest, uint16_t segment,
-                           int32_t offset, bool *ok);
-    void ProcessStoreObject(CallContext *top, uint16_t addr, uint16_t segment,
-                            int dest, bool *ok);
+    void ProcessLoadPrimitive(int bytes, uint16_t dest, uint16_t segment,
+                              int32_t offset, bool *ok);
+    void ProcessStorePrimitive(int bytes, uint16_t addr, uint16_t segment,
+                               int dest, bool *ok);
+    void ProcessLoadObject(uint16_t dest, uint16_t segment, int32_t offset,
+                           bool *ok);
+    void ProcessStoreObject(uint16_t addr, uint16_t segment, int dest, bool *ok);
     void ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                                 int16_t val2, bool *ok);
 
@@ -71,7 +79,13 @@ private:
                                         bool *ok);
     void CreateEmptyValue(int result,
                           Handle<MIOReflectionType> reflection, bool *ok);
-    Handle<MIOReflectionType> GetTypeInfo(int index);
+    Handle<MIOReflectionType> GetTypeInfo(int index, bool *ok);
+
+    inline MIONormalFunction *normal_function();
+    inline mio_buf_t<uint8_t> const_primitive_buf();
+    inline mio_buf_t<HeapObject *> const_object_buf();
+    inline mio_buf_t<UpValDesc> upvalue_buf();
+    inline FunctionDebugInfo *debug_info();
 
     VM *vm_;
     Stack *p_stack_;
@@ -79,6 +93,7 @@ private:
     CallStack *call_stack_;
     int pc_ = 0;
     uint64_t *bc_ = nullptr;
+    Handle<MIOFunction> callee_;
     bool should_exit_ = false;
     ExitCode exit_code_ = SUCCESS;
 }; // class Thread
@@ -147,6 +162,29 @@ inline Handle<MIOHashMap> Thread::GetHashMap(int addr, bool *ok) {
         return make_handle<MIOHashMap>(nullptr);
     }
     return make_handle(ob->AsHashMap());
+}
+
+inline MIONormalFunction *Thread::normal_function() {
+    auto fn = callee_->AsNormalFunction();
+    return fn ? fn : DCHECK_NOTNULL(callee_->AsClosure())->GetFunction()->AsNormalFunction();
+}
+
+inline mio_buf_t<uint8_t> Thread::const_primitive_buf() {
+    return DCHECK_NOTNULL(normal_function())->GetConstantPrimitiveBuf();
+}
+
+inline mio_buf_t<HeapObject *> Thread::const_object_buf() {
+    return DCHECK_NOTNULL(normal_function())->GetConstantObjectBuf();
+}
+
+inline mio_buf_t<UpValDesc> Thread::upvalue_buf() {
+    auto closure = DCHECK_NOTNULL(callee_->AsClosure());
+    DCHECK(closure->IsClose());
+    return closure->GetUpValuesBuf();
+}
+
+inline FunctionDebugInfo *Thread::debug_info() {
+    return DCHECK_NOTNULL(normal_function())->GetDebugInfo();
 }
 
 } // namespace mio

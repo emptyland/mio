@@ -30,6 +30,8 @@ class MIOReflectionType;
     class MIOReflectionMap;
     class MIOReflectionFunction;
 
+struct FunctionDebugInfo;
+
 #define MIO_REFLECTION_TYPES(M) \
     M(ReflectionVoid) \
     M(ReflectionIntegral) \
@@ -296,14 +298,18 @@ static_assert(sizeof(MIONativeFunction) == sizeof(HeapObject),
 
 class MIONormalFunction final: public MIOFunction {
 public:
+    typedef FunctionDebugInfo DebugInfo;
+
     static const int kConstantPrimitiveSizeOffset = kMIOFunctionOffset;
     static const int kConstantObjectSizeOffset = kConstantPrimitiveSizeOffset + sizeof(int);
     static const int kCodeSizeOffset = kConstantObjectSizeOffset + sizeof(int);
-    static const int kHeaderOffset = kCodeSizeOffset + sizeof(int);
+    static const int kDebugInfoOffset = kCodeSizeOffset + sizeof(int);
+    static const int kHeaderOffset = kDebugInfoOffset + sizeof(DebugInfo *);
 
     DEFINE_HEAP_OBJ_RW(int, ConstantPrimitiveSize)
     DEFINE_HEAP_OBJ_RW(int, ConstantObjectSize)
     DEFINE_HEAP_OBJ_RW(int, CodeSize)
+    DEFINE_HEAP_OBJ_RW(DebugInfo *, DebugInfo)
 
     HeapObject **GetConstantObjects() {
         return reinterpret_cast<HeapObject **>(
@@ -718,6 +724,19 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 /// Toolkit:
 ////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * DebugInfo structure:
+ * +--------------+---------+--+
+ * |pc to position|file-name|\0|
+ * +--------------+---------+--+
+ */
+struct FunctionDebugInfo {
+    const char *file_name;
+    int         pc_size;   // size of pc_to_position;
+    int         pc_to_position[1]; // pc to position;
+};
+
 struct MIOStringDataHash {
     std::size_t operator()(const char *data) const {
         std::size_t h = 1315423911;

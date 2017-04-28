@@ -8,6 +8,7 @@
 #include "vm-memory-segment.h"
 #include "vm-bitcode-disassembler.h"
 #include "vm-bitcode-builder.h"
+#include "vm-object-extra-factory.h"
 #include "do-nothing-garbage-collector.h"
 #include "simple-function-register.h"
 #include "checker.h"
@@ -62,10 +63,12 @@ public:
         ASSERT_TRUE(checker.Run()) << "checking fail: " << checker.last_error().ToString();
 
 
+        ObjectExtraFactory extra_factory(allocator_);
         BitCodeEmitter emitter(p_global_,
                                o_global_,
                                types_,
                                object_factory_,
+                               &extra_factory,
                                function_register_);
         emitter.Init();
         ASSERT_TRUE(emitter.Run(checker.all_modules(), nullptr));

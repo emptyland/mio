@@ -60,6 +60,7 @@ SimpleFunctionRegister::GetAllFunctions(std::vector<Handle<MIONormalFunction>> *
 
         if (!fn.empty() && unique_fn.find(fn.get()) == unique_fn.end()) {
             all_functions->push_back(fn);
+            unique_fn.insert(fn.get());
             result += GetAllFnByFn(fn, all_functions, &unique_fn) + 1;
         }
 
