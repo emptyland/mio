@@ -103,6 +103,12 @@
 		23E3D5C91E77CBCC00C51DDE /* file-output-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5C71E77CBCC00C51DDE /* file-output-stream.cc */; };
 		23E6BA0E1EB1DD3600FC1A55 /* vm-object-extra-factory.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA0D1EB1DD3600FC1A55 /* vm-object-extra-factory.cc */; };
 		23E6BA0F1EB1DD3600FC1A55 /* vm-object-extra-factory.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA0D1EB1DD3600FC1A55 /* vm-object-extra-factory.cc */; };
+		23E6BA111EB332FC00FC1A55 /* source-file-position-dict.h in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA101EB332FC00FC1A55 /* source-file-position-dict.h */; };
+		23E6BA121EB332FC00FC1A55 /* source-file-position-dict.h in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA101EB332FC00FC1A55 /* source-file-position-dict.h */; };
+		23E6BA141EB335A100FC1A55 /* source-file-position-dict.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA131EB335A100FC1A55 /* source-file-position-dict.cc */; };
+		23E6BA151EB335A100FC1A55 /* source-file-position-dict.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA131EB335A100FC1A55 /* source-file-position-dict.cc */; };
+		23E6BA171EB345D000FC1A55 /* source-file-position-dict-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA161EB345D000FC1A55 /* source-file-position-dict-test.cc */; };
+		23E6BA181EB345D000FC1A55 /* source-file-position-dict-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA161EB345D000FC1A55 /* source-file-position-dict-test.cc */; };
 		23ECD44F1EA4B4C700A0091D /* msg-garbage-collector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23ECD44E1EA4B4C700A0091D /* msg-garbage-collector.cc */; };
 		23ECD4501EA4B4C700A0091D /* msg-garbage-collector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23ECD44E1EA4B4C700A0091D /* msg-garbage-collector.cc */; };
 		23ECD4531EA5C1A000A0091D /* vm-object-scanner.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23ECD4521EA5C1A000A0091D /* vm-object-scanner.cc */; };
@@ -233,6 +239,9 @@
 		23E3D5C71E77CBCC00C51DDE /* file-output-stream.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "file-output-stream.cc"; sourceTree = "<group>"; };
 		23E6BA0C1EB1D4B400FC1A55 /* vm-object-extra-factory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-object-extra-factory.h"; sourceTree = "<group>"; };
 		23E6BA0D1EB1DD3600FC1A55 /* vm-object-extra-factory.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-object-extra-factory.cc"; sourceTree = "<group>"; };
+		23E6BA101EB332FC00FC1A55 /* source-file-position-dict.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "source-file-position-dict.h"; sourceTree = "<group>"; };
+		23E6BA131EB335A100FC1A55 /* source-file-position-dict.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "source-file-position-dict.cc"; sourceTree = "<group>"; };
+		23E6BA161EB345D000FC1A55 /* source-file-position-dict-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "source-file-position-dict-test.cc"; sourceTree = "<group>"; };
 		23ECD44D1EA4B3D900A0091D /* msg-garbage-collector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "msg-garbage-collector.h"; sourceTree = "<group>"; };
 		23ECD44E1EA4B4C700A0091D /* msg-garbage-collector.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "msg-garbage-collector.cc"; sourceTree = "<group>"; };
 		23ECD4511EA5C08700A0091D /* vm-object-scanner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-object-scanner.h"; sourceTree = "<group>"; };
@@ -325,6 +334,7 @@
 				231378E41E8A5514009384DF /* simple-function-register.cc */,
 				23ECD44E1EA4B4C700A0091D /* msg-garbage-collector.cc */,
 				23658AF61E8A3FD700F7F72A /* do-nothing-garbage-collector.cc */,
+				23E6BA131EB335A100FC1A55 /* source-file-position-dict.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -379,6 +389,7 @@
 				23ECD44D1EA4B3D900A0091D /* msg-garbage-collector.h */,
 				23658AF51E8A3F3100F7F72A /* do-nothing-garbage-collector.h */,
 				23ECD4561EA706E000A0091D /* managed-allocator.h */,
+				23E6BA101EB332FC00FC1A55 /* source-file-position-dict.h */,
 			);
 			name = Include;
 			path = ../src;
@@ -404,6 +415,7 @@
 				232434781E7A77020054C385 /* vm-bitcode-builder-test.cc */,
 				232434851E7B935B0054C385 /* vm-thread-test.cc */,
 				2311E38B1EAAED57007B5305 /* vm-object-surface-test.cc */,
+				23E6BA161EB345D000FC1A55 /* source-file-position-dict-test.cc */,
 			);
 			name = Tests;
 			path = ../src;
@@ -500,6 +512,7 @@
 			files = (
 				232434931E7FAF230054C385 /* bitcode-emitter.cc in Sources */,
 				232434641E78EEC70054C385 /* vm.cc in Sources */,
+				23E6BA141EB335A100FC1A55 /* source-file-position-dict.cc in Sources */,
 				23E3D5A81E65075C00C51DDE /* checker.cc in Sources */,
 				2349E58D1E56FCC9002883BC /* ast.cc in Sources */,
 				232434701E7929DD0054C385 /* vm-bitcode-builder.cc in Sources */,
@@ -509,6 +522,7 @@
 				2349E5721E4B1800002883BC /* keywords.c in Sources */,
 				23E3D5A31E63C6DD00C51DDE /* scopes.cc in Sources */,
 				23658AF71E8A3FD700F7F72A /* do-nothing-garbage-collector.cc in Sources */,
+				23E6BA111EB332FC00FC1A55 /* source-file-position-dict.h in Sources */,
 				2311E3851EA8AD58007B5305 /* vm-runtime.cc in Sources */,
 				23E3D5C01E77C51800C51DDE /* memory-output-stream.cc in Sources */,
 				236202551E45BE2900B6B949 /* lexer.cc in Sources */,
@@ -537,6 +551,7 @@
 				2349E5911E56FF02002883BC /* parser.cc in Sources */,
 				23E3D5B41E6FFF5900C51DDE /* compiler.cc in Sources */,
 				232434831E7AA13F0054C385 /* vm-stack.cc in Sources */,
+				23E6BA171EB345D000FC1A55 /* source-file-position-dict-test.cc in Sources */,
 				23E3D5B11E6FA55600C51DDE /* file-input-stream.cc in Sources */,
 				2349E5761E4C5310002883BC /* zone.cc in Sources */,
 			);
@@ -565,6 +580,7 @@
 				2349E5831E56E378002883BC /* ast-test.cc in Sources */,
 				235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
 				23E3D59B1E5C1A7900C51DDE /* ast-printer.cc in Sources */,
+				23E6BA151EB335A100FC1A55 /* source-file-position-dict.cc in Sources */,
 				23E6BA0F1EB1DD3600FC1A55 /* vm-object-extra-factory.cc in Sources */,
 				2311E3861EA8AD58007B5305 /* vm-runtime.cc in Sources */,
 				236202561E45BE2900B6B949 /* lexer.cc in Sources */,
@@ -590,9 +606,11 @@
 				232434801E7A8A850054C385 /* vm-bitcode.cc in Sources */,
 				232434731E7A203D0054C385 /* vm-memory-segment-test.cc in Sources */,
 				236202611E48221700B6B949 /* text-input-stream.cc in Sources */,
+				23E6BA181EB345D000FC1A55 /* source-file-position-dict-test.cc in Sources */,
 				232434651E78EEC70054C385 /* vm.cc in Sources */,
 				2349E5921E56FF02002883BC /* parser.cc in Sources */,
 				2324346D1E7926F50054C385 /* vm-memory-segment.cc in Sources */,
+				23E6BA121EB332FC00FC1A55 /* source-file-position-dict.h in Sources */,
 				23658AF81E8A3FD700F7F72A /* do-nothing-garbage-collector.cc in Sources */,
 				2349E58B1E56F3DB002883BC /* raw-string.cc in Sources */,
 				236202521E45BC7E00B6B949 /* base-test.cc in Sources */,

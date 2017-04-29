@@ -13,6 +13,7 @@
 #include "simple-function-register.h"
 #include "do-nothing-garbage-collector.h"
 #include "msg-garbage-collector.h"
+#include "source-file-position-dict.h"
 
 namespace mio {
 
@@ -22,10 +23,12 @@ VM::VM()
     , p_global_(new MemorySegment())
     , o_global_(new MemorySegment())
     , ast_zone_(new Zone())
-    , allocator_(new ManagedAllocator()) {
+    , allocator_(new ManagedAllocator())
+    , source_position_dict_(new SourceFilePositionDict()) {
 }
 
 VM::~VM() {
+    delete source_position_dict_;
     delete p_global_;
     delete o_global_;
     delete main_thread_;
@@ -136,8 +139,16 @@ void VM::PrintBackstream(TextOutputStream *stream) {
             stream->Printf("[native %p]", fn->AsNativeFunction()->GetNativePointer());
         } else {
             auto info = fn->AsNormalFunction()->GetDebugInfo();
-            if (info) {
-                stream->Printf("%s(position:%d)", info->file_name, layout.position);
+            if (!info) {
+                continue;
+            }
+
+            bool ok = true;
+            auto line = source_position_dict_->GetLine(info->file_name, layout.position, &ok);
+            if (!ok) {
+                stream->Printf("at %s(position:%d)", info->file_name, layout.position);
+            } else {
+                stream->Printf("at %s:%d:%d", info->file_name, line.line + 1, line.row + 1);
             }
         }
         stream->Write("\n", 1);

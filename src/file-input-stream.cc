@@ -49,6 +49,9 @@ FileInputStream::FileInputStream(const std::string &file_name, FILE *fp)
 }
 
 /*virtual*/ std::string FileInputStream::error() {
+    if (ferror(fp_) == 0) {
+        return std::string();
+    }
     char buf[256];
     strerror_r(ferror(fp_), buf, arraysize(buf));
     return std::string(buf);

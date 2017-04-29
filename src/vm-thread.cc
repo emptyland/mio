@@ -442,7 +442,21 @@ void Thread::PanicV(ExitCode exit_code, bool *ok, const char *fmt, va_list ap) {
     exit_code_ = exit_code;
     *ok = false;
 
-    vm_->backtrace_.clear();
+    vm_->backtrace_.clear(); {
+        BacktraceLayout layout;
+        layout.function_object = callee_;
+        if (!callee_->IsNativeFunction()) {
+            auto info = debug_info();
+            if (info) {
+                layout.file_name = vm_->object_factory()->GetOrNewString(info->file_name);
+
+                auto pc = pc_ - 1;
+                DCHECK_GE(pc, 0); DCHECK_LT(pc, info->pc_size);
+                layout.position = info->pc_to_position[pc];
+            }
+        }
+        vm_->backtrace_.push_back(layout);
+    }
 
     int i = call_stack_->size();
     while (i--) {

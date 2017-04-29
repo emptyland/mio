@@ -18,6 +18,7 @@ class GarbageCollector;
 class FunctionRegister;
 class TextOutputStream;
 class MIOString;
+class SourceFilePositionDict;
 struct ParsingError;
 
 typedef int (*MIOFunctionPrototype)(VM *, Thread *);
@@ -92,7 +93,7 @@ private:
     GarbageCollector *gc_ = nullptr;
     FunctionRegister *function_register_ = nullptr;
     ParsedModuleMap *all_modules_ = nullptr;
-
+    SourceFilePositionDict *source_position_dict_;
     std::vector<BacktraceLayout> backtrace_;
 };
 
