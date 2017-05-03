@@ -278,6 +278,44 @@ int FunctionPrototype::ToString(TextOutputStream *stream) const {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+/// Array
+////////////////////////////////////////////////////////////////////////////////
+/*virtual*/ int Array::placement_size() const {
+    return kObjectReferenceSize;
+}
+
+/*virtual*/
+int Array::ToString(TextOutputStream *stream) const {
+    auto rv = stream->Write("array[");
+    rv += element_->ToString(stream);
+    return rv + stream->Write("]");
+}
+
+/*virtual*/ int64_t Array::GenerateId() const {
+    TypeDigest digest;
+    digest.Step(TOKEN_ARRAY);
+    digest.Step(element_->GenerateId());
+    return digest.value();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Slice
+////////////////////////////////////////////////////////////////////////////////
+/*virtual*/
+int Slice::ToString(TextOutputStream *stream) const {
+    auto rv = stream->Write("slice[");
+    rv += element_->ToString(stream);
+    return rv + stream->Write("]");
+}
+
+/*virtual*/ int64_t Slice::GenerateId() const {
+    TypeDigest digest;
+    digest.Step(TOKEN_SLICE);
+    digest.Step(element_->GenerateId());
+    return digest.value();
+}
+
+////////////////////////////////////////////////////////////////////////////////
 /// Map
 ////////////////////////////////////////////////////////////////////////////////
 /*virtual*/ int Map::placement_size() const {

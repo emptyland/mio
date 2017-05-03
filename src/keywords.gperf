@@ -29,6 +29,7 @@ error, TOKEN_ERROR_TYPE
 void, TOKEN_VOID
 union, TOKEN_UNION
 map, TOKEN_MAP
+slice, TOKEN_SLICE
 array, TOKEN_ARRAY
 struct, TOKEN_STRUCT
 weak, TOKEN_WEAK

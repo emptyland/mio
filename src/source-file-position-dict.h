@@ -9,7 +9,7 @@ namespace mio {
 
 struct SourceFileLine {
     int         line;
-    int         row;
+    int         column;
     const char *content;
     int         content_size;
 };

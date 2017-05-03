@@ -265,6 +265,28 @@ MSGGarbageCollector::CreateReflectionUnion(int64_t tid) {
 }
 
 /*virtual*/
+Handle<MIOReflectionArray>
+MSGGarbageCollector::CreateReflectionArray(int64_t tid,
+                      Handle<MIOReflectionType> element) {
+    auto ob = NewObject<MIOReflectionArray>(MIOReflectionArray::kMIOReflectionArrayOffset, 0);
+    ob->SetTid(tid);
+    ob->SetReferencedSize(kObjectReferenceSize);
+    ob->SetElement(element.get());
+    return make_handle(ob);
+}
+
+/*virtual*/
+Handle<MIOReflectionSlice>
+MSGGarbageCollector::CreateReflectionSlice(int64_t tid,
+                      Handle<MIOReflectionType> element) {
+    auto ob = NewObject<MIOReflectionSlice>(MIOReflectionSlice::kMIOReflectionSliceOffset, 0);
+    ob->SetTid(tid);
+    ob->SetReferencedSize(kObjectReferenceSize);
+    ob->SetElement(element.get());
+    return make_handle(ob);
+}
+
+/*virtual*/
 Handle<MIOReflectionMap>
 MSGGarbageCollector::CreateReflectionMap(int64_t tid,
                                            Handle<MIOReflectionType> key,

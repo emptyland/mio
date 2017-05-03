@@ -69,6 +69,16 @@ public:
     CreateReflectionUnion(int64_t tid) override;
 
     virtual
+    Handle<MIOReflectionArray>
+    CreateReflectionArray(int64_t tid,
+                          Handle<MIOReflectionType> element) override;
+
+    virtual
+    Handle<MIOReflectionSlice>
+    CreateReflectionSlice(int64_t tid,
+                          Handle<MIOReflectionType> element) override;
+
+    virtual
     Handle<MIOReflectionMap>
     CreateReflectionMap(int64_t tid,
                         Handle<MIOReflectionType> key,

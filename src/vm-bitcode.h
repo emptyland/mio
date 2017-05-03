@@ -85,6 +85,9 @@ namespace mio {
     M(UnionOrMerge) \
     M(UnionTest) \
     M(UnionUnbox) \
+    M(Array) \
+    M(ArraySet) \
+    M(ArrayDirectSet) \
     M(Map) \
     M(MapPut) \
     M(MapGet) \
@@ -137,6 +140,20 @@ enum BCSegment : int {
  *    * result: Result of unboxing.
  *    * val1:   Offset of union object for unboxing.
  *    * val2:   Index of type info for unboxing.
+ *
+ * OO_Array
+ * -- desc: Create a new array object.
+ * -- params:
+ *    * result: Offset of created array.
+ *    * val1:   Index of type info in element.
+ *    * val2:   Immediately initial size number of array.
+ *
+ * OO_ArrayDirectSet
+ * -- desc: Set element in array object.
+ * -- params:
+ *    * result: Offset of array.
+ *    * val1:   Immediately index number for setting.
+ *    * val2:   Index of element for setting.
  *
  * OO_Map
  * -- desc: Create a new map object.

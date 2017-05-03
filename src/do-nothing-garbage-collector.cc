@@ -224,6 +224,28 @@ DoNothingGarbageCollector::CreateReflectionUnion(int64_t tid) {
 }
 
 /*virtual*/
+Handle<MIOReflectionArray>
+DoNothingGarbageCollector::CreateReflectionArray(int64_t tid,
+                                           Handle<MIOReflectionType> element) {
+    auto ob = NEW_OBJECT(ReflectionArray);
+    ob->SetTid(tid);
+    ob->SetReferencedSize(kObjectReferenceSize);
+    ob->SetElement(element.get());
+    return make_handle(ob);
+}
+
+/*virtual*/
+Handle<MIOReflectionSlice>
+DoNothingGarbageCollector::CreateReflectionSlice(int64_t tid,
+                                           Handle<MIOReflectionType> element) {
+    auto ob = NEW_OBJECT(ReflectionSlice);
+    ob->SetTid(tid);
+    ob->SetReferencedSize(kObjectReferenceSize);
+    ob->SetElement(element.get());
+    return make_handle(ob);
+}
+
+/*virtual*/
 Handle<MIOReflectionMap>
 DoNothingGarbageCollector::CreateReflectionMap(int64_t tid,
                                            Handle<MIOReflectionType> key,

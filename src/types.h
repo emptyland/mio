@@ -12,6 +12,8 @@
 namespace mio {
 
 #define DEFINE_TYPE_NODES(M) \
+    M(Slice) \
+    M(Array) \
     M(Map) \
     M(FunctionPrototype) \
     M(Union) \
@@ -29,6 +31,7 @@ class Type;
     class Floating;
     class String;
     class Struct;
+    class Slice;
     class Array;
     class Void;
     class Union;
@@ -69,6 +72,7 @@ public:
     virtual Kind type_kind() const = 0;
 
     virtual bool CanAcceptFrom(Type *type) const;
+    bool CanNotAcceptFrom(Type *type) const { return !CanAcceptFrom(type); }
 
     virtual int64_t GenerateId() const;
 
@@ -179,6 +183,37 @@ private:
 }; // class Paramter
 
 
+class Array : public Type {
+public:
+    Type *element() const { return element_; }
+    void set_element(Type *element) { element_ = DCHECK_NOTNULL(element); }
+
+    virtual int64_t GenerateId() const override;
+
+    DECLARE_TYPE(Array)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Array)
+protected:
+    Array(Type *element)
+        : Type(0)
+        , element_(DCHECK_NOTNULL(element)) {
+        id_ = GenerateId();
+    }
+
+    Type *element_;
+}; // class Array
+
+
+class Slice : public Array {
+public:
+    virtual int64_t GenerateId() const override;
+
+    DECLARE_TYPE(Slice)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Slice)
+private:
+    Slice(Type *element) : Array(element) {}
+}; // class Slice
+
+
 class Map : public Type {
 public:
     Type *key() const   { return key_; }
@@ -187,10 +222,10 @@ public:
     Type *value() const { return value_; }
     void set_value(Type *value) { value_ = DCHECK_NOTNULL(value); }
 
+    virtual int64_t GenerateId() const override;
+
     DECLARE_TYPE(Map)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Map)
-
-    virtual int64_t GenerateId() const override;
 private:
     Map(Type *key, Type *value)
         : Type(0)
@@ -294,6 +329,14 @@ public:
 
     Union *GetUnion(ZoneHashMap<int64_t, Type *> *types) {
         return Record(new (zone_) Union(types));
+    }
+
+    Array *GetArray(Type *element) {
+        return Record(new (zone_) Array(element));
+    }
+
+    Slice *GetSlice(Type *element) {
+        return Record(new (zone_) Slice(element));
     }
 
     Map *GetMap(Type *key, Type *value) {

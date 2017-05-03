@@ -307,6 +307,7 @@ public:
     virtual void VisitStringLiteral(StringLiteral *node) override;
     virtual void VisitSmiLiteral(SmiLiteral *node) override;
     virtual void VisitFloatLiteral(FloatLiteral *node) override;
+    virtual void VisitArrayInitializer(ArrayInitializer *node) override;
     virtual void VisitMapInitializer(MapInitializer *node) override;
     virtual void VisitFieldAccessing(FieldAccessing *node) override;
     virtual void VisitTypeTest(TypeTest *node) override;
@@ -1198,6 +1199,18 @@ void EmittingAstVisitor::VisitFloatLiteral(FloatLiteral *node) {
     PushValue(EmitLoadMakeRoom(src, node->position()));
 }
 
+void EmittingAstVisitor::VisitArrayInitializer(ArrayInitializer *node) {
+    auto dest = current_->MakeObjectValue();
+
+    auto type = node->array_type();
+    DCHECK(!type->IsUnknown());
+
+    builder(node->position())->oop(OO_Array, dest.offset,
+                                   TypeInfoIndex(type->element()),
+                                   node->element_size());
+
+}
+
 void EmittingAstVisitor::VisitMapInitializer(MapInitializer *node) {
     auto dest = current_->MakeObjectValue();
 
@@ -1802,6 +1815,18 @@ TypeToReflection(Type *type, ObjectFactory *factory,
         case Type::kUnion:
             reft = factory->CreateReflectionUnion(tid);
             break;
+
+        case Type::kArray: {
+            auto array = type->AsArray();
+            auto element = TypeToReflection(array->element(), factory, all);
+            reft = factory->CreateReflectionArray(array->GenerateId(), element);
+        } break;
+
+        case Type::kSlice: {
+            auto array = type->AsSlice();
+            auto element = TypeToReflection(array->element(), factory, all);
+            reft = factory->CreateReflectionSlice(array->GenerateId(), element);
+        } break;
 
         case Type::kMap: {
             auto map = type->AsMap();

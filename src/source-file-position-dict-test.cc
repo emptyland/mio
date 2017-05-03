@@ -9,27 +9,27 @@ TEST(SourceFilePositionDictTest, Sanity) {
     auto line = dict.GetLine("test/line-test.txt", 0, &ok);
     ASSERT_TRUE(ok);
     EXPECT_EQ(0, line.line);
-    EXPECT_EQ(0, line.row);
+    EXPECT_EQ(0, line.column);
 
     line = dict.GetLine("test/line-test.txt", 15, &ok);
     ASSERT_TRUE(ok);
     EXPECT_EQ(0, line.line);
-    EXPECT_EQ(15, line.row);
+    EXPECT_EQ(15, line.column);
 
     line = dict.GetLine("test/line-test.txt", 16, &ok);
     ASSERT_TRUE(ok);
     EXPECT_EQ(0, line.line);
-    EXPECT_EQ(16, line.row);
+    EXPECT_EQ(16, line.column);
 
     line = dict.GetLine("test/line-test.txt", 17, &ok);
     ASSERT_TRUE(ok);
     EXPECT_EQ(1, line.line);
-    EXPECT_EQ(0, line.row);
+    EXPECT_EQ(0, line.column);
 
     line = dict.GetLine("test/line-test.txt", 18, &ok);
     ASSERT_TRUE(ok);
     EXPECT_EQ(1, line.line);
-    EXPECT_EQ(1, line.row);
+    EXPECT_EQ(1, line.column);
 }
 
 } // namespace mio

@@ -27,6 +27,8 @@ class MIOReflectionFloating;
 class MIOReflectionString;
 class MIOReflectionError;
 class MIOReflectionUnion;
+class MIOReflectionArray;
+class MIOReflectionSlice;
 class MIOReflectionMap;
 class MIOReflectionFunction;
 
@@ -91,6 +93,14 @@ public:
     virtual Handle<MIOReflectionError> CreateReflectionError(int64_t tid) = 0;
 
     virtual Handle<MIOReflectionUnion> CreateReflectionUnion(int64_t tid) = 0;
+
+    virtual
+    Handle<MIOReflectionArray>
+    CreateReflectionArray(int64_t tid, Handle<MIOReflectionType> element) = 0;
+
+    virtual
+    Handle<MIOReflectionSlice>
+    CreateReflectionSlice(int64_t tid, Handle<MIOReflectionType> element) = 0;
 
     virtual
     Handle<MIOReflectionMap>

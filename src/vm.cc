@@ -65,6 +65,13 @@ bool VM::CompileProject(const char *project_dir, ParsingError *error) {
     all_modules_ = Compiler::Check(all_units, types.get(), scope, ast_zone_,
                                    error);
     if (!all_modules_) {
+        bool ok = true;
+        auto line = source_position_dict_->GetLine(error->file_name.c_str(),
+                                                   error->position, &ok);
+        if (ok) {
+            error->line   = line.line;
+            error->column = line.column;
+        }
         return false;
     }
 
@@ -144,11 +151,14 @@ void VM::PrintBackstream(TextOutputStream *stream) {
             }
 
             bool ok = true;
-            auto line = source_position_dict_->GetLine(info->file_name, layout.position, &ok);
+            auto line = source_position_dict_->GetLine(info->file_name,
+                                                       layout.position, &ok);
             if (!ok) {
-                stream->Printf("at %s(position:%d)", info->file_name, layout.position);
+                stream->Printf("at %s(position:%d)", info->file_name,
+                               layout.position);
             } else {
-                stream->Printf("at %s:%d:%d", info->file_name, line.line + 1, line.row + 1);
+                stream->Printf("at %s:%d:%d", info->file_name, line.line + 1,
+                               line.column + 1);
             }
         }
         stream->Write("\n", 1);

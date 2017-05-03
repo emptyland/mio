@@ -4,3 +4,5 @@ function bar: void {
     base::print('bar\n')
     baz::baz()
 }
+
+

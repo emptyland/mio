@@ -47,8 +47,8 @@ SourceFilePositionDict::GetLine(const char *file_name, int position, bool *ok) {
     auto iter = files_.find(file_name);
     if (iter != files_.end()) {
         auto index = iter->second;
-        result.row = position;
-        *ok = index->SearchPosition(&result.line, &result.row);
+        result.column = position;
+        *ok = index->SearchPosition(&result.line, &result.column);
 
         return result;
     } else {
@@ -58,8 +58,8 @@ SourceFilePositionDict::GetLine(const char *file_name, int position, bool *ok) {
         }
         iter = files_.find(file_name);
         auto index = iter->second;
-        result.row = position;
-        *ok = index->SearchPosition(&result.line, &result.row);
+        result.column = position;
+        *ok = index->SearchPosition(&result.line, &result.column);
         
         return result;
     }
@@ -83,11 +83,6 @@ bool SourceFilePositionDict::BuildIndexIfNeeded(const char *file_name) {
             ++line_size;
         }
         ++position;
-
-        if (!input->error().empty()) {
-            DLOG(ERROR) << "input reading fail: " << input->error();
-            return false;
-        }
     }
     index->AddLine(line_position, line_size); // add last line.
     files_.emplace(file_name, index.release());

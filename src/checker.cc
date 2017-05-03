@@ -176,6 +176,7 @@ public:
     virtual void VisitReturn(Return *node) override;
     virtual void VisitFunctionDefine(FunctionDefine *node) override;
     virtual void VisitFunctionLiteral(FunctionLiteral *node) override;
+    virtual void VisitArrayInitializer(ArrayInitializer *node) override;
     virtual void VisitMapInitializer(MapInitializer *node) override;
     virtual void VisitFieldAccessing(FieldAccessing *node) override;
     virtual void VisitTypeTest(TypeTest *node) override;
@@ -668,6 +669,44 @@ void CheckingAstVisitor::VisitFloatLiteral(FloatLiteral *node) {
     PushEvalType(proto);
 }
 
+void CheckingAstVisitor::VisitArrayInitializer(ArrayInitializer *node) {
+    auto array_type = node->array_type();
+    if (array_type->element()->IsUnknown() && node->element_size() == 0) {
+        ThrowError(node, "array initializer has unknown element type.");
+        return;
+    }
+
+    auto value_types = new (types_->zone()) ZoneHashMap<int64_t, Type *>(types_->zone());
+    for (int i = 0; i < node->element_size(); ++i) {
+        ACCEPT_REPLACE_EXPRESSION_I(node, mutable_elements, i);
+        auto element = AnalysisType();
+        PopEvalType();
+
+        if (array_type->element()->IsUnknown()) {
+            array_type->set_element(element);
+        } else if (array_type->element()->CanNotAcceptFrom(element)) {
+            ThrowError(node->element(i), "array initializer element can accept expression, (%s vs %s)",
+                       array_type->element()->ToString().c_str(),
+                       element->ToString().c_str());
+            return;
+        }
+
+        value_types->Put(element->GenerateId(), element);
+    }
+
+    if (array_type->element()->IsUnknown()) {
+        DCHECK(value_types->is_not_empty());
+        if (value_types->size() > 1) {
+            array_type->set_element(types_->GetUnion(value_types));
+        } else {
+            array_type->set_element(value_types->first()->value());
+        }
+    }
+
+    DCHECK(!array_type->element()->IsUnknown());
+    PushEvalType(node->array_type());
+}
+
 /*virtual*/
 void CheckingAstVisitor::VisitMapInitializer(MapInitializer *node) {
     auto map_type = node->map_type();
@@ -691,7 +730,7 @@ void CheckingAstVisitor::VisitMapInitializer(MapInitializer *node) {
 
         if (map_type->key()->IsUnknown()) {
             map_type->set_key(key);
-        } else if (!map_type->key()->CanAcceptFrom(key)) {
+        } else if (map_type->key()->CanNotAcceptFrom(key)) {
             ThrowError(pair->key(), "map initializer key can accept expression, (%s vs %s)",
                        map_type->key()->ToString().c_str(),
                        key->ToString().c_str());

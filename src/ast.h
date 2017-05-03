@@ -26,6 +26,7 @@ namespace mio {
     M(TypeCast) \
     M(SmiLiteral) \
     M(FloatLiteral) \
+    M(ArrayInitializer) \
     M(MapInitializer) \
     M(Pair) \
     M(Variable) \
@@ -76,6 +77,7 @@ class AstNode;
                 class StringLiteral;
                 class FunctionLiteral;
                 class MapInitializer;
+                class ArrayInitializer;
                 class Pair;
             class UnaryOperation;
             class BinaryOperation;
@@ -517,6 +519,38 @@ private:
     int end_position_;
 }; // class FunctionLiteral
 
+class ArrayInitializer : public Literal {
+public:
+    Array *array_type() const { return array_type_; }
+
+    ZoneVector<Expression *> *mutable_elements() { return elements_; }
+
+    int element_size() const { return elements_->size(); }
+
+    Expression *element(int index) const { return elements_->At(index); }
+
+    RawStringRef annotation() const { return annotation_; }
+
+    int end_position() const { return end_position_; }
+
+private:
+    ArrayInitializer(Array *type,
+                     ZoneVector<Expression *> *elements,
+                     RawStringRef annotation,
+                     int start_position,
+                     int end_position)
+        : Literal(start_position)
+        , array_type_(DCHECK_NOTNULL(type))
+        , elements_(DCHECK_NOTNULL(elements))
+        , annotation_(DCHECK_NOTNULL(annotation))
+        , end_position_(end_position) {}
+
+    Array *array_type_;
+    ZoneVector<Expression *> *elements_;
+    RawStringRef annotation_;
+    int start_position_;
+    int end_position_;
+};
 
 class Pair : public Literal {
 public:
@@ -1178,6 +1212,18 @@ public:
 
     Pair *CreatePair(Expression *key, Expression *value, int position) {
         return new (zone_) Pair(key, value, position);
+    }
+
+    ArrayInitializer *CreateArrayInitializer(Array *array_type,
+                                             ZoneVector<Expression *> *elements,
+                                             RawStringRef annotation,
+                                             int start_position,
+                                             int end_position) {
+        return new (zone_) ArrayInitializer(array_type,
+                                            elements,
+                                            annotation,
+                                            start_position,
+                                            end_position);
     }
 
     MapInitializer *CreateMapInitializer(Map *map_type,

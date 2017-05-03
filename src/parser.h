@@ -31,6 +31,8 @@ class TypeFactory;
 class Type;
 class Union;
 class FunctionPrototype;
+class Array;
+class Slice;
 class Map;
 
 
@@ -75,12 +77,16 @@ public:
     Expression *ParseSuffixed(bool *ok);
     Expression *ParsePrimary(bool *ok);
     Expression *ParseFunctionLiteral(bool *ok);
+    Expression *ParseArrayInitializer(bool *ok);
     Expression *ParseMapInitializer(bool *ok);
     Expression *ParseLambda(bool *ok);
     Type *ParseType(bool *ok);
     Union *ParseUnionType(bool *ok);
     FunctionPrototype *ParseFunctionPrototype(bool strict, std::string *name,
                                               bool *ok);
+    Array *ParseArrayOrSliceType(bool *ok);
+    Array *ParseArrayType(bool strict, bool *ok);
+    Slice *ParseSliceType(bool *ok);
     Map *ParseMapType(bool strict, bool *ok);
 
     TypeMatch *PartialParseTypeMatch(Expression *target, bool *ok);

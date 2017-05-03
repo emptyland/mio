@@ -74,6 +74,7 @@ namespace mio {
     M(VOID, 0, "void") \
     M(UNION, 0, "union") \
     M(MAP, 0, "map") \
+    M(SLICE, 0, "slice") \
     M(ARRAY, 0, "array") \
     M(STRUCT, 0, "struct") \
     M(ERROR_TYPE, 0, "error") \

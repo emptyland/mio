@@ -581,6 +581,9 @@ Expression *Parser::ParseSimpleExpression(bool *ok) {
         case TOKEN_FUNCTION:
             return ParseFunctionLiteral(ok);
 
+        case TOKEN_ARRAY:
+            return ParseArrayInitializer(ok);
+
         case TOKEN_MAP:
             return ParseMapInitializer(ok);
 
@@ -720,6 +723,32 @@ Expression *Parser::ParseFunctionLiteral(bool *ok) {
     return literal;
 }
 
+// array {val1, val2, ... }
+// array[element] { val1, val2, ... }
+// array 'damn' { val1, val2, ... }
+Expression *Parser::ParseArrayInitializer(bool *ok) {
+    auto position = ahead_.position();
+    auto array = ParseArrayType(false, CHECK_OK);
+
+    std::string txt;
+    RawStringRef annoation = RawString::kEmpty;
+    if (Test(TOKEN_STRING_LITERAL, &txt)) {
+        annoation = RawString::Create(txt, zone_);
+    }
+
+    auto elements = new (zone_) ZoneVector<Expression *>(zone_);
+    Match(TOKEN_LBRACE, CHECK_OK);
+    do {
+        auto element = ParseExpression(false, CHECK_OK);
+
+        elements->Add(element);
+    } while (Test(TOKEN_COMMA));
+    Match(TOKEN_RBRACE, CHECK_OK);
+
+    return factory_->CreateArrayInitializer(array, elements, annoation,
+                                            position, ahead_.position());
+}
+
 // map {key<-value, ...}
 // map[key, value] {key<-value, ...}
 // map 'weak' {key<-value, ...}
@@ -841,6 +870,10 @@ Type *Parser::ParseType(bool *ok) {
         case TOKEN_LBRACK:
             return ParseUnionType(ok);
 
+        case TOKEN_SLICE:
+        case TOKEN_ARRAY:
+            return ParseArrayOrSliceType(ok);
+
         case TOKEN_MAP:
             return ParseMapType(true, ok);
 
@@ -909,6 +942,40 @@ FunctionPrototype *Parser::ParseFunctionPrototype(bool strict,
     }
 
     return types_->GetFunctionPrototype(params, return_type);
+}
+
+Array *Parser::ParseArrayOrSliceType(bool *ok) {
+    if (ahead_.token_code() == TOKEN_ARRAY) {
+        return ParseArrayType(true, ok);
+    } else {
+        return ParseSliceType(ok);
+    }
+}
+
+Array *Parser::ParseArrayType(bool strict, bool *ok) {
+    Match(TOKEN_ARRAY, CHECK_OK);
+
+    Type *element = types_->GetUnknown();
+
+    if (strict) {
+        Match(TOKEN_LBRACK, CHECK_OK);
+        element = ParseType(CHECK_OK);
+        Match(TOKEN_RBRACK, CHECK_OK);
+    } else {
+        if (Test(TOKEN_LBRACK)) {
+            element = ParseType(CHECK_OK);
+            Match(TOKEN_RBRACK, CHECK_OK);
+        }
+    }
+    return types_->GetArray(element);
+}
+
+Slice *Parser::ParseSliceType(bool *ok) {
+    Match(TOKEN_SLICE, CHECK_OK);
+    Match(TOKEN_LBRACK, CHECK_OK);
+    auto element = ParseType(CHECK_OK);
+    Match(TOKEN_RBRACK, CHECK_OK);
+    return types_->GetSlice(element);
 }
 
 Map *Parser::ParseMapType(bool strict, bool *ok) {

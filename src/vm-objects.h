@@ -19,6 +19,8 @@ class MIOFunction;
 class MIOUpValue;
 class MIOClosure;
 class MIOUnion;
+class MIOSlice;
+class MIOVector;
 class MIOHashMap;
 class MIOReflectionType;
     class MIOReflectionVoid;
@@ -27,6 +29,8 @@ class MIOReflectionType;
     class MIOReflectionString;
     class MIOReflectionError;
     class MIOReflectionUnion;
+    class MIOReflectionSlice;
+    class MIOReflectionArray;
     class MIOReflectionMap;
     class MIOReflectionFunction;
 
@@ -39,6 +43,8 @@ struct FunctionDebugInfo;
     M(ReflectionString) \
     M(ReflectionError) \
     M(ReflectionUnion) \
+    M(ReflectionSlice) \
+    M(ReflectionArray) \
     M(ReflectionMap) \
     M(ReflectionFunction)
 
@@ -48,6 +54,8 @@ struct FunctionDebugInfo;
     M(Closure) \
     M(NativeFunction) \
     M(NormalFunction) \
+    M(Slice) \
+    M(Vector) \
     M(HashMap) \
     M(Error) \
     M(Union) \
@@ -526,6 +534,47 @@ public:
 static_assert(sizeof(MIOUnion) == sizeof(HeapObject),
               "MIOUnion can bigger than HeapObject");
 
+
+class MIOSlice : public HeapObject {
+public:
+    static const int kRangeBeginOffset = kHeapObjectOffset;
+    static const int kRangeSizeOffset = kRangeBeginOffset + sizeof(int);
+    static const int kVectorOffset = kRangeSizeOffset + sizeof(int);
+    static const int kMIOSliceOffset = kVectorOffset + kObjectReferenceSize;
+
+    DEFINE_HEAP_OBJ_RW(int, RangeBegin)
+    DEFINE_HEAP_OBJ_RW(int, RangeSize)
+    DEFINE_HEAP_OBJ_RW(MIOVector *, Vector)
+
+    DECLARE_VM_OBJECT(Slice)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOSlice)
+}; // class MIOSlice
+
+static_assert(sizeof(MIOSlice) == sizeof(HeapObject),
+              "MIOSlice can bigger than HeapObject");
+
+
+class MIOVector : public HeapObject {
+public:
+    static const int kSizeOffset = kHeapObjectOffset;
+    static const int kCapacityOffset = kSizeOffset + sizeof(uint32_t);
+    static const int kElementOffset = kCapacityOffset + sizeof(int);
+    static const int kDataOffset = kElementOffset + sizeof(MIOReflectionType *);
+    static const int kMIOVectorOffset = kDataOffset + sizeof(void *);
+
+    DEFINE_HEAP_OBJ_RW(int, Size)
+    DEFINE_HEAP_OBJ_RW(int, Capacity)
+    DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Element)
+    DEFINE_HEAP_OBJ_RW(void *, Data)
+
+    DECLARE_VM_OBJECT(Vector)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOVector)
+}; // class MIOVector
+
+static_assert(sizeof(MIOVector) == sizeof(HeapObject),
+              "MIOVector can bigger than HeapObject");
+
+
 class MIOPair {
 public:
     static const int kNextOffset = 0;
@@ -540,7 +589,6 @@ public:
 
     void *GetValue() { return reinterpret_cast<uint8_t *>(this) + kValueOffset; }
 }; // class MIOMapPair
-
 
 class MIOHashMap : public HeapObject {
 public:
@@ -678,6 +726,28 @@ public:
     DECLARE_VM_OBJECT(ReflectionUnion)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionUnion)
 }; // class MIOReflectionUnion
+
+class MIOReflectionArray final : public MIOReflectionType {
+public:
+    static const int kElementOffset = kMIOReflectionTypeOffset;
+    static const int kMIOReflectionArrayOffset = kElementOffset + sizeof(MIOReflectionType *);
+
+    DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Element)
+
+    DECLARE_VM_OBJECT(ReflectionArray)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionArray)
+}; // class MIOReflectionArray
+
+class MIOReflectionSlice final : public MIOReflectionType {
+public:
+    static const int kElementOffset = kMIOReflectionTypeOffset;
+    static const int kMIOReflectionSliceOffset = kElementOffset + sizeof(MIOReflectionType *);
+
+    DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Element)
+
+    DECLARE_VM_OBJECT(ReflectionSlice)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionSlice)
+}; // class MIOReflectionArray
 
 class MIOReflectionMap final : public MIOReflectionType {
 public:
