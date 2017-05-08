@@ -557,15 +557,28 @@ static_assert(sizeof(MIOSlice) == sizeof(HeapObject),
 class MIOVector : public HeapObject {
 public:
     static const int kSizeOffset = kHeapObjectOffset;
-    static const int kCapacityOffset = kSizeOffset + sizeof(uint32_t);
+    static const int kCapacityOffset = kSizeOffset + sizeof(int);
     static const int kElementOffset = kCapacityOffset + sizeof(int);
     static const int kDataOffset = kElementOffset + sizeof(MIOReflectionType *);
     static const int kMIOVectorOffset = kDataOffset + sizeof(void *);
+
+    static const int kMinCapacity = 8;
+    static const int kCapacityScale = 2;
 
     DEFINE_HEAP_OBJ_RW(int, Size)
     DEFINE_HEAP_OBJ_RW(int, Capacity)
     DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Element)
     DEFINE_HEAP_OBJ_RW(void *, Data)
+
+    HeapObject *GetObject(int index) const {
+        return static_cast<HeapObject **>(GetData())[index];
+    }
+
+    void SetObject(int index, HeapObject *ob) {
+        static_cast<HeapObject **>(GetData())[index] = ob;
+    }
+
+    inline void *GetDataAddress(int index);
 
     DECLARE_VM_OBJECT(Vector)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOVector)
@@ -826,6 +839,10 @@ struct MIOStringDataEqualTo {
 ////////////////////////////////////////////////////////////////////////////////
 /// Inline Functions:
 ////////////////////////////////////////////////////////////////////////////////
+
+inline void *MIOVector::GetDataAddress(int index) {
+    return static_cast<uint8_t *>(GetData()) + index * GetElement()->GetTypePlacementSize();
+}
 
 inline void HORemove(HeapObject *ob) {
     DCHECK_NOTNULL(ob->GetNext())->SetPrev(ob->GetPrev());

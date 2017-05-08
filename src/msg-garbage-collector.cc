@@ -8,6 +8,15 @@
 
 namespace mio {
 
+#define NEW_FIXED_SIZE_OBJECT(var, name, g) \
+    NEW_OBJECT(var, name, (name::k##name##Offset), (g))
+
+#define NEW_OBJECT(var, name, size, g) \
+    auto var = NewObject<name>((size), (g)); \
+    if (!(var)) { \
+        return Handle<name>(); \
+    } (void)0
+
 MSGGarbageCollector::MSGGarbageCollector(ManagedAllocator *allocator,
                                          MemorySegment *root,
                                          Thread *main_thread,
@@ -53,7 +62,7 @@ Handle<MIOString> MSGGarbageCollector::GetOrNewString(const mio_strbuf_t *bufs, 
     }
 
     auto total_size = payload_length + 1 + MIOString::kDataOffset; // '\0' + MIOStringHeader
-    auto ob = NewObject<MIOString>(total_size, 0);
+    NEW_OBJECT(ob, MIOString, total_size, 0);
 
     ob->SetLength(payload_length);
     auto p = ob->GetMutableData();
@@ -85,7 +94,7 @@ MSGGarbageCollector::CreateClosure(Handle<MIOFunction> function,
                                    int up_values_size) {
     auto placement_size = static_cast<int>(MIOClosure::kUpValesOffset +
             up_values_size * sizeof(UpValDesc));
-    auto ob = NewObject<MIOClosure>(placement_size, 0);
+    NEW_OBJECT(ob, MIOClosure, placement_size, 0);
 
     ob->SetFlags(0);
     ob->SetFunction(function.get());
@@ -99,7 +108,7 @@ MSGGarbageCollector::CreateNativeFunction(const char *signature,
                                           MIOFunctionPrototype pointer) {
     Handle<MIOString> sign(ObjectFactory::GetOrNewString(signature,
                                                          static_cast<int>(strlen(signature))));
-    auto ob = NewObject<MIONativeFunction>(MIONativeFunction::kMIONativeFunctionOffset, 0);
+    NEW_FIXED_SIZE_OBJECT(ob, MIONativeFunction, 0);
     ob->SetSignature(sign.get());
     ob->SetNativePointer(pointer);
     return make_handle(ob);
@@ -117,7 +126,7 @@ MSGGarbageCollector::CreateNormalFunction(const std::vector<Handle<HeapObject>> 
     auto placement_size = static_cast<int>(MIONormalFunction::kHeaderOffset +
                                            constant_primitive_size +
                                            constant_objects.size() * kObjectReferenceSize + code_size);
-    auto ob = NewObject<MIONormalFunction>(placement_size, 0);
+    NEW_OBJECT(ob, MIONormalFunction, placement_size, 0);
 
     ob->SetName(nullptr);
     ob->SetDebugInfo(nullptr);
@@ -136,12 +145,73 @@ MSGGarbageCollector::CreateNormalFunction(const std::vector<Handle<HeapObject>> 
 }
 
 /*virtual*/
+Handle<MIOVector>
+MSGGarbageCollector::CreateVector(int initial_size,
+                                  Handle<MIOReflectionType> element) {
+    DCHECK_GE(initial_size, 0);
+    DCHECK_NE(HeapObject::kReflectionVoid, element->GetKind());
+
+    NEW_FIXED_SIZE_OBJECT(ob, MIOVector, 0);
+    ob->SetSize(initial_size);
+    ob->SetCapacity(initial_size < MIOVector::kMinCapacity
+                    ? MIOVector::kMinCapacity
+                    : initial_size * MIOVector::kCapacityScale);
+    ob->SetElement(element.get());
+
+    auto data = allocator_->Allocate(ob->GetCapacity() * element->GetTypePlacementSize());
+    if (!data) {
+        return Handle<MIOVector>();
+    }
+    if (element->IsObject()) {
+        memset(data, 0, initial_size * element->GetTypePlacementSize());
+    }
+    ob->SetData(data);
+
+    return make_handle(ob);
+}
+
+/*virtual*/
+Handle<MIOSlice> MSGGarbageCollector::CreateSlice(int begin, int size,
+                                                  Handle<HeapObject> input) {
+    DCHECK(input->IsVector() || input->IsSlice());
+    Handle<MIOVector> core;
+    int current_begin = 0, current_size = 0;
+    if (core->IsVector()) {
+        current_begin = 0;
+        current_size  = input->AsVector()->GetSize();
+        core          = input->AsVector();
+    } else {
+        auto slice    = input->AsSlice();
+        current_begin = slice->GetRangeBegin();
+        current_size  = slice->GetRangeSize();
+        core          = slice->GetVector();
+    }
+
+    DCHECK_GE(begin, 0);
+    DCHECK_LT(begin, current_size);
+
+    begin += current_begin;
+    NEW_FIXED_SIZE_OBJECT(ob, MIOSlice, 0);
+    ob->SetRangeBegin(begin);
+
+    auto remain = current_size - begin;
+    if (size < 0) {
+        ob->SetRangeSize(remain);
+    } else {
+        ob->SetRangeSize(size >= remain ? remain : size);
+    }
+    ob->SetVector(core.get());
+
+    return make_handle(ob);
+}
+
+/*virtual*/
 Handle<MIOHashMap>
 MSGGarbageCollector::CreateHashMap(int seed, int initial_slots,
                                    Handle<MIOReflectionType> key,
                                    Handle<MIOReflectionType> value) {
     DCHECK(key->CanBeKey());
-    auto ob = NewObject<MIOHashMap>(MIOHashMap::kMIOHashMapOffset, 0);
+    NEW_FIXED_SIZE_OBJECT(ob, MIOHashMap, 0);
     ob->SetSeed(seed);
     ob->SetKey(key.get());
     ob->SetValue(value.get());
@@ -149,9 +219,13 @@ MSGGarbageCollector::CreateHashMap(int seed, int initial_slots,
 
     DCHECK_GE(initial_slots, 0);
     ob->SetSlotSize(initial_slots);
+    ob->SetSlots(nullptr);
     if (ob->GetSlotSize() > 0) {
         auto slots_placement_size = static_cast<int>(sizeof(MIOHashMap::Slot) * ob->GetSlotSize());
         auto slots = static_cast<MIOHashMap::Slot *>(allocator_->Allocate(slots_placement_size));
+        if (!slots) {
+            return Handle<MIOHashMap>();
+        }
         memset(slots, 0, slots_placement_size);
         ob->SetSlots(slots);
     }
@@ -163,7 +237,7 @@ MSGGarbageCollector::CreateHashMap(int seed, int initial_slots,
 Handle<MIOError>
 MSGGarbageCollector::CreateError(const char *message, int position,
                                    Handle<MIOError> linked) {
-    auto ob = NewObject<MIOError>(MIOError::kMIOErrorOffset, 0);
+    NEW_FIXED_SIZE_OBJECT(ob, MIOError, 0);
     ob->SetPosition(position);
 
     auto msg = ObjectFactory::GetOrNewString(message,
@@ -180,7 +254,7 @@ MSGGarbageCollector::CreateUnion(const void *data, int size,
     DCHECK_GE(size, 0);
     DCHECK_LE(size, kMaxReferenceValueSize);
 
-    auto ob = NewObject<MIOUnion>(MIOUnion::kMIOUnionOffset, 0);
+    NEW_FIXED_SIZE_OBJECT(ob, MIOUnion, 0);
     ob->SetTypeInfo(type_info.get());
     if (size > 0) {
         memcpy(ob->GetMutableData(), data, size);
@@ -198,7 +272,7 @@ MSGGarbageCollector::GetOrNewUpValue(const void *data, int size,
     }
 
     auto placement_size = MIOUpValue::kHeaderOffset + size;
-    auto ob = NewObject<MIOUpValue>(placement_size, 0);
+    NEW_OBJECT(ob, MIOUpValue, placement_size, 0);
 
     ob->SetFlags((unique_id << 1) | (is_primitive ? 0x0 : 0x1));
     ob->SetValueSize(size);
@@ -211,7 +285,7 @@ MSGGarbageCollector::GetOrNewUpValue(const void *data, int size,
 /*virtual*/
 Handle<MIOReflectionVoid>
 MSGGarbageCollector::CreateReflectionVoid(int64_t tid) {
-    auto ob = NewObject<MIOReflectionVoid>(MIOReflectionVoid::kMIOReflectionVoidOffset, 0);
+    NEW_FIXED_SIZE_OBJECT(ob, MIOReflectionVoid, 0);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     return make_handle(ob);
@@ -220,7 +294,7 @@ MSGGarbageCollector::CreateReflectionVoid(int64_t tid) {
 /*virtual*/
 Handle<MIOReflectionIntegral>
 MSGGarbageCollector::CreateReflectionIntegral(int64_t tid, int bitwide) {
-    auto ob = NewObject<MIOReflectionIntegral>(MIOReflectionIntegral::kMIOReflectionIntegralOffset, 0);
+    NEW_FIXED_SIZE_OBJECT(ob, MIOReflectionIntegral, 0);
     ob->SetTid(tid);
     ob->SetReferencedSize((bitwide + 7) / 8);
     ob->SetBitWide(bitwide);
@@ -230,7 +304,7 @@ MSGGarbageCollector::CreateReflectionIntegral(int64_t tid, int bitwide) {
 /*virtual*/
 Handle<MIOReflectionFloating>
 MSGGarbageCollector::CreateReflectionFloating(int64_t tid, int bitwide) {
-    auto ob = NewObject<MIOReflectionFloating>(MIOReflectionFloating::kMIOReflectionFloatingOffset, 0);
+    NEW_FIXED_SIZE_OBJECT(ob, MIOReflectionFloating, 0);
     ob->SetTid(tid);
     ob->SetReferencedSize((bitwide + 7) / 8);
     ob->SetBitWide(bitwide);
@@ -240,7 +314,7 @@ MSGGarbageCollector::CreateReflectionFloating(int64_t tid, int bitwide) {
 /*virtual*/
 Handle<MIOReflectionString>
 MSGGarbageCollector::CreateReflectionString(int64_t tid) {
-    auto ob = NewObject<MIOReflectionString>(MIOReflectionString::kMIOReflectionStringOffset, 0);
+    NEW_FIXED_SIZE_OBJECT(ob, MIOReflectionString, 0);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     return make_handle(ob);
@@ -249,7 +323,7 @@ MSGGarbageCollector::CreateReflectionString(int64_t tid) {
 /*virtual*/
 Handle<MIOReflectionError>
 MSGGarbageCollector::CreateReflectionError(int64_t tid) {
-    auto ob = NewObject<MIOReflectionError>(MIOReflectionError::kMIOReflectionErrorOffset, 0);
+    NEW_FIXED_SIZE_OBJECT(ob, MIOReflectionError, 0);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     return make_handle(ob);
@@ -258,7 +332,7 @@ MSGGarbageCollector::CreateReflectionError(int64_t tid) {
 /*virtual*/
 Handle<MIOReflectionUnion>
 MSGGarbageCollector::CreateReflectionUnion(int64_t tid) {
-    auto ob = NewObject<MIOReflectionUnion>(MIOReflectionUnion::kMIOReflectionUnionOffset, 0);
+    NEW_FIXED_SIZE_OBJECT(ob, MIOReflectionUnion, 0);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     return make_handle(ob);
@@ -268,7 +342,7 @@ MSGGarbageCollector::CreateReflectionUnion(int64_t tid) {
 Handle<MIOReflectionArray>
 MSGGarbageCollector::CreateReflectionArray(int64_t tid,
                       Handle<MIOReflectionType> element) {
-    auto ob = NewObject<MIOReflectionArray>(MIOReflectionArray::kMIOReflectionArrayOffset, 0);
+    NEW_FIXED_SIZE_OBJECT(ob, MIOReflectionArray, 0);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     ob->SetElement(element.get());
@@ -279,7 +353,7 @@ MSGGarbageCollector::CreateReflectionArray(int64_t tid,
 Handle<MIOReflectionSlice>
 MSGGarbageCollector::CreateReflectionSlice(int64_t tid,
                       Handle<MIOReflectionType> element) {
-    auto ob = NewObject<MIOReflectionSlice>(MIOReflectionSlice::kMIOReflectionSliceOffset, 0);
+    NEW_FIXED_SIZE_OBJECT(ob, MIOReflectionSlice, 0);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     ob->SetElement(element.get());
@@ -291,7 +365,7 @@ Handle<MIOReflectionMap>
 MSGGarbageCollector::CreateReflectionMap(int64_t tid,
                                            Handle<MIOReflectionType> key,
                                            Handle<MIOReflectionType> value) {
-    auto ob = NewObject<MIOReflectionMap>(MIOReflectionMap::kMIOReflectionMapOffset, 0);
+    NEW_FIXED_SIZE_OBJECT(ob, MIOReflectionMap, 0);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     ob->SetKey(key.get());
@@ -307,7 +381,7 @@ MSGGarbageCollector::CreateReflectionFunction(int64_t tid, Handle<MIOReflectionT
     int placement_size = MIOReflectionFunction::kParamtersOffset +
     sizeof(MIOReflectionType *) * number_of_parameters;
     
-    auto ob = NewObject<MIOReflectionFunction>(placement_size, 0);
+    NEW_OBJECT(ob, MIOReflectionFunction, placement_size, 0);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     ob->SetNumberOfParameters(number_of_parameters);

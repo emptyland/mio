@@ -206,6 +206,7 @@ public:
 private:
     void CheckFunctionCall(FunctionPrototype *proto, Call *node);
     void CheckMapAccessor(Map *map, Call *node);
+    void CheckArrayAccessorOrMakeSlice(Type *callee, Call *node);
 
     bool AcceptOrReduceFunctionLiteral(AstNode *node, Type *target_ty,
                                        FunctionLiteral *rval);
@@ -288,6 +289,8 @@ private:
         CheckFunctionCall(callee_ty->AsFunctionPrototype(), node);
     } else if (callee_ty->IsMap()) {
         CheckMapAccessor(callee_ty->AsMap(), node);
+    } else if (callee_ty->IsSlice() || callee_ty->IsArray()) {
+        CheckArrayAccessorOrMakeSlice(callee_ty, node);
     } else {
         ThrowError(node, "this type can not be call.");
     }
@@ -569,7 +572,7 @@ void CheckingAstVisitor::VisitFloatLiteral(FloatLiteral *node) {
 /*virtual*/ void CheckingAstVisitor::VisitForeachLoop(ForeachLoop *node) {
     ACCEPT_REPLACE_EXPRESSION(node, container);
     auto container_type = AnalysisType();
-    if (!container_type->IsMap()) {
+    if (container_type->CanNotIteratable()) {
         ThrowError(node, "this type: %s can not be foreach",
                    AnalysisType()->ToString().c_str());
         return;
@@ -583,8 +586,13 @@ void CheckingAstVisitor::VisitFloatLiteral(FloatLiteral *node) {
             node->key()->set_type(map->key());
         }
         node->value()->set_type(map->value());
-    } else {
-        // TODO:
+    } else if (container_type->IsArray() || container_type->IsSlice()) {
+        auto array = static_cast<Array *>(container_type);
+
+        if (node->has_key()) {
+            node->key()->set_type(types_->GetInt());
+        }
+        node->value()->set_type(array->element());
     }
     node->set_container_type(container_type);
     ACCEPT_REPLACE_EXPRESSION(node, body);
@@ -678,20 +686,21 @@ void CheckingAstVisitor::VisitArrayInitializer(ArrayInitializer *node) {
 
     auto value_types = new (types_->zone()) ZoneHashMap<int64_t, Type *>(types_->zone());
     for (int i = 0; i < node->element_size(); ++i) {
-        ACCEPT_REPLACE_EXPRESSION_I(node, mutable_elements, i);
-        auto element = AnalysisType();
+        auto element = node->element(i);
+        ACCEPT_REPLACE_EXPRESSION(element, value);
+        auto value = AnalysisType();
         PopEvalType();
 
-        if (array_type->element()->IsUnknown()) {
-            array_type->set_element(element);
-        } else if (array_type->element()->CanNotAcceptFrom(element)) {
+        if (!array_type->element()->IsUnknown() &&
+            !array_type->element()->CanNotAcceptFrom(value)) {
             ThrowError(node->element(i), "array initializer element can accept expression, (%s vs %s)",
                        array_type->element()->ToString().c_str(),
-                       element->ToString().c_str());
+                       value->ToString().c_str());
             return;
         }
 
-        value_types->Put(element->GenerateId(), element);
+        element->set_value_type(value);
+        value_types->Put(value->GenerateId(), value);
     }
 
     if (array_type->element()->IsUnknown()) {
@@ -929,26 +938,69 @@ void CheckingAstVisitor::CheckFunctionCall(FunctionPrototype *proto, Call *node)
 
 void CheckingAstVisitor::CheckMapAccessor(Map *map, Call *node) {
     if (node->mutable_arguments()->size() != 1) {
-        ThrowError(node, "bad map access calling.");
+        ThrowError(node, "incorrect arguments number of map calling.");
         return;
     }
 
-    if (node->mutable_arguments()->size() == 1) {
+    // Getting
+    ACCEPT_REPLACE_EXPRESSION_I(node, mutable_arguments, 0);
+    auto key = AnalysisType();
+    PopEvalType();
+
+    if (!map->key()->CanAcceptFrom(key)) {
+        ThrowError(node->mutable_arguments()->At(0),
+                   "map key can not accept input type, (%s vs %s)",
+                   map->key()->ToString().c_str(),
+                   key->ToString().c_str());
+        return;
+    }
+
+    Type *types[] = {map->value(), types_->GetVoid()};
+    PushEvalType(types_->MergeToFlatUnion(types, arraysize(types)));
+}
+
+void CheckingAstVisitor::CheckArrayAccessorOrMakeSlice(Type *callee, Call *node) {
+    DCHECK(callee->IsArray() || callee->IsSlice());
+    auto array = static_cast<Array *>(callee);
+
+    if (node->argument_size() == 1) {
         // Getting
         ACCEPT_REPLACE_EXPRESSION_I(node, mutable_arguments, 0);
-        auto key = AnalysisType();
+        auto index = AnalysisType();
         PopEvalType();
 
-        if (!map->key()->CanAcceptFrom(key)) {
-            ThrowError(node->mutable_arguments()->At(0),
-                       "map key can not accept input type, (%s vs %s)",
-                       map->key()->ToString().c_str(),
-                       key->ToString().c_str());
+        if (!index->IsIntegral()) {
+            ThrowError(node->argument(0), "array/slice index need integral number.");
+            return;
+        }
+        PushEvalType(array->element());
+    } else if (node->argument_size() == 2) {
+        ACCEPT_REPLACE_EXPRESSION_I(node, mutable_arguments, 0);
+        auto begin = AnalysisType();
+        PopEvalType();
+
+        if (!begin->IsIntegral()) {
+            ThrowError(node->argument(0), "make slice need integral number "
+                       "\"begin\" position.");
+            return;
+        }
+        ACCEPT_REPLACE_EXPRESSION_I(node, mutable_arguments, 1);
+        auto size = AnalysisType();
+        PopEvalType();
+
+        if (!size->IsIntegral()) {
+            ThrowError(node->argument(1), "make slice need integral number "
+                       "\"size\".");
             return;
         }
 
-        Type *types[] = {map->value(), types_->GetVoid()};
-        PushEvalType(types_->MergeToFlatUnion(types, arraysize(types)));
+        if (array->IsSlice()) {
+            PushEvalType(array);
+        } else {
+            PushEvalType(types_->GetSlice(array->element()));
+        }
+    } else {
+        ThrowError(node, "incorrect arguments number of array/slice calling.");
     }
 }
 

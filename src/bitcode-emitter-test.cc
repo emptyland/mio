@@ -270,4 +270,11 @@ TEST_F(BitCodeEmitterTest, P016_UnionTypeMatch) {
     printf("%s\n", dasm.c_str());
 }
 
+TEST_F(BitCodeEmitterTest, P018_ArrayOperation) {
+    std::string dasm;
+    ParseProject("018", &dasm);
+
+    printf("%s\n", dasm.c_str());
+}
+
 } // namespace mio

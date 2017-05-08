@@ -74,12 +74,12 @@ namespace mio {
 
 
 #define VM_COMPARATOR(M) \
-    M(EQ) \
-    M(NE) \
-    M(LT) \
-    M(LE) \
-    M(GT) \
-    M(GE)
+    M(EQ, ==) \
+    M(NE, !=) \
+    M(LT, < ) \
+    M(LE, <=) \
+    M(GT, > ) \
+    M(GE, >=)
 
 #define OBJECT_OPERATOR(M) \
     M(UnionOrMerge) \
@@ -88,6 +88,9 @@ namespace mio {
     M(Array) \
     M(ArraySet) \
     M(ArrayDirectSet) \
+    M(ArrayGet) \
+    M(ArraySize) \
+    M(Slice) \
     M(Map) \
     M(MapPut) \
     M(MapGet) \
@@ -153,7 +156,35 @@ enum BCSegment : int {
  * -- params:
  *    * result: Offset of array.
  *    * val1:   Immediately index number for setting.
- *    * val2:   Index of element for setting.
+ *    * val2:   Offset of element for setting.
+ *
+ * OO_ArrayGet
+ * -- desc: Get element from array object.
+ * -- params:
+ *    * result: Offset of array.
+ *    * val1:   Offset of index for getting.
+ *    * val2:   Offset of element for getting.
+ *
+ * OO_ArraySize
+ * -- desc: Get element from array object.
+ * -- params:
+ *    * result: Offset of array.
+ *    * val1:   Offset of size result.
+ *    * val2:   Unused.
+ *
+ * OO_Slice
+ * -- desc: Make slice from array or slice.
+ * -- params:
+ *    * result: Offset of array.
+ *    * val1:   Offset of begin postion for slice.
+ *    * val2:   Offset of size for slice.
+ *
+ * OO_Slice
+ * -- desc: Make slice from slice or array object.
+ * -- params:
+ *    * result: Offset of array or slice object.
+ *    * val1:   Offset of begin for slice.
+ *    * val2:   Offset of size for slice.
  *
  * OO_Map
  * -- desc: Create a new map object.
@@ -213,7 +244,7 @@ enum BCObjectOperatorId : int {
 };
 
 enum BCComparator : int {
-#define Comparator_ENUM_DEFINE(name) CC_##name,
+#define Comparator_ENUM_DEFINE(name, op) CC_##name,
     VM_COMPARATOR(Comparator_ENUM_DEFINE)
 #undef  Comparator_ENUM_DEFINE
     MAX_CC_COMPARATORS,

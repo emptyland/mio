@@ -4,6 +4,8 @@ val mioVersion = 'v0.0.1'
 val mioName = 'mio'
 val mioHomepage = 'https://github.com/emptyland/mio'
 
+val eof = -1
+
 native function gc: void
 
 native function fullGC: void

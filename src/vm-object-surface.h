@@ -230,6 +230,34 @@ inline MIOHashMapStub<K, V> *MIOHashMapSurface::ToStub() {
     return static_cast<MIOHashMapStub<K, V> *>(this);
 }
 
+class MIOArraySurface {
+public:
+    MIOArraySurface(Handle<HeapObject> ob, ManagedAllocator *allocator);
+
+    DEF_GETTER(Handle<MIOVector>, core)
+    DEF_GETTER(int, size);
+    DEF_GETTER(int, element_size)
+
+    MIOReflectionType *element() { return core_->GetElement(); }
+
+    inline void *RawGet(mio_int_t index) {
+        return static_cast<uint8_t*>(core_->GetData()) + (index + begin_) * element_size_;
+    }
+
+    void *AddRoom(mio_int_t incr, bool *ok);
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOArraySurface)
+private:
+
+    Handle<MIOSlice>  slice_;
+    Handle<MIOVector> core_;
+    int               begin_;
+    int               size_;
+    ManagedAllocator *allocator_;
+    int               element_size_;
+}; // class MIOArraySurface
+
+
 } // namespace mio
 
 #endif // MIO_VM_OBJECT_SURFACE_H_

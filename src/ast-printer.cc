@@ -105,9 +105,18 @@ public:
         WriteMapPair("string", node->data()->c_str());
     }
 
+    virtual void VisitArrayInitializer(ArrayInitializer *node) override {
+        WriteMapPair("type", node->array_type()->Type::ToString().c_str());
+        Indent(); WriteMapPair("elements", node->mutable_elements());
+    }
+
+    virtual void VisitElement(Element *node) override {
+        WriteMapPair("value", node->value());
+    }
+
     virtual void VisitMapInitializer(MapInitializer *node) override {
         WriteMapPair("type", node->map_type()->Type::ToString().c_str());
-        Indent();  WriteMapPair("pairs", node->mutable_pairs());
+        Indent(); WriteMapPair("pairs", node->mutable_pairs());
     }
 
     virtual void VisitPair(Pair *node) override {

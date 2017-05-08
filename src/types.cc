@@ -301,6 +301,10 @@ int Array::ToString(TextOutputStream *stream) const {
 ////////////////////////////////////////////////////////////////////////////////
 /// Slice
 ////////////////////////////////////////////////////////////////////////////////
+/*virtual*/ int Slice::placement_size() const {
+    return kObjectReferenceSize;
+}
+
 /*virtual*/
 int Slice::ToString(TextOutputStream *stream) const {
     auto rv = stream->Write("slice[");

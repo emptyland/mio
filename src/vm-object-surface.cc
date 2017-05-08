@@ -155,4 +155,40 @@ void MIOHashMapSurface::Rehash(float scalar) {
     core_->SetSlotSize(new_slot_size);
 }
 
+MIOArraySurface::MIOArraySurface(Handle<HeapObject> ob,
+                                 ManagedAllocator *allocator)
+    : allocator_(DCHECK_NOTNULL(allocator)) {
+    DCHECK(ob->IsSlice() || ob->IsVector());
+    if (ob->IsSlice()) {
+        slice_ = ob->AsSlice();
+        core_  = slice_->GetVector();
+        begin_ = slice_->GetRangeBegin();
+        size_  = slice_->GetRangeSize();
+    } else {
+        core_  = ob->AsVector();
+        begin_ = 0;
+        size_  = core_->GetSize();
+    }
+    element_size_ = core_->GetElement()->GetTypePlacementSize();
+}
+
+void *MIOArraySurface::AddRoom(mio_int_t size, bool *ok) {
+    DCHECK(slice_.empty()) << "slice can not be added!";
+
+    if (core_->GetSize() + size > core_->GetCapacity()) {
+        auto new_capacity = core_->GetCapacity() * MIOVector::kCapacityScale;
+        auto new_data = allocator_->Allocate(new_capacity * element_size_);
+        if (!new_data) {
+            *ok = false;
+            return nullptr;
+        }
+        memcpy(new_data, core_->GetData(), core_->GetSize() * element_size_);
+        core_->SetData(new_data);
+        core_->SetCapacity(new_capacity);
+    }
+    auto new_room = RawGet(core_->GetSize());
+    core_->SetSize(static_cast<int>(core_->GetSize() + size));
+    return new_room;
+}
+
 } // namespace mio

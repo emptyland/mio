@@ -15,7 +15,7 @@ const char * const kObjectOperatorText[MAX_OO_OPERATORS] = {
 };
 
 const char * const kComparatorText[MAX_CC_COMPARATORS] = {
-#define ComparatorText_ELEM_DEFINE(name) #name,
+#define ComparatorText_ELEM_DEFINE(name, op) #name,
     VM_COMPARATOR(ComparatorText_ELEM_DEFINE)
 #undef ComparatorText_ELEM_DEFINE
 };

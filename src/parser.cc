@@ -405,6 +405,7 @@ Expression *Parser::ParseExpression(bool ignore, int limit, int *rop, bool *ok) 
         case TOKEN_LAMBDA:
         case TOKEN_LPAREN:
         case TOKEN_MAP:
+        case TOKEN_ARRAY:
             return ParseOperation(limit, rop, ok);
 
         case TOKEN_IF:
@@ -736,10 +737,12 @@ Expression *Parser::ParseArrayInitializer(bool *ok) {
         annoation = RawString::Create(txt, zone_);
     }
 
-    auto elements = new (zone_) ZoneVector<Expression *>(zone_);
+    auto elements = new (zone_) ZoneVector<Element *>(zone_);
     Match(TOKEN_LBRACE, CHECK_OK);
     do {
-        auto element = ParseExpression(false, CHECK_OK);
+        auto element_position = ahead_.position();
+        auto value = ParseExpression(false, CHECK_OK);
+        auto element = factory_->CreateElement(value, element_position);
 
         elements->Add(element);
     } while (Test(TOKEN_COMMA));

@@ -218,7 +218,7 @@ public:
         return Emit3Addr(BC_jmp, 0, 0, delta);
     }
 
-    void jmp(int pc, int32_t delta) {
+    void jmp_fill(int pc, int32_t delta) {
         FillPlacement(pc, Make3AddrBC(BC_jmp, 0, 0, delta));
     }
 
@@ -226,7 +226,7 @@ public:
         return Emit3Addr(BC_jnz, 0, cond, delta);
     }
 
-    void jnz(int pc, uint16_t cond, int32_t delta) {
+    void jnz_fill(int pc, uint16_t cond, int32_t delta) {
         FillPlacement(pc, Make3AddrBC(BC_jnz, 0, cond, delta));
     }
 
@@ -234,7 +234,7 @@ public:
         return Emit3Addr(BC_jz, 0, cond, delta);
     }
 
-    void jz(int pc, uint16_t cond, int32_t delta) {
+    void jz_fill(int pc, uint16_t cond, int32_t delta) {
         FillPlacement(pc, Make3AddrBC(BC_jz, 0, cond, delta));
     }
 

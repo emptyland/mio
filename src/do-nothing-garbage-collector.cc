@@ -97,6 +97,68 @@ DoNothingGarbageCollector::CreateNormalFunction(const std::vector<Handle<HeapObj
 }
 
 /*virtual*/
+Handle<MIOVector>
+DoNothingGarbageCollector::CreateVector(int initial_size,
+                                        Handle<MIOReflectionType> element) {
+    DCHECK_GE(initial_size, 0);
+    DCHECK_NE(HeapObject::kReflectionVoid, element->GetKind());
+
+    auto ob = NewObject<MIOVector>(MIOVector::kMIOVectorOffset);
+    ob->SetSize(initial_size);
+    ob->SetCapacity(initial_size < MIOVector::kMinCapacity
+                    ? MIOVector::kMinCapacity
+                    : initial_size * MIOVector::kCapacityScale);
+    ob->SetElement(element.get());
+
+    auto data = allocator_->Allocate(ob->GetCapacity() * element->GetTypePlacementSize());
+    if (!data) {
+        return Handle<MIOVector>();
+    }
+    if (element->IsObject()) {
+        memset(data, 0, initial_size * element->GetTypePlacementSize());
+    }
+    ob->SetData(data);
+
+    return make_handle(ob);
+}
+
+/*virtual*/
+Handle<MIOSlice>
+DoNothingGarbageCollector::CreateSlice(int begin, int size,
+                                       Handle<HeapObject> input) {
+    DCHECK(input->IsVector() || input->IsSlice());
+    Handle<MIOVector> core;
+    int current_begin = 0, current_size = 0;
+    if (core->IsVector()) {
+        current_begin = 0;
+        current_size  = input->AsVector()->GetSize();
+        core          = input->AsVector();
+    } else {
+        auto slice    = input->AsSlice();
+        current_begin = slice->GetRangeBegin();
+        current_size  = slice->GetRangeSize();
+        core          = slice->GetVector();
+    }
+
+    DCHECK_GE(begin, 0);
+    DCHECK_LT(begin, current_size);
+
+    begin += current_begin;
+    auto ob = NewObject<MIOSlice>(MIOSlice::kMIOSliceOffset);
+    ob->SetRangeBegin(begin);
+
+    auto remain = current_size - begin;
+    if (size < 0) {
+        ob->SetRangeSize(remain);
+    } else {
+        ob->SetRangeSize(size >= remain ? remain : size);
+    }
+    ob->SetVector(core.get());
+
+    return make_handle(ob);
+}
+
+/*virtual*/
 Handle<MIOHashMap>
 DoNothingGarbageCollector::CreateHashMap(int seed, int initial_slots,
                                          Handle<MIOReflectionType> key,

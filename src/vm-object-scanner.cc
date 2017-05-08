@@ -70,6 +70,21 @@ void ObjectScanner::Scan(HeapObject *ob, Callback callback) {
             Scan(fn->GetSignature(), callback);
         } break;
 
+        case HeapObject::kSlice: {
+            auto slice = ob->AsSlice();
+            Scan(slice->GetVector(), callback);
+        } break;
+
+        case HeapObject::kVector: {
+            auto vector = ob->AsVector();
+            Scan(vector->GetElement(), callback);
+            if (vector->GetElement()->IsObject()) {
+                for (int i = 0; i < vector->GetSize(); ++i) {
+                    Scan(vector->GetObject(i), callback);
+                }
+            }
+        } break;
+
         case HeapObject::kHashMap: {
             auto map = ob->AsHashMap();
             Scan(map->GetKey(), callback);
@@ -99,6 +114,11 @@ void ObjectScanner::Scan(HeapObject *ob, Callback callback) {
         case HeapObject::kReflectionIntegral:
         case HeapObject::kReflectionUnion:
             break;
+
+        case HeapObject::kReflectionArray: {
+            auto type = ob->AsReflectionArray();
+            Scan(type->GetElement(), callback);
+        } break;
 
         case HeapObject::kReflectionMap: {
             auto type = ob->AsReflectionMap();

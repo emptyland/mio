@@ -80,6 +80,12 @@ public:
                          const void *code,
                          int code_size) override;
 
+    virtual Handle<MIOVector>
+    CreateVector(int initial_size, Handle<MIOReflectionType> element) override;
+
+    virtual Handle<MIOSlice> CreateSlice(int begin, int size,
+                                         Handle<HeapObject> core) override;
+
     virtual Handle<MIOHashMap>
     CreateHashMap(int seed, int initial_slots, Handle<MIOReflectionType> key,
                   Handle<MIOReflectionType> value) override;
@@ -222,6 +228,9 @@ private:
 template<class T>
 inline T *MSGGarbageCollector::NewObject(int placement_size, int g) {
     auto ob = static_cast<T *>(allocator_->Allocate(placement_size));
+    if (!ob) {
+        return nullptr;
+    }
     ob->Init(static_cast<HeapObject::Kind>(T::kSelfKind));
     ob->SetColor(white_);
     HOInsertHead(generations_[g], ob);

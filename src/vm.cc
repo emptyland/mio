@@ -141,7 +141,11 @@ void VM::PrintBackstream(TextOutputStream *stream) {
             fn = fn->AsClosure()->GetFunction();
         }
 
-        stream->Printf("%s() ", fn->GetName()->GetData());
+        if (fn->GetName()) {
+            stream->Printf("%s() ", fn->GetName()->GetData());
+        } else {
+            stream->Printf("%p() ", fn.get());
+        }
         if (fn->IsNativeFunction()) {
             stream->Printf("[native %p]", fn->AsNativeFunction()->GetNativePointer());
         } else {

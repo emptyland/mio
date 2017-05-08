@@ -64,8 +64,13 @@ const char *GetOperatorText(Operator op) {
 }
 
 bool Expression::is_lval() const {
+    const Variable *var = nullptr;
     if (IsVariable()) {
-        auto var = AsVariable();
+        var = AsVariable();
+    } else if (IsReference()) {
+        var = AsReference()->variable();
+    }
+    if (var) {
         if (var->is_read_only()) {
             return false;
         } else {

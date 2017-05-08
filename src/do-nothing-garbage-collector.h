@@ -31,6 +31,12 @@ public:
                          const void *code,
                          int code_size) override;
 
+    virtual Handle<MIOVector> CreateVector(int initial_size,
+                                           Handle<MIOReflectionType> element) override;
+
+    virtual Handle<MIOSlice> CreateSlice(int begin, int size,
+                                         Handle<HeapObject> input) override;
+
     virtual Handle<MIOHashMap>
     CreateHashMap(int seed, int initial_slots, Handle<MIOReflectionType> key,
                   Handle<MIOReflectionType> value) override;

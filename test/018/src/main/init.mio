@@ -1,0 +1,12 @@
+package main
+
+native function print(s: string): void
+
+function main: void {
+    val a = array {1, 2, 3, 4, 5}
+    val b = array {1, 1b, 1d, 1w}
+
+    for (i, value in a) {
+        print('['..i..'] = '..value..'\n')
+    }
+}

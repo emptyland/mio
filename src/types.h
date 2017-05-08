@@ -81,6 +81,12 @@ public:
     bool CanBeKey() const;
     bool CanNotBeKey() const { return !CanBeKey(); }
 
+    bool CanIteratable() const {
+        return IsMap() || IsSlice() || IsArray();
+    }
+
+    bool CanNotIteratable() const { return !CanIteratable(); }
+
     std::string ToString() const;
 
     virtual int placement_size() const = 0;
@@ -312,6 +318,7 @@ public:
     Integral *GetI8() const { return simple_types_[1]->AsIntegral(); }
     Integral *GetI16() const { return simple_types_[2]->AsIntegral(); }
     Integral *GetI32() const { return simple_types_[3]->AsIntegral(); }
+    Integral *GetInt() const { return GetI64(); }
     Integral *GetI64() const { return simple_types_[4]->AsIntegral(); }
 
     Floating *GetF32() const { return simple_types_[5]->AsFloating(); }

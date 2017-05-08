@@ -230,6 +230,45 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 }
             } break;
 
+//    #define DEFINE_INNER_CASE(name, cppop) \
+//        case CC_##name: \
+//            p_stack_->Set<mio_i8_t>(result, GetI##bit(val1) cppop GetI##bit(val2));
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_cmp_i##bit: { \
+                auto op = static_cast<BCComparator>(BitCodeDisassembler::GetOp1(bc)); \
+                auto result = BitCodeDisassembler::GetOp2(bc); \
+                auto val1 = BitCodeDisassembler::GetVal1(bc); \
+                auto val2 = BitCodeDisassembler::GetVal2(bc); \
+                switch (op) { \
+                    case CC_EQ: \
+                        p_stack_->Set<mio_i8_t>(result, GetI##bit(val1) == GetI##bit(val2)); \
+                        break; \
+                    case CC_NE: \
+                        p_stack_->Set<mio_i8_t>(result, GetI##bit(val1) != GetI##bit(val2)); \
+                        break; \
+                    case CC_LT: \
+                        p_stack_->Set<mio_i8_t>(result, GetI##bit(val1) < GetI##bit(val2)); \
+                        break; \
+                    case CC_LE: \
+                        p_stack_->Set<mio_i8_t>(result, GetI##bit(val1) <= GetI##bit(val2)); \
+                        break; \
+                    case CC_GT: \
+                        p_stack_->Set<mio_i8_t>(result, GetI##bit(val1) > GetI##bit(val2)); \
+                        break; \
+                    case CC_GE: \
+                        p_stack_->Set<mio_i8_t>(result, GetI##bit(val1) >= GetI##bit(val2)); \
+                        break; \
+                    default: \
+                        Panic(PANIC, ok, "bad comparator %d", op); \
+                        return; \
+                } \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+//    #undef DEFINE_INNER_CASE
+
             case BC_frame: {
                 auto size1 = BitCodeDisassembler::GetOp1(bc);
                 auto size2 = BitCodeDisassembler::GetOp2(bc);
@@ -323,7 +362,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                     p_stack_->AdjustFrame(base1, native->GetPrimitiveArgumentsSize());
                     o_stack_->AdjustFrame(base2, native->GetObjectArgumentsSize());
 
-                    callee_ = fn;
+                    callee_ = static_cast<MIOFunction*>(ob.get());
                     (*native->GetNativePointer())(vm_, this);
                     callee_ = ctx->callee;
 
@@ -344,7 +383,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                     ctx->bc = bc_;
                     //ctx->callee = static_cast<MIOFunction*>(ob.get());
                     ctx->callee = callee_.get();
-                    callee_ = fn;
+                    callee_ = static_cast<MIOFunction*>(ob.get());
 
                     DCHECK(fn->IsNormalFunction()) << fn->GetKind();
                     auto normal = DCHECK_NOTNULL(fn->AsNormalFunction());
@@ -499,6 +538,10 @@ void Thread::ProcessLoadPrimitive(int bytes, uint16_t dest, uint16_t segment,
         } break;
 
         case BC_UP_PRIMITIVE_SEGMENT: {
+            if (!callee_->IsClosure()) {
+                Panic(PANIC, ok, "callee is not closure, %d", callee_->GetKind());
+                return;
+            }
             auto buf = upvalue_buf();
             auto idx = offset / kObjectReferenceSize;
             if (idx < 0 || idx >= buf.n) {
@@ -749,6 +792,100 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             RunGC();
         } break;
 
+        case OO_Array: {
+            auto element = GetTypeInfo(val1, ok);
+            if (!*ok) {
+                return;
+            }
+            auto ob = vm_->object_factory()->CreateVector(val2, element);
+            if (ob.empty()) {
+                Panic(OUT_OF_MEMORY, ok, "no memory for create array.");
+                return;
+            }
+            o_stack_->Set(result, ob.get());
+
+            RunGC();
+        } break;
+
+        case OO_ArraySet:
+        case OO_ArrayDirectSet: {
+            auto ob = GetObject(result);
+            if (!ob->IsSlice() && !ob->IsVector()) {
+                Panic(PANIC, ok, "incorrect object type, unexpected array or slice.");
+                return;
+            }
+
+            mio_int_t index = -1;
+            if (static_cast<BCObjectOperatorId>(id) == OO_ArrayDirectSet) {
+                index = val1;
+            } else {
+                index = GetInt(val1);
+            }
+            MIOArraySurface surface(ob, vm_->allocator());
+            if (index < 0 || index >= surface.size()) {
+                Panic(PANIC, ok, "index out of range. %lld vs. [0, %d)", index,
+                      surface.size());
+                return;
+            }
+
+            const void *src = nullptr;
+            if (surface.element()->IsObject()) {
+                src = o_stack_->offset(val2);
+            } else {
+                src = p_stack_->offset(val2);
+            }
+            FastMemoryMove(surface.RawGet(index), src, surface.element_size());
+        } break;
+
+        case OO_ArrayGet: {
+            auto ob = GetObject(result);
+            if (!ob->IsSlice() && !ob->IsVector()) {
+                Panic(PANIC, ok, "incorrect object type, unexpected array or slice.");
+                return;
+            }
+
+            MIOArraySurface surface(ob, vm_->allocator());
+            auto index = p_stack_->Get<mio_int_t>(val1);
+            if (index < 0 || index >= surface.size()) {
+                Panic(PANIC, ok, "index out of range. %lld vs. [0, %d)", index,
+                      surface.size());
+                return;
+            }
+
+            void *dest = nullptr;
+            if (surface.element()->IsObject()) {
+                dest = o_stack_->offset(val2);
+            } else {
+                dest = p_stack_->offset(val2);
+            }
+            FastMemoryMove(dest, surface.RawGet(index), surface.element_size());
+        } break;
+
+        case OO_ArraySize: {
+            auto ob = GetObject(result);
+            if (!ob->IsSlice() && !ob->IsVector()) {
+                Panic(PANIC, ok, "incorrect object type, unexpected array or slice.");
+                return;
+            }
+            MIOArraySurface surface(ob, vm_->allocator());
+            p_stack_->Set<mio_int_t>(val1, surface.size());
+        } break;
+
+        case OO_Slice: {
+            auto ob = GetObject(result);
+            if (!ob->IsSlice() && !ob->IsVector()) {
+                Panic(PANIC, ok, "incorrect object type, unexpected array or slice.");
+                return;
+            }
+
+            auto begin = static_cast<int>(p_stack_->Get<mio_int_t>(val1));
+            auto size  = static_cast<int>(p_stack_->Get<mio_int_t>(val2));
+            auto slice = vm_->object_factory()->CreateSlice(begin, size, ob);
+            o_stack_->Set(result, slice.get());
+
+            RunGC();
+        } break;
+
         case OO_Map: {
             auto key = GetTypeInfo(val1, ok);
             auto value = GetTypeInfo(val2, ok);
@@ -768,7 +905,7 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
         case OO_MapPut: {
             auto ob = GetHashMap(result, ok);
             if (!*ok) {
-                Panic(PANIC, ok, "object not map. addr: %d", result);
+                Panic(PANIC, ok, "object is not map. addr: %d", result);
                 return;
             }
 

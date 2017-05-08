@@ -62,6 +62,12 @@ public:
     virtual Handle<MIOClosure> CreateClosure(Handle<MIOFunction> function,
                                              int up_values_size) = 0;
 
+    virtual Handle<MIOVector> CreateVector(int initial_size,
+                                           Handle<MIOReflectionType> element) = 0;
+
+    virtual Handle<MIOSlice> CreateSlice(int begin, int size,
+                                         Handle<HeapObject> core) = 0;
+
     virtual Handle<MIOHashMap> CreateHashMap(int seed, int initial_slots,
                                              Handle<MIOReflectionType> key,
                                              Handle<MIOReflectionType> value) = 0;

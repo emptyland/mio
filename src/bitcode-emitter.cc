@@ -250,11 +250,6 @@ public:
         return naked_builder();
     }
 
-//    int GetLastPosition() {
-//        DCHECK_GT(pc_to_position_.size(), 0);
-//        return pc_to_position_.back();
-//    }
-
     EmittedScope *prev() const { return saved_; }
     MemorySegment *code() const { return code_; }
 
@@ -363,6 +358,7 @@ private:
 
     void EmitFunctionCall(const VMValue &callee, Call *node);
     void EmitMapAccessor(const VMValue &callee, Call *node);
+    void EmitArrayAccessorOrMakeSlice(const VMValue &callee, Call *node);
 
     void EmitMapPut(const VMValue &map, VMValue key, VMValue value, Map *map_ty,
                     Type *val_ty, int position) {
@@ -424,7 +420,7 @@ private:
 
     BCComparator Operator2Comparator(Operator op) {
         switch (op) {
-    #define DEFINE_CASE(name) \
+    #define DEFINE_CASE(name, op) \
         case OP_##name: return CC_##name;
 
             VM_COMPARATOR(DEFINE_CASE)
@@ -637,6 +633,8 @@ void EmittingAstVisitor::VisitBlock(Block *node) {
     }
     if (node->mutable_body()->is_not_empty()) {
         node->mutable_body()->last()->Accept(this);
+    } else {
+        PushValue(VMValue::Void());
     }
 }
 
@@ -647,7 +645,10 @@ void EmittingAstVisitor::VisitForeachLoop(ForeachLoop *node) {
     } else {
         if (node->container_type()->IsMap()) {
             key_type = node->container_type()->AsMap()->key();
-        } else { // TODO: other container types
+        } else if (node->container_type()->IsArray() ||
+                   node->container_type()->IsSlice()) {
+            key_type = emitter_->types_->GetInt();
+        } else {
             DLOG(FATAL) << "type can not be foreach.";
         }
     }
@@ -667,11 +668,34 @@ void EmittingAstVisitor::VisitForeachLoop(ForeachLoop *node) {
                                        key.offset, value.offset);
         auto outter = builder(node->position())->jmp(naked_builder()->pc());
         Emit(node->body());
-        builder(node->position())->oop(OO_MapNextKey, container.offset, key.offset, value.offset);
+        builder(node->position())->oop(OO_MapNextKey, container.offset,
+                                       key.offset, value.offset);
         builder(node->position())->jmp(outter - naked_builder()->pc() + 1);
-        naked_builder()->jmp(outter, naked_builder()->pc() - outter);
-    } else {
-        // TODO: other container types.
+        naked_builder()->jmp_fill(outter, naked_builder()->pc() - outter);
+    } else if (node->container_type()->IsArray() ||
+               node->container_type()->IsSlice()) {
+        auto zero = current_->MakeConstantPrimitiveValue(static_cast<mio_int_t>(0));
+        EmitLoad(key, zero, node->position());
+
+        auto size = current_->MakeLocalValue(emitter_->types_->GetI64());
+        builder(node->position())->oop(OO_ArraySize, container.offset,
+                                       size.offset, 0);
+
+        auto cond = current_->MakeLocalValue(key_type);
+        auto retry = builder(node->position())->cmp_i64(CC_LT, cond.offset,
+                                                        key.offset,
+                                                        size.offset);
+        auto outter = builder(node->value()->position())->jz(cond.offset,
+                                                             naked_builder()->pc());
+        builder(node->value()->position())->oop(OO_ArrayGet, container.offset,
+                                                key.offset, value.offset);
+
+        Emit(node->body());
+        auto one = current_->MakeConstantPrimitiveValue(static_cast<mio_int_t>(1));
+        one = EmitLoadMakeRoom(one, node->position());
+        builder(node->position())->add_i64(key.offset, key.offset, one.offset);
+        builder(node->position())->jmp(retry - naked_builder()->pc());
+        naked_builder()->jz_fill(outter, cond.offset, naked_builder()->pc() - outter);
     }
 }
 
@@ -706,6 +730,8 @@ void EmittingAstVisitor::VisitCall(Call *node) {
         EmitFunctionCall(expr, node);
     } else if (node->callee_type()->IsMap()) {
         EmitMapAccessor(expr, node);
+    } else if (node->callee_type()->IsSlice() || node->callee_type()->IsArray()) {
+        EmitArrayAccessorOrMakeSlice(expr, node);
     } else {
         DLOG(FATAL) << "noreached! callee: " << node->callee_type()->ToString();
     }
@@ -848,7 +874,7 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
         }
         auto leave = builder(node->then_statement()->position())->jmp(naked_builder()->pc());
         // fill back outter
-        naked_builder()->jz(outter, cond.offset, naked_builder()->pc() - outter);
+        naked_builder()->jz_fill(outter, cond.offset, naked_builder()->pc() - outter);
 
         auto position = GetLastPosition(node->else_statement());
         auto else_val = Emit(node->else_statement());
@@ -864,7 +890,7 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
         }
 
         // fill back leave
-        naked_builder()->jmp(leave, naked_builder()->pc() - leave);
+        naked_builder()->jmp_fill(leave, naked_builder()->pc() - leave);
         PushValue(val);
     } else {
         VMValue val;
@@ -880,12 +906,12 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
 
         // else
         // fill back outter
-        naked_builder()->jz(outter, cond.offset, naked_builder()->pc() - outter);
+        naked_builder()->jz_fill(outter, cond.offset, naked_builder()->pc() - outter);
         EmitCreateUnion(val, {}, emitter_->types_->GetVoid(),
                         GetLastPosition(node->then_statement()));
 
         // fill back leave
-        naked_builder()->jmp(leave, naked_builder()->pc() - leave);
+        naked_builder()->jmp_fill(leave, naked_builder()->pc() - leave);
         PushValue(val);
     }
 }
@@ -911,8 +937,8 @@ void EmittingAstVisitor::VisitUnaryOperation(UnaryOperation *node) {
 void EmittingAstVisitor::VisitAssignment(Assignment *node) {
     auto rval = Emit(node->rval());
 
-    if (node->target()->IsVariable()) {
-        auto var = node->target()->AsVariable();
+    if (node->target()->IsReference()) {
+        auto var = node->target()->AsReference()->variable();
         DCHECK(var->is_readwrite());
 
         if (var->bind_kind() == Variable::UNBINDED) {
@@ -976,14 +1002,27 @@ void EmittingAstVisitor::VisitAssignment(Assignment *node) {
         }
     } else if (node->target()->IsCall()) {
         auto target = node->target()->AsCall();
-        DCHECK(target->callee_type()->IsMap());
-        DCHECK_EQ(1, target->mutable_arguments()->size());
 
-        auto map = Emit(target->expression());
-        auto key = Emit(target->mutable_arguments()->first());
+        if (target->callee_type()->IsMap()) {
+            DCHECK_EQ(1, target->argument_size());
 
-        EmitMapPut(map, key, rval, target->callee_type()->AsMap(),
-                   node->rval_type(), node->position());
+            auto map = Emit(target->expression());
+            auto key = Emit(target->mutable_arguments()->first());
+
+            EmitMapPut(map, key, rval, target->callee_type()->AsMap(),
+                       node->rval_type(), node->position());
+        } else if (target->callee_type()->IsArray() ||
+                   target->callee_type()->IsSlice()) {
+            DCHECK_EQ(1, target->argument_size());
+
+            auto array = Emit(target->expression());
+            auto index = Emit(target->argument(0));
+
+            builder(node->position())->oop(OO_ArraySet, array.offset,
+                                           index.offset, rval.offset);
+        } else {
+            DLOG(FATAL) << "noreached!";
+        }
     } else if (node->target()->IsFieldAccessing()) {
         auto target = node->target()->AsFieldAccessing();
         DCHECK(target->callee_type()->IsMap());
@@ -997,6 +1036,8 @@ void EmittingAstVisitor::VisitAssignment(Assignment *node) {
 
         EmitMapPut(map, key, rval, map_ty, node->rval_type(),
                    node->position());
+    } else {
+        DLOG(FATAL) << "no type for assignment. " << node->node_type();
     }
 
     PushValue(VMValue::Void());
@@ -1208,7 +1249,34 @@ void EmittingAstVisitor::VisitArrayInitializer(ArrayInitializer *node) {
     builder(node->position())->oop(OO_Array, dest.offset,
                                    TypeInfoIndex(type->element()),
                                    node->element_size());
+    VMValue index;
+    if (node->element_size() >= 0x3fff) {
+        auto zero = current_->MakeConstantPrimitiveValue(static_cast<mio_i64_t>(0));
+        index = EmitLoadMakeRoom(zero, node->position());
+    }
+    for (int i = 0; i < node->element_size(); ++i) {
+        auto element = node->element(i);
+        auto value = Emit(element->value());
+        if (type->element()->IsUnion()) {
+            auto tmp = current_->MakeObjectValue();
+            EmitCreateUnion(tmp, value, element->value_type(),
+                            element->position());
+            value = tmp;
+        }
 
+        if (node->element_size() < 0x3fff) {
+            builder(element->position())->oop(OO_ArrayDirectSet,dest.offset, i,
+                                              value.offset);
+        } else {
+            auto one = current_->MakeConstantPrimitiveValue(static_cast<mio_i64_t>(1));
+            builder(element->position())->add_i64(index.offset,
+                                                  index.offset, one.offset);
+            builder(element->position())->oop(OO_ArraySet, dest.offset,
+                                              index.offset, value.offset);
+        }
+    }
+
+    PushValue(dest);
 }
 
 void EmittingAstVisitor::VisitMapInitializer(MapInitializer *node) {
@@ -1221,8 +1289,8 @@ void EmittingAstVisitor::VisitMapInitializer(MapInitializer *node) {
                                    TypeInfoIndex(type->key()),
                                    TypeInfoIndex(type->value()));
 
-    for (int i = 0; i < node->mutable_pairs()->size(); ++i) {
-        auto pair = node->mutable_pairs()->At(i);
+    for (int i = 0; i < node->pair_size(); ++i) {
+        auto pair = node->pair(i);
         auto key = Emit(pair->key());
 
         auto value = Emit(pair->value());
@@ -1329,13 +1397,13 @@ void EmittingAstVisitor::VisitTypeMatch(TypeMatch *node) {
     }
 
     for (auto pc : else_outter) {
-        naked_builder()->jz(pc, cond.offset, naked_builder()->pc() - pc);
+        naked_builder()->jz_fill(pc, cond.offset, naked_builder()->pc() - pc);
     }
     if (else_case) {
         Emit(else_case->body());
     }
     for (auto pc : block_outter) {
-        naked_builder()->jmp(pc, naked_builder()->pc() - pc);
+        naked_builder()->jmp_fill(pc, naked_builder()->pc() - pc);
     }
 }
 
@@ -1528,6 +1596,29 @@ void EmittingAstVisitor::EmitMapAccessor(const VMValue &callee, Call *node) {
 
     builder(node->position())->oop(OO_MapGet, map.offset,  key.offset, result.offset);
     PushValue(result);
+}
+
+void EmittingAstVisitor::EmitArrayAccessorOrMakeSlice(const VMValue &callee,
+                                                      Call *node) {
+    DCHECK(node->argument_size() > 0 &&
+           node->argument_size() <= 2) << node->argument_size();
+    auto array_ty = static_cast<Array*>(node->callee_type());
+
+    auto array = Emit(node->expression());
+    if (node->argument_size() == 1) {
+        auto index = Emit(node->argument(0));
+        auto element = current_->MakeLocalValue(array_ty->element());
+        builder(node->position())->oop(OO_ArrayGet, array.offset, index.offset,
+                                       element.offset);
+        PushValue(element);
+    } else {
+        auto begin = Emit(node->argument(0));
+        auto size  = Emit(node->argument(1));
+        auto slice = current_->MakeObjectValue();
+        builder(node->position())->oop(OO_Slice, array.offset, begin.offset,
+                                       size.offset);
+        PushValue(slice);
+    }
 }
 
 VMValue EmittingAstVisitor::EmitLoadMakeRoom(const VMValue &src, int position) {

@@ -29,6 +29,7 @@ namespace mio {
     M(ArrayInitializer) \
     M(MapInitializer) \
     M(Pair) \
+    M(Element) \
     M(Variable) \
     M(Reference) \
     M(Symbol) \
@@ -78,7 +79,8 @@ class AstNode;
                 class FunctionLiteral;
                 class MapInitializer;
                 class ArrayInitializer;
-                class Pair;
+                class Element;
+                    class Pair;
             class UnaryOperation;
             class BinaryOperation;
             class TypeTest;
@@ -523,19 +525,21 @@ class ArrayInitializer : public Literal {
 public:
     Array *array_type() const { return array_type_; }
 
-    ZoneVector<Expression *> *mutable_elements() { return elements_; }
+    ZoneVector<Element *> *mutable_elements() { return elements_; }
 
     int element_size() const { return elements_->size(); }
 
-    Expression *element(int index) const { return elements_->At(index); }
+    Element *element(int index) const { return elements_->At(index); }
 
     RawStringRef annotation() const { return annotation_; }
 
     int end_position() const { return end_position_; }
 
+    DECLARE_AST_NODE(ArrayInitializer)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(ArrayInitializer)
 private:
     ArrayInitializer(Array *type,
-                     ZoneVector<Expression *> *elements,
+                     ZoneVector<Element *> *elements,
                      RawStringRef annotation,
                      int start_position,
                      int end_position)
@@ -546,35 +550,11 @@ private:
         , end_position_(end_position) {}
 
     Array *array_type_;
-    ZoneVector<Expression *> *elements_;
+    ZoneVector<Element *> *elements_;
     RawStringRef annotation_;
     int start_position_;
     int end_position_;
-};
-
-class Pair : public Literal {
-public:
-    Expression *key() const { return key_; }
-    void set_key(Expression *key) { key_ = DCHECK_NOTNULL(key); }
-
-    Expression *value() const { return value_; }
-    void set_value(Expression *value) { value_ = DCHECK_NOTNULL(value_); }
-
-    Type *value_type() const { return DCHECK_NOTNULL(value_type_); }
-    void set_value_type(Type *type) { value_type_ = DCHECK_NOTNULL(type); }
-
-    DECLARE_AST_NODE(Pair)
-    DISALLOW_IMPLICIT_CONSTRUCTORS(Pair)
-private:
-    Pair(Expression *key, Expression *value, int position)
-        : Literal(position)
-        , key_(DCHECK_NOTNULL(key))
-        , value_(DCHECK_NOTNULL(value)) {}
-
-    Expression *key_;
-    Expression *value_;
-    Type *value_type_ = nullptr;
-}; // class MapPair
+}; // class ArrayInitializer
 
 class MapInitializer : public Literal {
 public:
@@ -584,6 +564,10 @@ public:
 
     ZoneVector<Pair *> *mutable_pairs() { return pairs_; }
 
+    int pair_size() const { return pairs_->size(); }
+
+    Pair *pair(int index) const { return pairs_->At(index); }
+
     DECLARE_AST_NODE(MapInitializer)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MapInitializer)
 private:
@@ -592,17 +576,51 @@ private:
                    RawStringRef annotation,
                    int start_position,
                    int end_position)
-        : Literal(start_position)
-        , map_type_(DCHECK_NOTNULL(map_type))
-        , pairs_(DCHECK_NOTNULL(pairs))
-        , annotation_(DCHECK_NOTNULL(annotation))
-        , end_position_(end_position) {}
+    : Literal(start_position)
+    , map_type_(DCHECK_NOTNULL(map_type))
+    , pairs_(DCHECK_NOTNULL(pairs))
+    , annotation_(DCHECK_NOTNULL(annotation))
+    , end_position_(end_position) {}
 
     Map *map_type_;
     RawStringRef annotation_;
     ZoneVector<Pair *> *pairs_;
     int end_position_;
 }; // MapLiteral
+
+class Element : public Literal {
+public:
+    Expression *value() const { return value_; }
+    void set_value(Expression *value) { value_ = DCHECK_NOTNULL(value_); }
+
+    Type *value_type() const { return DCHECK_NOTNULL(value_type_); }
+    void set_value_type(Type *type) { value_type_ = DCHECK_NOTNULL(type); }
+
+    DECLARE_AST_NODE(Element)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Element)
+protected:
+    Element(Expression *value, int position)
+        : Literal(position)
+        , value_(DCHECK_NOTNULL(value)) {}
+
+    Expression *value_;
+    Type *value_type_ = nullptr;
+}; // class Element
+
+class Pair : public Element {
+public:
+    Expression *key() const { return key_; }
+    void set_key(Expression *key) { key_ = DCHECK_NOTNULL(key); }
+
+    DECLARE_AST_NODE(Pair)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Pair)
+private:
+    Pair(Expression *key, Expression *value, int position)
+        : Element(value, position)
+        , key_(DCHECK_NOTNULL(key)) {}
+
+    Expression *key_;
+}; // class MapPair
 
 #define DEFINE_SIMPLE_ARITH_OPS(M) \
     M(MUL, 10, 10, TOKEN_STAR) \
@@ -1214,8 +1232,12 @@ public:
         return new (zone_) Pair(key, value, position);
     }
 
+    Element *CreateElement(Expression *value, int position) {
+        return new (zone_) Element(value, position);
+    }
+
     ArrayInitializer *CreateArrayInitializer(Array *array_type,
-                                             ZoneVector<Expression *> *elements,
+                                             ZoneVector<Element *> *elements,
                                              RawStringRef annotation,
                                              int start_position,
                                              int end_position) {

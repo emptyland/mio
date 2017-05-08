@@ -12,6 +12,6 @@ function main: void {
     }
 
     print('foo='..foo(2)..'\n')
-    bar(3)
+    bar(1)
     print('foo='..foo(2)..'\n')
 }

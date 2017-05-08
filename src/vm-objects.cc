@@ -24,6 +24,8 @@ int MIOReflectionType::GetTypePlacementSize() const {
         case HeapObject::kReflectionFloating:
             return (AsReflectionFloating()->GetBitWide() + 7) / 8;
 
+        case HeapObject::kReflectionSlice:
+        case HeapObject::kReflectionArray:
         case HeapObject::kReflectionMap:
         case HeapObject::kReflectionError:
         case HeapObject::kReflectionUnion:
