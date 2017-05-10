@@ -79,7 +79,7 @@ test/014/src/main/init.mio:
           - expression: 
               var: ::main::main::<0>::bar
             arguments: 
-              - i64: 3
+              - i64: 1
           - expression: 
               var: ::main::print
             arguments: 

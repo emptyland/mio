@@ -209,8 +209,8 @@ TEST_F(CheckerTest, SymbolBetweenModuleDiscovery) {
     auto pair = checker.all_modules()->Get(L("main"))->value()->Get(L("main/1.mio"));
     auto node = pair->value()->At(1);
 
-    ASSERT_TRUE(node->IsVariable());
-    var = node->AsVariable();
+    ASSERT_TRUE(node->IsReference());
+    var = node->AsReference()->variable();
     EXPECT_TRUE(var->is_read_only());
 }
 

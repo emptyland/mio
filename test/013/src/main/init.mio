@@ -3,7 +3,7 @@ package main
 native function print(s: string): void
 
 function main: void {
-    var n: [int, string, f32]
+    var n: [int, string, f32] = 0
     print('assertion: '.. 0 ..', n = '..n..'\n')
     n = 1
     print('assertion: '..(n is int)..', n = '..n..'\n')

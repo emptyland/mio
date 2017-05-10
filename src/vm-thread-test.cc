@@ -43,11 +43,6 @@ TEST_F(ThreadTest, P012_Sanity) {
     ParsingError error;
 
     ASSERT_TRUE(vm_->CompileProject("test/012", &error)) << error.ToString();
-    std::string buf;
-    vm_->DisassembleAll(&buf);
-
-    printf("%s\n", buf.c_str());
-
     vm_->function_register()->RegisterNativeFunction("::main::print", PrintRountine);
     ASSERT_EQ(0, vm_->Run());
 }
@@ -56,11 +51,8 @@ TEST_F(ThreadTest, P013_UnionOperation) {
     ParsingError error;
 
     ASSERT_TRUE(vm_->CompileProject("test/013", &error)) << error.ToString();
+
     std::string buf;
-    vm_->DisassembleAll(&buf);
-
-    printf("%s\n", buf.c_str());
-
     vm_->function_register()->RegisterNativeFunction("::main::print", PrintRountine);
     if (vm_->Run() != 0) {
         buf.clear();
@@ -73,11 +65,8 @@ TEST_F(ThreadTest, P014_LocalFunction) {
     ParsingError error;
 
     ASSERT_TRUE(vm_->CompileProject("test/014", &error)) << error.ToString();
+
     std::string buf;
-    vm_->DisassembleAll(&buf);
-
-    printf("%s\n", buf.c_str());
-
     vm_->function_register()->RegisterNativeFunction("::main::print", PrintRountine);
     if (vm_->Run() != 0) {
         buf.clear();
@@ -90,11 +79,6 @@ TEST_F(ThreadTest, P015_HashMapForeach) {
     ParsingError error;
 
     ASSERT_TRUE(vm_->CompileProject("test/015", &error)) << error.ToString();
-    std::string buf;
-    vm_->DisassembleAll(&buf);
-
-    printf("%s\n", buf.c_str());
-
     vm_->function_register()->RegisterNativeFunction("::main::print", PrintRountine);
     ASSERT_EQ(0, vm_->Run());
 }
@@ -103,11 +87,6 @@ TEST_F(ThreadTest, P016_UnionTypeMatch) {
     ParsingError error;
 
     ASSERT_TRUE(vm_->CompileProject("test/016", &error)) << error.ToString();
-    std::string buf;
-    vm_->DisassembleAll(&buf);
-
-    printf("%s\n", buf.c_str());
-
     vm_->function_register()->RegisterNativeFunction("::main::print", PrintRountine);
     ASSERT_EQ(0, vm_->Run());
 }
@@ -117,10 +96,6 @@ TEST_F(ThreadTest, P017_PanicTest) {
 
     ASSERT_TRUE(vm_->CompileProject("test/017", &error)) << error.ToString();
     std::string buf;
-    vm_->DisassembleAll(&buf);
-
-    printf("%s\n", buf.c_str());
-
     if (vm_->Run() != 0) {
         buf.clear();
         vm_->PrintBackstrace(&buf);
@@ -132,11 +107,8 @@ TEST_F(ThreadTest, P018_ArrayInitializerAndForeach) {
     ParsingError error;
 
     ASSERT_TRUE(vm_->CompileProject("test/018", &error)) << error.ToString();
+
     std::string buf;
-    vm_->DisassembleAll(&buf);
-
-    printf("%s\n", buf.c_str());
-
     vm_->function_register()->RegisterNativeFunction("::main::print", PrintRountine);
     if (vm_->Run() != 0) {
         buf.clear();
@@ -150,11 +122,7 @@ TEST_F(ThreadTest, P020_ErrorType) {
 
     ASSERT_TRUE(vm_->CompileProject("test/020", &error)) << error.ToString();
     std::string buf;
-    vm_->DisassembleAll(&buf);
 
-    printf("%s\n", buf.c_str());
-
-    //vm_->function_register()->RegisterNativeFunction("::main::print", PrintRountine);
     if (vm_->Run() != 0) {
         buf.clear();
         vm_->PrintBackstrace(&buf);

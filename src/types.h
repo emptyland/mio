@@ -80,6 +80,8 @@ public:
 
     virtual Kind type_kind() const = 0;
 
+    virtual bool MustBeInitialized() const = 0;
+
     virtual bool CanAcceptFrom(Type *type) const;
     bool CanNotAcceptFrom(Type *type) const { return !CanAcceptFrom(type); }
 
@@ -119,6 +121,10 @@ protected:
 
 class Void : public Type {
 public:
+    virtual bool MustBeInitialized() const override {
+        DLOG(FATAL) << "noreached!";
+        return false;
+    }
 
     DECLARE_TYPE(Void)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Void)
@@ -134,6 +140,8 @@ public:
     static const int kNumberOfNumericTypes = kNumberOfIntegralTypes + kNumberOfFloatingTypes;
 
     DEF_GETTER(int, bitwide)
+
+    virtual bool MustBeInitialized() const override { return false; }
 
     virtual int order() const = 0;
 
@@ -186,9 +194,13 @@ private:
 
 class Unknown : public Type {
 public:
+    virtual bool MustBeInitialized() const override {
+        DLOG(FATAL) << "noreached!";
+        return false;
+    }
+
     DECLARE_TYPE(Unknown)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Unknown);
-
 private:
     Unknown(int64_t id) : Type(id) {}
 }; // class Unknown
@@ -196,9 +208,10 @@ private:
 
 class String : public Type {
 public:
+    virtual bool MustBeInitialized() const override { return false; }
+
     DECLARE_TYPE(String)
     DISALLOW_IMPLICIT_CONSTRUCTORS(String)
-
 private:
     String(int64_t id) : Type(id) {}
 }; // class String
@@ -230,6 +243,8 @@ public:
     Type *element() const { return element_; }
     void set_element(Type *element) { element_ = DCHECK_NOTNULL(element); }
 
+    virtual bool MustBeInitialized() const override { return false; }
+
     virtual int64_t GenerateId() const override;
 
     DECLARE_TYPE(Array)
@@ -247,6 +262,8 @@ protected:
 
 class Slice : public Array {
 public:
+    virtual bool MustBeInitialized() const override { return true; }
+
     virtual int64_t GenerateId() const override;
 
     DECLARE_TYPE(Slice)
@@ -263,6 +280,8 @@ public:
 
     Type *value() const { return value_; }
     void set_value(Type *value) { value_ = DCHECK_NOTNULL(value); }
+
+    virtual bool MustBeInitialized() const override { return false; }
 
     virtual int64_t GenerateId() const override;
 
@@ -284,6 +303,8 @@ public:
     ZoneVector<Paramter *> *mutable_paramters() { return paramters_; }
     Type *return_type() const { return return_type_; }
     void set_return_type(Type *type) { return_type_ = type; }
+
+    virtual bool MustBeInitialized() const override { return false; }
 
     virtual int64_t GenerateId() const override;
 
@@ -310,6 +331,8 @@ public:
 
     bool CanBe(Type *type) { return types_->Exist(type->GenerateId()); }
 
+    virtual bool MustBeInitialized() const override;
+
     virtual bool CanAcceptFrom(Type *type) const override;
 
     virtual int64_t GenerateId() const override;
@@ -328,6 +351,7 @@ private:
 
 class Error : public Type {
 public:
+    virtual bool MustBeInitialized() const override { return true; }
 
     DECLARE_TYPE(Error)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Error)

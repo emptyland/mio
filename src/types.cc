@@ -214,6 +214,16 @@ int Union::ToString(TextOutputStream *stream) const {
     return rv + stream->Write("]");
 }
 
+/*virtual*/ bool Union::MustBeInitialized() const {
+    TypeMap::Iterator iter(types_);
+    for (iter.Init(); iter.HasNext(); iter.MoveNext()) {
+        if (iter->value()->IsVoid()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /*virtual*/ bool Union::CanAcceptFrom(Type *type) const {
     if (GenerateId() == type->GenerateId()) {
         return true;

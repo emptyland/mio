@@ -1158,17 +1158,11 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                                                         ob->GetKey()->GetTypePlacementSize(),
                                                         make_handle(ob->GetValue()));
             } else {
-                auto err = vm_->object_factory()->CreateError("key not found",
-                                                              GetSourceFileName(0),
-                                                              GetSourcePosition(0),
-                                                              Handle<MIOError>());
-                auto err_type = GetTypeInfo(vm_->type_error_index, ok);
+                auto void_type = GetTypeInfo(vm_->type_void_index, ok);
                 if (!*ok) {
                     return;
                 }
-                rv = vm_->object_factory()->CreateUnion(err.address(),
-                                                        err_type->GetTypePlacementSize(),
-                                                        err_type);
+                rv = vm_->object_factory()->CreateUnion(nullptr, 0, void_type);
             }
             if (rv.empty()) {
                 Panic(OUT_OF_MEMORY, ok, "no memory for create union.");

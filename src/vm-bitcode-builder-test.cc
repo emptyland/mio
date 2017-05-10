@@ -65,7 +65,7 @@ TEST(BitCodeBuilderTest, MoveInstruction) {
 
     auto bc = static_cast<const uint64_t *>(code.offset(0));
     EXPECT_EQ(BC_frame, BitCodeDisassembler::GetInst(bc[0]));
-    EXPECT_EQ(8, BitCodeDisassembler::GetVal1(bc[0]));
+    EXPECT_EQ(0, BitCodeDisassembler::GetVal1(bc[0]));
     EXPECT_EQ(0, BitCodeDisassembler::GetVal2(bc[0]));
 
     EXPECT_EQ(BC_mov_8b, BitCodeDisassembler::GetInst(bc[1]));

@@ -32,9 +32,14 @@ test/016/src/main/init.mio:
                   arguments: 
                     - op: STRCAT
                       lhs: 
-                        string: i32: 
+                        op: STRCAT
+                        lhs: 
+                          string: i32: 
+                        rhs: 
+                          var: ::main::main::<1>::match-case::x
                       rhs: 
-                        var: ::main::main::<1>::match-case::x
+                        string: 
+
               - case: 
                   declare_val: x
                   export: no
@@ -45,15 +50,36 @@ test/016/src/main/init.mio:
                   arguments: 
                     - op: STRCAT
                       lhs: 
-                        string: f32: 
+                        op: STRCAT
+                        lhs: 
+                          string: f32: 
+                        rhs: 
+                          var: ::main::main::<1>::match-case::x
                       rhs: 
-                        var: ::main::main::<1>::match-case::x
+                        string: 
+
               - else: 
                   expression: 
                     var: ::main::print
                   arguments: 
                     - op: STRCAT
                       lhs: 
-                        string: string: 
+                        op: STRCAT
+                        lhs: 
+                          string: string: 
+                        rhs: 
+                          var: ::main::main::<0>::u
                       rhs: 
-                        var: ::main::main::<0>::u
+                        string: 
+
+          - if: 
+                          then: 
+              block: 
+                - expression: 
+                    var: ::main::print
+                  arguments: 
+                    - op: STRCAT
+                      lhs: 
+                                              rhs: 
+                        string: 
+

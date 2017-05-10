@@ -253,10 +253,17 @@ private:
         DCHECK_NOTNULL(node->initializer());
         node->set_type(AnalysisType());
     } else {
+        if (node->type()->MustBeInitialized() && !node->has_initializer()) {
+            ThrowError(node, "type %s need initializer.",
+                       node->type()->ToString().c_str());
+            return;
+        }
+
         if (node->has_initializer() &&
             !node->type()->CanAcceptFrom(AnalysisType())) {
             ThrowError(node, "val %s can not accept initializer type",
                        node->name()->c_str());
+            return;
         }
     }
     SetEvalType(types_->GetVoid());
@@ -272,10 +279,17 @@ private:
         DCHECK_NOTNULL(node->initializer());
         node->set_type(AnalysisType());
     } else {
+        if (node->type()->MustBeInitialized() && !node->has_initializer()) {
+            ThrowError(node, "type %s need initializer.",
+                       node->type()->ToString().c_str());
+            return;
+        }
+
         if (node->has_initializer() &&
             !node->type()->CanAcceptFrom(AnalysisType())) {
             ThrowError(node, "var %s can not accept initializer type",
                        node->name()->c_str());
+            return;
         }
     }
     SetEvalType(types_->GetVoid());

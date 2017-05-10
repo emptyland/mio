@@ -168,11 +168,6 @@ public:
 
     }
 
-//    const K &key() const { return current_->key(); }
-//    const V &value() const { return current_->value(); }
-//    void set_value(const V &other) { current_->set_value(other); }
-//    V *mutable_value() { current_->mutable_value(); }
-
     Pair *operator -> () const { return get(); }
 
     Pair *get() const { return DCHECK_NOTNULL(current_); }

@@ -11,7 +11,7 @@ test/009/src/main/init.mio:
           - expression: 
               var: ::main::foo
             arguments: 
-              - i64: 100
+              - var: ::main::a
   - function_def: foo
     export: no
     native: no
@@ -36,3 +36,8 @@ test/009/src/main/init.mio:
                 var: ::main::foo::a
               rhs: 
                 i64: 1
+  - declare_val: a
+    export: no
+    type: i64
+    init: 
+      i64: 100
