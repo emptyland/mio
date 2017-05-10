@@ -27,8 +27,9 @@ namespace mio {
 class Type;
     class Map;
     class FunctionPrototype;
-    class Integral;
-    class Floating;
+    class Numeric;
+        class Integral;
+        class Floating;
     class String;
     class Struct;
     class Slice;
@@ -68,6 +69,14 @@ public:
     DEFINE_TYPE_NODES(Type_TYPE_ASSERT)
 
 #undef Type_TYPE_ASSERT
+
+    Numeric *AsNumeric() {
+        return is_numeric() ? reinterpret_cast<Numeric *>(this) : nullptr;
+    }
+
+    const Numeric *AsNumeric() const {
+        return is_numeric() ? reinterpret_cast<const Numeric *>(this) : nullptr;
+    }
 
     virtual Kind type_kind() const = 0;
 
@@ -118,33 +127,60 @@ private:
 }; // class Void
 
 
-class Integral : public Type {
+class Numeric : public Type {
 public:
+    static const int kNumberOfIntegralTypes = 4;
+    static const int kNumberOfFloatingTypes = 2;
+    static const int kNumberOfNumericTypes = kNumberOfIntegralTypes + kNumberOfFloatingTypes;
+
     DEF_GETTER(int, bitwide)
+
+    virtual int order() const = 0;
+
+protected:
+    Numeric(int bitwide, int64_t id)
+        : Type(id)
+        , bitwide_(bitwide) {}
+
+private:
+    int bitwide_ = 0;
+};
+
+class Integral : public Numeric {
+public:
+
+    virtual int order() const override {
+        int i;
+        for (i = 0; (8 << i) < bitwide(); ++i)
+            ;
+        DCHECK_LT(i, kNumberOfIntegralTypes);
+        return i;
+    }
 
     DECLARE_TYPE(Integral)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Integral);
 private:
     Integral(int bitwide, int64_t id)
-        : Type(id)
-        , bitwide_(bitwide) {}
-
-    int bitwide_;
+        : Numeric(bitwide, id) {}
 }; // class Integral
 
 
-class Floating : public Type {
+class Floating : public Numeric {
 public:
-    DEF_GETTER(int, bitwide)
+
+    virtual int order() const override {
+        int i;
+        for (i = 0; (32 << i) < bitwide(); ++i)
+            ;
+        DCHECK_LT(i, kNumberOfFloatingTypes);
+        return kNumberOfIntegralTypes + i;
+    }
 
     DECLARE_TYPE(Floating)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Floating);
 private:
     Floating(int bitwide, int64_t id)
-        : Type(id)
-        , bitwide_(bitwide) {}
-
-    int bitwide_;
+        : Numeric(bitwide, id) {}
 }; // class Floating
 
 

@@ -188,6 +188,74 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+    // type cast
+    ////////////////////////////////////////////////////////////////////////////
+    // bytes = output size
+    int sext_i32(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_sext_i32, result, bytes, input);
+    }
+
+    int sext_i16(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_sext_i16, result, bytes, input);
+    }
+
+    int sext_i8(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_sext_i8, result, bytes, input);
+    }
+
+    int trunc_i16(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_trunc_i16, result, bytes, input);
+    }
+
+    int trunc_i32(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_trunc_i32, result, bytes, input);
+    }
+
+    int trunc_i64(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_trunc_i64, result, bytes, input);
+    }
+
+    int fptrunc_f32(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_fptrunc_f32, result, bytes, input);
+    }
+
+    int fptrunc_f64(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_fptrunc_f64, result, bytes, input);
+    }
+
+    int fpext_f32(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_fpext_f32, result, bytes, input);
+    }
+
+    int fpext_f64(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_fpext_f64, result, bytes, input);
+    }
+
+    int fptosi_f32(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_fptosi_f32, result, bytes, input);
+    }
+
+    int fptosi_f64(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_fptosi_f64, result, bytes, input);
+    }
+
+    int sitofp_i8(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_sitofp_i8, result, bytes, input);
+    }
+
+    int sitofp_i16(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_sitofp_i16, result, bytes, input);
+    }
+
+    int sitofp_i32(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_sitofp_i32, result, bytes, input);
+    }
+
+    int sitofp_i64(uint16_t result, uint16_t bytes, uint16_t input) {
+        return Emit3Addr(BC_sitofp_i64, result, bytes, input);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
     // call
     ////////////////////////////////////////////////////////////////////////////
     int close_fn(uint16_t fn) {

@@ -675,7 +675,7 @@ bool Lexer::ParseSymbolOrKeyword(TokenObject *token) {
 
         case '{': case '}': case '[': case ']': case '(': case ')': case ',':
         case ':': case '<': case '>': case '=': case '~': case '.': case '+':
-        case '-': case '*': case '/': case '%': case '^':
+        case '-': case '*': case '/': case '%': case '^': case '!': case '?':
             // TODO:
             return true;
 

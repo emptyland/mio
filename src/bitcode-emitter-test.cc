@@ -277,4 +277,11 @@ TEST_F(BitCodeEmitterTest, P018_ArrayOperation) {
     printf("%s\n", dasm.c_str());
 }
 
+TEST_F(BitCodeEmitterTest, P019_NumericCast) {
+    std::string dasm;
+    ParseProject("019", &dasm);
+
+    printf("%s\n", dasm.c_str());
+}
+
 } // namespace mio

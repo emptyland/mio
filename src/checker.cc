@@ -182,6 +182,8 @@ public:
     virtual void VisitTypeTest(TypeTest *node) override;
     virtual void VisitTypeCast(TypeCast *node) override;
     virtual void VisitTypeMatch(TypeMatch *node) override;
+    virtual void VisitVariable(Variable *node) override;
+    virtual void VisitReference(Reference *node) override;
 
     Type *AnalysisType() { return type_stack_.top(); };
 
@@ -298,6 +300,7 @@ private:
 
 /*virtual*/ void CheckingAstVisitor::VisitUnaryOperation(UnaryOperation *node) {
     ACCEPT_REPLACE_EXPRESSION(node, operand);
+    auto type = AnalysisType();
     switch (node->op()) {
         case OP_MINUS:
             if (!AnalysisType()->is_numeric()) {
@@ -315,11 +318,15 @@ private:
             if (!AnalysisType()->IsIntegral()) {
                 ThrowError(node, "`not' operator only accept bool type.");
             }
+            PopEvalType();
+            PushEvalType(types_->GetI8());
             break;
 
         default:
+            DLOG(FATAL) << "noreached!";
             break;
     }
+    node->set_operand_type(type);
     // keep type, DO NOT POP EVAL TYPE
 }
 
@@ -898,6 +905,16 @@ void CheckingAstVisitor::VisitTypeMatch(TypeMatch *node) {
     }
 }
 
+void CheckingAstVisitor::VisitVariable(Variable *node) {
+    DCHECK(!node->type()->IsUnknown());
+    PushEvalType(node->type());
+}
+
+void CheckingAstVisitor::VisitReference(Reference *node) {
+    DCHECK(!node->variable()->type()->IsUnknown());
+    PushEvalType(node->variable()->type());
+}
+
 void CheckingAstVisitor::CheckFunctionCall(FunctionPrototype *proto, Call *node) {
     if (proto->mutable_paramters()->size() !=
         node->mutable_arguments()->size()) {
@@ -973,6 +990,12 @@ void CheckingAstVisitor::CheckArrayAccessorOrMakeSlice(Type *callee, Call *node)
             ThrowError(node->argument(0), "array/slice index need integral number.");
             return;
         }
+        if (index != types_->GetInt()) {
+            auto arg = node->argument(0);
+            auto cast = factory_->CreateTypeCast(arg, types_->GetInt(),
+                                                 arg->position());
+            node->set_argument(0, cast);
+        }
         PushEvalType(array->element());
     } else if (node->argument_size() == 2) {
         ACCEPT_REPLACE_EXPRESSION_I(node, mutable_arguments, 0);
@@ -984,6 +1007,13 @@ void CheckingAstVisitor::CheckArrayAccessorOrMakeSlice(Type *callee, Call *node)
                        "\"begin\" position.");
             return;
         }
+        if (begin != types_->GetInt()) {
+            auto arg = node->argument(0);
+            auto cast = factory_->CreateTypeCast(arg, types_->GetInt(),
+                                                 arg->position());
+            node->set_argument(0, cast);
+        }
+
         ACCEPT_REPLACE_EXPRESSION_I(node, mutable_arguments, 1);
         auto size = AnalysisType();
         PopEvalType();
@@ -992,6 +1022,12 @@ void CheckingAstVisitor::CheckArrayAccessorOrMakeSlice(Type *callee, Call *node)
             ThrowError(node->argument(1), "make slice need integral number "
                        "\"size\".");
             return;
+        }
+        if (size != types_->GetInt()) {
+            auto arg = node->argument(1);
+            auto cast = factory_->CreateTypeCast(arg, types_->GetInt(),
+                                                 arg->position());
+            node->set_argument(1, cast);
         }
 
         if (array->IsSlice()) {

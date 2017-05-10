@@ -235,13 +235,12 @@ MSGGarbageCollector::CreateHashMap(int seed, int initial_slots,
 
 /*virtual*/
 Handle<MIOError>
-MSGGarbageCollector::CreateError(const char *message, int position,
-                                   Handle<MIOError> linked) {
+MSGGarbageCollector::CreateError(Handle<MIOString> msg,
+                                 Handle<MIOString> file_name, int position,
+                                 Handle<MIOError> linked) {
     NEW_FIXED_SIZE_OBJECT(ob, MIOError, 0);
+    ob->SetFileName(file_name.get());
     ob->SetPosition(position);
-
-    auto msg = ObjectFactory::GetOrNewString(message,
-                                             static_cast<int>(strlen(message)));
     ob->SetMessage(msg.get());
     ob->SetLinkedError(linked.get());
     return make_handle(ob);

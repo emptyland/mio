@@ -120,24 +120,24 @@ std::string Type::ToString() const {
 ////////////////////////////////////////////////////////////////////////////////
 
 /*virtual*/ int Integral::placement_size() const {
-    return (bitwide_ + 7) / 8;
+    return (bitwide() + 7) / 8;
 }
 
 /*virtual*/
 int Integral::ToString(TextOutputStream *stream) const {
-    return stream->Printf("i%d", bitwide_);
+    return stream->Printf("i%d", bitwide());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Floating
 ////////////////////////////////////////////////////////////////////////////////
 /*virtual*/ int Floating::placement_size() const {
-    return (bitwide_ + 7) / 8;
+    return (bitwide() + 7) / 8;
 }
 
 /*virtual*/
 int Floating::ToString(TextOutputStream *stream) const {
-    return stream->Printf("f%d", bitwide_);
+    return stream->Printf("f%d", bitwide());
 }
 
 ////////////////////////////////////////////////////////////////////////////////

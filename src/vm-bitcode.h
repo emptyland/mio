@@ -50,6 +50,24 @@ namespace mio {
     M(sub_f32) \
     M(sub_f64)
 
+#define VM_TYPE_CAST(M) \
+    M(sext_i32) \
+    M(sext_i16) \
+    M(sext_i8) \
+    M(trunc_i16) \
+    M(trunc_i32) \
+    M(trunc_i64) \
+    M(fptrunc_f32) \
+    M(fptrunc_f64) \
+    M(fpext_f32) \
+    M(fpext_f64) \
+    M(fptosi_f32) \
+    M(fptosi_f64) \
+    M(sitofp_i8) \
+    M(sitofp_i16) \
+    M(sitofp_i32) \
+    M(sitofp_i64)
+
 #define VM_TEST_BC(M) \
     M(test) \
     M(jz) \
@@ -69,6 +87,7 @@ namespace mio {
     VM_LOAD_BC(M) \
     VM_MOV_BC(M) \
     VM_ARITH_BC(M) \
+    VM_TYPE_CAST(M) \
     VM_TEST_BC(M) \
     VM_CALL_BC(M)
 

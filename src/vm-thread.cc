@@ -230,10 +230,6 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 }
             } break;
 
-//    #define DEFINE_INNER_CASE(name, cppop) \
-//        case CC_##name: \
-//            p_stack_->Set<mio_i8_t>(result, GetI##bit(val1) cppop GetI##bit(val2));
-
         #define DEFINE_CASE(byte, bit) \
             case BC_cmp_i##bit: { \
                 auto op = static_cast<BCComparator>(BitCodeDisassembler::GetOp1(bc)); \
@@ -267,7 +263,199 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
             MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
         #undef DEFINE_CASE
 
-//    #undef DEFINE_INNER_CASE
+            case BC_sext_i8: {
+                auto result = BitCodeDisassembler::GetOp1(bc);
+                auto bytes  = BitCodeDisassembler::GetOp2(bc);
+                auto input  = BitCodeDisassembler::GetImm32(bc);
+            #define DEFINE_CASE(byte, bit) \
+                case byte: p_stack_->Set<mio_i##bit##_t>(result, GetI8(input));
+                switch (bytes) {
+                    MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+                    default:
+                        Panic(BAD_BIT_CODE, ok, "i8 can not extend to i%d.", bytes * 8);
+                        return;
+                }
+            #undef DEFINE_CASE
+            } break;
+
+            case BC_sext_i16: {
+                auto result = BitCodeDisassembler::GetOp1(bc);
+                auto bytes  = BitCodeDisassembler::GetOp2(bc);
+                auto input  = BitCodeDisassembler::GetImm32(bc);
+                switch (bytes) {
+                    case 2:
+                        p_stack_->Set(result, GetI16(input));
+                        break;
+                    case 4:
+                        p_stack_->Set<mio_i32_t>(result, GetI16(input));
+                        break;
+                    case 8:
+                        p_stack_->Set<mio_i64_t>(result, GetI16(input));
+                        break;
+                    default:
+                        Panic(BAD_BIT_CODE, ok, "i16 can not extend to i%d.", bytes * 8);
+                        return;
+                }
+            } break;
+
+            case BC_sext_i32: {
+                auto result = BitCodeDisassembler::GetOp1(bc);
+                auto bytes  = BitCodeDisassembler::GetOp2(bc);
+                auto input  = BitCodeDisassembler::GetImm32(bc);
+                switch (bytes) {
+                    case 4:
+                        p_stack_->Set(result, GetI32(input));
+                        break;
+                    case 8:
+                        p_stack_->Set<mio_i64_t>(result, GetI32(input));
+                        break;
+                    default:
+                        Panic(BAD_BIT_CODE, ok, "i32 can not extend to i%d.", bytes * 8);
+                        return;
+                }
+            } break;
+
+            case BC_trunc_i16: {
+                auto result = BitCodeDisassembler::GetOp1(bc);
+                auto bytes  = BitCodeDisassembler::GetOp2(bc);
+                auto input  = BitCodeDisassembler::GetImm32(bc);
+                switch (bytes) {
+                    case 2:
+                        p_stack_->Set(result, GetI16(input));
+                        break;
+                    case 1:
+                        p_stack_->Set(result, static_cast<mio_i8_t>(GetI16(input)));
+                        break;
+                    default:
+                        Panic(BAD_BIT_CODE, ok, "i16 can not truncate to i%d.", bytes * 8);
+                        return;
+                }
+            } break;
+
+            case BC_trunc_i32: {
+                auto result = BitCodeDisassembler::GetOp1(bc);
+                auto bytes  = BitCodeDisassembler::GetOp2(bc);
+                auto input  = BitCodeDisassembler::GetImm32(bc);
+                switch (bytes) {
+                    case 4:
+                        p_stack_->Set(result, GetI32(input));
+                        break;
+                    case 2:
+                        p_stack_->Set(result, static_cast<mio_i16_t>(GetI32(input)));
+                        break;
+                    case 1:
+                        p_stack_->Set(result, static_cast<mio_i8_t>(GetI32(input)));
+                        break;
+                    default:
+                        Panic(BAD_BIT_CODE, ok, "i32 can not truncate to i%d.", bytes * 8);
+                        return;
+                }
+            } break;
+
+            case BC_trunc_i64: {
+                auto result = BitCodeDisassembler::GetOp1(bc);
+                auto bytes  = BitCodeDisassembler::GetOp2(bc);
+                auto input  = BitCodeDisassembler::GetImm32(bc);
+            #define DEFINE_CASE(byte, bit)\
+                case byte: \
+                    p_stack_->Set(result, static_cast<mio_i##bit##_t>(GetI64(input)));
+                switch (bytes) {
+                    MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+                    default:
+                        Panic(BAD_BIT_CODE, ok, "i64 can not truncate to i%d.", bytes * 8);
+                        return;
+                }
+            #undef DEFINE_CASE
+            } break;
+
+            case BC_fpext_f32: {
+                auto result = BitCodeDisassembler::GetOp1(bc);
+                auto bytes  = BitCodeDisassembler::GetOp2(bc);
+                auto input  = BitCodeDisassembler::GetImm32(bc);
+                switch (bytes) {
+                    case 4:
+                        p_stack_->Set(result, GetF32(input));
+                        break;
+                    case 8:
+                        p_stack_->Set(result, static_cast<mio_f64_t>(GetF32(input)));
+                        break;
+                    default:
+                        Panic(BAD_BIT_CODE, ok, "f32 can not extend to f%d.", bytes * 8);
+                        return;
+                }
+            } break;
+
+            case BC_fptrunc_f64: {
+                auto result = BitCodeDisassembler::GetOp1(bc);
+                auto bytes  = BitCodeDisassembler::GetOp2(bc);
+                auto input  = BitCodeDisassembler::GetImm32(bc);
+                switch (bytes) {
+                    case 8:
+                        p_stack_->Set(result, GetF64(input));
+                        break;
+                    case 4:
+                        p_stack_->Set(result, static_cast<mio_f32_t>(GetF64(input)));
+                        break;
+                    default:
+                        Panic(BAD_BIT_CODE, ok, "f64 can not truncate to f%d.", bytes * 8);
+                        return;
+                }
+            } break;
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_sitofp_i##bit: { \
+                auto result = BitCodeDisassembler::GetOp1(bc); \
+                auto bytes  = BitCodeDisassembler::GetOp2(bc); \
+                auto input  = BitCodeDisassembler::GetImm32(bc); \
+                switch (bytes) { \
+                    case 4: \
+                        p_stack_->Set(result, static_cast<mio_f32_t>(GetI##bit(input))); \
+                        break; \
+                    case 8: \
+                        p_stack_->Set(result, static_cast<mio_f64_t>(GetI##bit(input))); \
+                        break; \
+                    default: \
+                        Panic(BAD_BIT_CODE, ok, "i" #bit " can not cast to f%d.", bytes * 8); \
+                        return; \
+                } \
+            } break;
+
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+            case BC_fptosi_f32: {
+                auto result = BitCodeDisassembler::GetOp1(bc);
+                auto bytes  = BitCodeDisassembler::GetOp2(bc);
+                auto input  = BitCodeDisassembler::GetImm32(bc);
+                switch (bytes) {
+                #define DEFINE_CASE(byte, bit) \
+                    case byte: \
+                        p_stack_->Set(result, static_cast<mio_i##bit##_t>(GetF32(input))); \
+                        break;
+                    MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+                #undef DEFINE_CASE
+                    default:
+                        Panic(BAD_BIT_CODE, ok, "f32 can not cast to i%d.", bytes * 8);
+                        return;
+                }
+            } break;
+
+            case BC_fptosi_f64: {
+                auto result = BitCodeDisassembler::GetOp1(bc);
+                auto bytes  = BitCodeDisassembler::GetOp2(bc);
+                auto input  = BitCodeDisassembler::GetImm32(bc);
+                switch (bytes) {
+                #define DEFINE_CASE(byte, bit) \
+                    case byte: \
+                        p_stack_->Set(result, static_cast<mio_i##bit##_t>(GetF64(input))); \
+                        break;
+                    MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+                #undef DEFINE_CASE
+                    default:
+                        Panic(BAD_BIT_CODE, ok, "f64 can not cast to i%d.", bytes * 8);
+                        return;
+                }
+            } break;
 
             case BC_frame: {
                 auto size1 = BitCodeDisassembler::GetOp1(bc);
@@ -461,6 +649,28 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
 
         ++vm_->tick_;
     } // while
+}
+
+FunctionDebugInfo *Thread::GetDebugInfo(int layout, int *pc) {
+    if (layout == 0) {
+        *pc = pc_;
+        return debug_info();
+    }
+
+    auto index = call_stack_->size() - layout;
+    if (index < 0 || index >= call_stack_->size()) {
+        DLOG(ERROR) << "layout out of range: " << layout;
+        return 0;
+    }
+
+    auto ctx = call_stack_->base() + index;
+    if (ctx->callee && ctx->debug_info()) {
+        auto info = ctx->debug_info();
+        *pc = ctx->pc - 1;
+        DCHECK_GE(*pc, 0); DCHECK_LT(*pc, info->pc_size);
+        return info;
+    }
+    return 0;
 }
 
 int Thread::GetCallStack(std::vector<MIOFunction *> *call_stack) {
@@ -750,7 +960,7 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             }
             std::string buf;
             MemoryOutputStream stream(&buf);
-            NativeBaseLibrary::ToString(&stream,
+            NativeBaseLibrary::ToString(this, &stream,
                      type_info->IsPrimitive() ? p_stack_->offset(val1)
                      : o_stack_->offset(val1), type_info, ok);
             if (!*ok) {
@@ -948,7 +1158,9 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                                                         ob->GetKey()->GetTypePlacementSize(),
                                                         make_handle(ob->GetValue()));
             } else {
-                auto err = vm_->object_factory()->CreateError("key not found", 0,
+                auto err = vm_->object_factory()->CreateError("key not found",
+                                                              GetSourceFileName(0),
+                                                              GetSourcePosition(0),
                                                               Handle<MIOError>());
                 auto err_type = GetTypeInfo(vm_->type_error_index, ok);
                 if (!*ok) {

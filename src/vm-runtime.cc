@@ -1,5 +1,6 @@
 #include "vm-runtime.h"
 #include "text-output-stream.h"
+#include "source-file-position-dict.h"
 
 namespace mio {
 
@@ -10,13 +11,57 @@ const RtNativeFunctionEntry kRtNaFn[] = {
     { "::base::gc",     &NativeBaseLibrary::GC,     },
     { "::base::fullGC", &NativeBaseLibrary::FullGC, },
     { "::base::panic",  &NativeBaseLibrary::Panic,  },
+    { "::base::newError",  &NativeBaseLibrary::newError,  },
+    { "::base::newErrorWith",  &NativeBaseLibrary::newErrorWith,  },
 
     { .name = nullptr, .pointer = nullptr, } // end of functions
 };
 
+/* static */ int NativeBaseLibrary::newError(VM *vm, Thread *thread) {
+    bool ok = true;
+    auto message = thread->GetString(0, &ok);
+    if (!ok) {
+        thread->Panic(Thread::PANIC, &ok, "incorrect argument(0), unexpected: `string\'");
+        thread->set_should_exit(true);
+        return -1;
+    }
+
+    auto file_name = vm->object_factory()->GetOrNewString(thread->GetSourceFileName(1));
+    auto err = vm->object_factory()->CreateError(message, file_name,
+                                                 thread->GetSourcePosition(1),
+                                                 Handle<MIOError>());
+    thread->o_stack()->Set(-kObjectReferenceSize, err.get());
+    return 0;
+}
+
+/* static */ int NativeBaseLibrary::newErrorWith(VM *vm, Thread *thread) {
+    bool ok = true;
+    auto message = thread->GetString(0, &ok);
+    if (!ok) {
+        thread->Panic(Thread::PANIC, &ok, "incorrect argument(0), unexpected: `string\'");
+        thread->set_should_exit(true);
+        return -1;
+    }
+
+    auto with = thread->GetError(kObjectReferenceSize, &ok);
+    if (!ok) {
+        thread->Panic(Thread::PANIC, &ok, "incorrect argument(1), unexpected: `error\'");
+        thread->set_should_exit(true);
+        return -1;
+    }
+
+    auto file_name = vm->object_factory()->GetOrNewString(thread->GetSourceFileName(1));
+    auto err = vm->object_factory()->CreateError(message, file_name,
+                                                 thread->GetSourcePosition(1),
+                                                 with);
+    thread->o_stack()->Set(-kObjectReferenceSize, err.get());
+    return 0;
+}
+
 /* static */
-int NativeBaseLibrary::ToString(TextOutputStream *stream, void *addr,
-                                Handle<MIOReflectionType> reflection, bool *ok) {
+int NativeBaseLibrary::ToString(Thread *thread, TextOutputStream *stream,
+                                void *addr, Handle<MIOReflectionType> reflection,
+                                bool *ok) {
     switch (reflection->GetKind()) {
         case HeapObject::kReflectionIntegral: {
             switch (reflection->AsReflectionIntegral()->GetBitWide()) {
@@ -46,7 +91,8 @@ int NativeBaseLibrary::ToString(TextOutputStream *stream, void *addr,
 
         case HeapObject::kReflectionUnion: {
             auto ob = make_handle<MIOUnion>(*static_cast<MIOUnion **>(addr));
-            return ToString(stream, ob->GetMutableData(), make_handle(ob->GetTypeInfo()), ok);
+            return ToString(thread, stream, ob->GetMutableData(),
+                            make_handle(ob->GetTypeInfo()), ok);
         } break;
 
         case HeapObject::kReflectionString: {
@@ -59,16 +105,18 @@ int NativeBaseLibrary::ToString(TextOutputStream *stream, void *addr,
 
         case HeapObject::kReflectionError: {
             auto ob = make_handle<MIOError>(*static_cast<MIOError **>(addr));
-            stream->Write("[error: ", 8);
+            stream->Write("[error] ");
+            bool ok = true;
+            auto line = thread->vm()->source_position_dict()->GetLine(
+                    ob->GetFileName()->GetData(), ob->GetPosition(), &ok);
+            if (ok) {
+                stream->Printf("%s:%d:%d ", ob->GetFileName()->GetData(),
+                               line.line + 1, line.column + 1);
+            }
             stream->Write(ob->GetMessage()->GetData(), ob->GetMessage()->GetLength());
             if (ob->GetLinkedError()) {
-                auto link = ob->GetLinkedError();
-                ToString(stream, &link, reflection, ok);
-                if (!*ok) {
-                    return 0;
-                }
+                stream->Write(" ...", 4);
             }
-            stream->Write("]", 1);
         } break;
 
         case HeapObject::kReflectionMap:

@@ -9,4 +9,8 @@ function main: void {
         x: f32 -> print('f32: '..x..'\n')
         else -> print('string: '.. u..'\n')
     }
+
+    if (u? [i32]) {
+        print(u! [i32]..'\n')
+    }
 }

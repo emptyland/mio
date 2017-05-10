@@ -61,7 +61,12 @@ TEST_F(ThreadTest, P013_UnionOperation) {
 
     printf("%s\n", buf.c_str());
 
-    ASSERT_EQ(0, vm_->Run());
+    vm_->function_register()->RegisterNativeFunction("::main::print", PrintRountine);
+    if (vm_->Run() != 0) {
+        buf.clear();
+        vm_->PrintBackstrace(&buf);
+        printf("%s\n", buf.c_str());
+    }
 }
 
 TEST_F(ThreadTest, P014_LocalFunction) {
@@ -133,6 +138,23 @@ TEST_F(ThreadTest, P018_ArrayInitializerAndForeach) {
     printf("%s\n", buf.c_str());
 
     vm_->function_register()->RegisterNativeFunction("::main::print", PrintRountine);
+    if (vm_->Run() != 0) {
+        buf.clear();
+        vm_->PrintBackstrace(&buf);
+        printf("%s\n", buf.c_str());
+    }
+}
+
+TEST_F(ThreadTest, P020_ErrorType) {
+    ParsingError error;
+
+    ASSERT_TRUE(vm_->CompileProject("test/020", &error)) << error.ToString();
+    std::string buf;
+    vm_->DisassembleAll(&buf);
+
+    printf("%s\n", buf.c_str());
+
+    //vm_->function_register()->RegisterNativeFunction("::main::print", PrintRountine);
     if (vm_->Run() != 0) {
         buf.clear();
         vm_->PrintBackstrace(&buf);

@@ -42,8 +42,8 @@ public:
                   Handle<MIOReflectionType> value) override;
 
     virtual
-    Handle<MIOError> CreateError(const char *message, int position,
-                                Handle<MIOError> linked) override;
+    Handle<MIOError> CreateError(Handle<MIOString> msg, Handle<MIOString> file_name,
+                                 int position, Handle<MIOError> linked) override;
 
     virtual
     Handle<MIOUnion> CreateUnion(const void *data, int size,

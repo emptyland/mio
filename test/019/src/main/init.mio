@@ -1,0 +1,10 @@
+package main
+
+function main: void {
+    val m = 1
+    val n = (i32)m
+    val o = (f32)n
+    val p = (int)o
+    val q = (i8)p
+    val r = (i64)q
+}

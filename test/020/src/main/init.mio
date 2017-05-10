@@ -1,0 +1,13 @@
+package main
+
+function main: void {
+
+    var err = base::newError('not found')
+    base::print(err..'\n')
+
+    val m = map { 'name' <- 'shit' }
+    base::print(m('id')..'\n')
+
+    err = base::newErrorWith('fail', err)
+    base::print(err..'\n')
+}

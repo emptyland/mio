@@ -36,6 +36,8 @@ public:
     Stack *p_stack() const { return p_stack_; }
     Stack *o_stack() const { return o_stack_; }
 
+    VM *vm() const { return vm_; }
+
     void Execute(MIONormalFunction *callee, bool *ok);
 
     inline mio_bool_t GetBool(int addr) { return GetI8(addr); }
@@ -56,6 +58,9 @@ public:
     inline Handle<MIOVector>  GetVector(int addr, bool *ok);
     inline Handle<MIOHashMap> GetHashMap(int addr, bool *ok);
 
+    inline int GetSourcePosition(int layout);
+    inline const char *GetSourceFileName(int layout);
+
     int GetCallStack(std::vector<MIOFunction *> *call_stack);
 
     __attribute__ (( __format__ (__printf__, 4, 5)))
@@ -65,6 +70,8 @@ public:
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Thread)
 private:
+    FunctionDebugInfo *GetDebugInfo(int layout, int *pc);
+
     void ProcessLoadPrimitive(int bytes, uint16_t dest, uint16_t segment,
                               int32_t offset, bool *ok);
     void ProcessStorePrimitive(int bytes, uint16_t addr, uint16_t segment,
@@ -103,6 +110,25 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 /// Inline Functions:
 ////////////////////////////////////////////////////////////////////////////////
+inline int Thread::GetSourcePosition(int layout) {
+    int pc = 0;
+    auto info = GetDebugInfo(layout, &pc);
+    if (info) {
+        return info->pc_to_position[pc];
+    } else {
+        return 0;
+    }
+}
+
+inline const char *Thread::GetSourceFileName(int layout) {
+    int pc = 0;
+    auto info = GetDebugInfo(layout, &pc);
+    if (info) {
+        return info->file_name;
+    } else {
+        return "";
+    }
+}
 
 inline mio_i8_t   Thread::GetI8(int addr)  { return p_stack_->Get<mio_i8_t>(addr); }
 inline mio_i16_t  Thread::GetI16(int addr) { return p_stack_->Get<mio_i16_t>(addr); }

@@ -644,12 +644,14 @@ class MIOError : public HeapObject {
 public:
     static const int kLinkedErrorOffset = kHeapObjectOffset;
     static const int kMessageOffset     = kLinkedErrorOffset + kObjectReferenceSize;
-    static const int kPositionOffset    = kMessageOffset + sizeof(int);
-    static const int kMIOErrorOffset    = kPositionOffset + kObjectReferenceSize;
+    static const int kFileNameOffset    = kMessageOffset + kObjectReferenceSize;
+    static const int kPositionOffset    = kFileNameOffset + kObjectReferenceSize;
+    static const int kMIOErrorOffset    = kPositionOffset + sizeof(int);
 
     DEFINE_HEAP_OBJ_RW(MIOError *, LinkedError)
     DEFINE_HEAP_OBJ_RW(int, Position)
     DEFINE_HEAP_OBJ_RW(MIOString *, Message)
+    DEFINE_HEAP_OBJ_RW(MIOString *, FileName)
 
     DECLARE_VM_OBJECT(Error)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOError)

@@ -63,6 +63,10 @@ public:
         return allocator_;
     }
 
+    SourceFilePositionDict *source_position_dict() const {
+        return source_position_dict_;
+    }
+
     void AddSerachPath(const std::string &path) {
         search_path_.push_back(path);
     }

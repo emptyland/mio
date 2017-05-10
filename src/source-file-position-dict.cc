@@ -68,7 +68,7 @@ SourceFilePositionDict::GetLine(const char *file_name, int position, bool *ok) {
 bool SourceFilePositionDict::BuildIndexIfNeeded(const char *file_name) {
     std::unique_ptr<TextInputStream> input(factory_->GetInputStream(file_name));
     if (!input->error().empty()) {
-        DLOG(ERROR) << "open input stream fail: " << input->error();
+        DLOG(ERROR) << "open input stream fail: (" << file_name << ") " << input->error();
         return false;
     }
 

@@ -20,6 +20,7 @@ void ObjectScanner::Scan(HeapObject *ob, Callback callback) {
         case HeapObject::kError: {
             auto err = ob->AsError();
             Scan(err->GetLinkedError(), callback);
+            Scan(err->GetFileName(), callback);
             Scan(err->GetMessage(), callback);
         } break;
 

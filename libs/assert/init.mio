@@ -1,0 +1,24 @@
+package assert
+
+function equal(
+    expected: [i8, i16, i32, i64, f32, f64, string, void],
+    actual: [i8, i16, i32, i64, f32, f64, string, void]
+): void {
+    expected match {
+        v: i8 -> {
+            if (not actual?[i8])
+                base::panic('')
+            if (actual![i8] != v)
+                base::panic('')
+        }
+        v: i16 -> {
+            if (not actual?[i16])
+                base::panic('')
+            if (actual![i16] != v)
+                base::panic('')
+        }
+        else -> {
+            
+        }
+    }
+}

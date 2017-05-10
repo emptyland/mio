@@ -701,6 +701,9 @@ public:
     Expression *operand() const { return operand_; }
     void set_operand(Expression *node) { operand_ = DCHECK_NOTNULL(node); }
 
+    Type *operand_type() const { return DCHECK_NOTNULL(operand_type_); }
+    void set_operand_type(Type *type) { operand_type_ = DCHECK_NOTNULL(type); }
+
     DECLARE_AST_NODE(UnaryOperation)
     DISALLOW_IMPLICIT_CONSTRUCTORS(UnaryOperation)
 private:
@@ -711,6 +714,7 @@ private:
 
     Operator op_;
     Expression *operand_;
+    Type *operand_type_ = nullptr;
 }; // class UnaryOperation
 
 
@@ -960,6 +964,10 @@ public:
     int argument_size() const { return arguments_->size(); }
 
     Expression *argument(int index) const { return arguments_->At(index); }
+
+    void set_argument(int index, Expression *expr) {
+        arguments_->Set(index, DCHECK_NOTNULL(expr));
+    }
 
     DECLARE_AST_NODE(Call)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Call)

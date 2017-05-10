@@ -53,6 +53,10 @@ public:
         return 0;
     }
 
+    static int newError(VM *vm, Thread *thread);
+
+    static int newErrorWith(VM *vm, Thread *thread);
+
     static int PrimitiveHash(const void *z, int n) {
         auto p = static_cast<const uint8_t *>(z);
         uint32_t h = 1315423911;
@@ -96,7 +100,7 @@ public:
                strcmp(lhs->GetData(), rhs->GetData()) == 0;
     }
 
-    static int ToString(TextOutputStream *stream, void *addr,
+    static int ToString(Thread *thread, TextOutputStream *stream, void *addr,
                         Handle<MIOReflectionType> reflection, bool *ok);
 };
 

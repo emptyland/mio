@@ -106,6 +106,25 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
                             GetImm32(bc));
             break;
 
+        case BC_sext_i8:
+        case BC_sext_i16:
+        case BC_sext_i32:
+        case BC_trunc_i16:
+        case BC_trunc_i32:
+        case BC_trunc_i64:
+        case BC_fpext_f32:
+        case BC_fpext_f64:
+        case BC_fptrunc_f32:
+        case BC_fptrunc_f64:
+        case BC_sitofp_i8:
+        case BC_sitofp_i16:
+        case BC_sitofp_i32:
+        case BC_sitofp_i64:
+        case BC_fptosi_f32:
+        case BC_fptosi_f64:
+            stream_->Printf("[%u] <%u> [%u]", GetOp1(bc), GetOp2(bc) * 8, GetImm32(bc));
+            break;
+
         case BC_close_fn:
             stream_->Printf("[%u]", GetOp1(bc));
             break;

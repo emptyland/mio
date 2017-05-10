@@ -72,8 +72,13 @@ public:
                                              Handle<MIOReflectionType> key,
                                              Handle<MIOReflectionType> value) = 0;
 
-    virtual Handle<MIOError> CreateError(const char *message, int position,
-                                        Handle<MIOError> linked) = 0;
+    virtual Handle<MIOError> CreateError(Handle<MIOString> msg,
+                                         Handle<MIOString> file_name,
+                                         int position,
+                                         Handle<MIOError> linked) = 0;
+
+    inline Handle<MIOError> CreateError(const char *msg, const char *file_name,
+                                        int position, Handle<MIOError> linked);
 
     virtual Handle<MIOUnion> CreateUnion(const void *data, int size,
                                          Handle<MIOReflectionType> type_info) = 0;
@@ -125,6 +130,15 @@ public:
 inline Handle<MIOString> ObjectFactory::GetOrNewString(const char *z, int n) {
     mio_strbuf_t buf = { .z = z, .n = n };
     return GetOrNewString(&buf, 1);
+}
+
+inline Handle<MIOError> ObjectFactory::CreateError(const char *msg,
+                                                   const char *file_name,
+                                                   int position,
+                                                   Handle<MIOError> linked) {
+    auto s = GetOrNewString(msg);
+    auto f = file_name ? GetOrNewString(file_name) : GetOrNewString("");
+    return CreateError(s, f, position, linked);
 }
 
 } // namespace mio

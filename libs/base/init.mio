@@ -12,6 +12,12 @@ native function fullGC: void
 
 native function tick: i32
 
+function println(s: string) = print(s..'\n')
+
 native function print(s: string): void
 
 native function panic(message: string): void
+
+native function newError(message: string): error
+
+native function newErrorWith(message: string, e: error): error

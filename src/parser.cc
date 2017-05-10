@@ -676,11 +676,25 @@ Expression *Parser::ParseSuffixed(bool *ok) {
 Expression *Parser::ParsePrimary(bool *ok) {
     auto position = ahead_.position();
     switch (Peek()) {
-         // ( expression )
+        // ( expression )
+        // ( type ) expression
         case TOKEN_LPAREN: {
             Match(TOKEN_LPAREN, CHECK_OK);
-            auto node = ParseExpression(false, CHECK_OK);
+            auto node = ParseExpression(true, CHECK_OK);
+            if (node) {
+                Match(TOKEN_RPAREN, CHECK_OK);
+                return node;
+            }
+            auto type = ParseType(CHECK_OK);
+            if (!type->is_numeric()) {
+                ThrowError("incorrect type %s, only numeric type can be cast to.",
+                           type->ToString().c_str());
+                *ok = false;
+                return nullptr;
+            }
             Match(TOKEN_RPAREN, CHECK_OK);
+            node = ParseExpression(false, CHECK_OK);
+            node = factory_->CreateTypeCast(node, type, position);
             return node;
         } break;
 
@@ -866,6 +880,10 @@ Type *Parser::ParseType(bool *ok) {
         case TOKEN_STRING:
             lexer_->Next(&ahead_);
             return types_->GetString();
+
+        case TOKEN_ERROR_TYPE:
+            lexer_->Next(&ahead_);
+            return types_->GetError();
 
         case TOKEN_FUNCTION:
             return ParseFunctionPrototype(true, nullptr, ok);

@@ -43,6 +43,29 @@ namespace mio {
 
 static const HeapObject * const kNullObject = nullptr;
 
+static const BCInstruction kNop = static_cast<BCInstruction>(0);
+
+struct CastItem {
+    BCInstruction cmd;
+    int out_size;
+};
+
+// 8 | 16 | 32 | 64
+const CastItem kNumericCastMatrix[][Numeric::kNumberOfNumericTypes] = {
+    //[i8]     i8               i16                 i32                   i64                    f32               f64
+    {{kNop,          0}, {BC_sext_i8,    2}, {BC_sext_i8,    4}, {BC_sext_i8,    8}, {BC_sitofp_i8,   4}, {BC_sitofp_i8,  8}},
+    //[i16]    i8               i16                 i32                   i64                    f32               f64
+    {{BC_trunc_i16,  1}, {kNop,          0}, {BC_sext_i16,   4}, {BC_sext_i16,   8}, {BC_sitofp_i16,  4}, {BC_sitofp_i16, 8}},
+    //[i32]    i8               i16                 i32                   i64                    f32               f64
+    {{BC_trunc_i32,  1}, {BC_trunc_i32,  2}, {kNop,          0}, {BC_sext_i32,   8}, {BC_sitofp_i32,  4}, {BC_sitofp_i32, 8}},
+    //[i64]    i8               i16                 i32                   i64                    f32               f64
+    {{BC_trunc_i64,  1}, {BC_trunc_i64,  2}, {BC_trunc_i64,  4}, {kNop,          0}, {BC_sitofp_i64,  4}, {BC_sitofp_i64, 8}},
+    //[f32]    i8               i16                 i32                   i64                    f32               f64
+    {{BC_fptosi_f32, 1}, {BC_fptosi_f32, 2}, {BC_fptosi_f32, 4}, {BC_fptosi_f32, 8}, {kNop,           0}, {BC_fpext_f32,  8}},
+    //[f64]    i8               i16                 i32                   i64                    f32               f64
+    {{BC_fptosi_f64, 1}, {BC_fptosi_f64, 2}, {BC_fptosi_f64, 4}, {BC_fptosi_f64, 8}, {BC_fptrunc_f64, 4}, {kNop,          0}},
+};
+
 namespace {
 
 struct PrimitiveKey {
@@ -384,6 +407,9 @@ private:
     void EmitLoad(const VMValue &dest, const VMValue &src, int position);
     void EmitStore(const VMValue &dest, const VMValue &src, int position);
     void EmitMove(const VMValue &dest, const VMValue &src, int position);
+
+    VMValue EmitNumericCastMakeRoomIfNeeded(const VMValue &target, Numeric *from,
+                                            Numeric *cast_to, int position);
 
     VMValue EmitEmptyValue(Type *type, int position);
 
@@ -1346,10 +1372,13 @@ void EmittingAstVisitor::VisitTypeCast(TypeCast *node) {
         }
         builder(node->position())->oop(OO_UnionUnbox, result.offset, val.offset,
                                        TypeInfoIndex(node->type()));
-    } else if (node->original()->IsIntegral()) {
-        // TODO:
-    } else if (node->original()->IsFloating()) {
-        // TODO:
+    } else if (node->original()->is_numeric()) {
+        auto input = node->original()->AsNumeric();
+        DCHECK(node->type()->is_numeric());
+        auto output = node->type()->AsNumeric();
+
+        result = EmitNumericCastMakeRoomIfNeeded(val, input, output,
+                                                 node->position());
     } else {
         DLOG(FATAL) << "noreached! type: " << node->original()->ToString()
                     << " can not cast to " << node->type()->ToString();
@@ -1762,6 +1791,22 @@ void EmittingAstVisitor::EmitMove(const VMValue &dest, const VMValue &src,
         default:
             DLOG(FATAL) << "noreached! bad segment: " << src.segment;
             break;
+    }
+}
+
+VMValue
+EmittingAstVisitor::EmitNumericCastMakeRoomIfNeeded(const VMValue &value,
+                                                    Numeric *from,
+                                                    Numeric *cast_to,
+                                                    int position) {
+    auto item = kNumericCastMatrix[from->order()][cast_to->order()];
+    if (item.cmd != kNop) {
+        auto result = current_->MakeLocalValue(cast_to);
+        builder(position)->Emit3Addr(item.cmd, result.offset, item.out_size,
+                                     value.offset);
+        return result;
+    } else {
+        return value;
     }
 }
 
