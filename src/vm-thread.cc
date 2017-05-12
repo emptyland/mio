@@ -1002,6 +1002,15 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             RunGC();
         } break;
 
+        case OO_StrLen: {
+            auto ob = GetString(result, ok);
+            if (ob.empty()) {
+                Panic(PANIC, ok, "object not string. addr: %d", result);
+                return;
+            }
+            p_stack_->Set<mio_int_t>(val2, ob->GetLength());
+        } break;
+
         case OO_Array: {
             auto element = GetTypeInfo(val1, ok);
             if (!*ok) {
@@ -1013,6 +1022,30 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                 return;
             }
             o_stack_->Set(result, ob.get());
+
+            RunGC();
+        } break;
+
+        case OO_ArrayAdd: {
+            auto ob = GetVector(result, ok);
+            if (!*ok) {
+                Panic(PANIC, ok, "incorrect object type, unexpected array.");
+                return;
+            }
+            MIOArraySurface surface(ob, vm_->allocator());
+            auto room = surface.AddRoom(1, ok);
+            if (!*ok) {
+                Panic(OUT_OF_MEMORY, ok, "no memory for add array element.");
+                return;
+            }
+
+            if (ob->GetElement()->IsObject()) {
+                FastMemoryMove(room, p_stack_->offset(val2),
+                               ob->GetElement()->GetTypePlacementSize());
+            } else {
+                FastMemoryMove(room, o_stack_->offset(val2),
+                               ob->GetElement()->GetTypePlacementSize());
+            }
 
             RunGC();
         } break;
@@ -1133,10 +1166,29 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                 value = p_stack_->offset(val2);
             }
             MIOHashMapSurface surface(ob.get(), vm_->allocator_);
-            surface.RawPut(key, value);
-            // TODO: out of memory.
+            surface.RawPut(key, value, ok);
+            if (!*ok) {
+                Panic(OUT_OF_MEMORY, ok, "no memory for putting map key-value pair.");
+                return;
+            }
 
             RunGC();
+        } break;
+
+        case OO_MapDelete: {
+            auto ob = GetHashMap(result, ok);
+            if (!*ok) {
+                Panic(PANIC, ok, "incorrect object type, unexpected map. addr: %d", result);
+                return;
+            }
+            MIOHashMapSurface surface(ob.get(), vm_->allocator_);
+            const void *key;
+            if (ob->GetKey()->IsObject()) {
+                key = o_stack_->offset(val1);
+            } else {
+                key = p_stack_->offset(val1);
+            }
+            p_stack_->Set<mio_bool_t>(val2, surface.RawDelete(key));
         } break;
 
         case OO_MapGet: {
@@ -1230,6 +1282,16 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                 FastMemoryMove(p_stack_->offset(val2), pair->GetValue(),
                                ob->GetKey()->GetTypePlacementSize());
             }
+        } break;
+
+        case OO_MapSize: {
+            auto ob = GetHashMap(result, ok);
+            if (!*ok) {
+                Panic(PANIC, ok, "object not map. addr: %d", result);
+                return;
+            }
+            MIOHashMapSurface surface(ob.get(), vm_->allocator_);
+            p_stack_->Set<mio_int_t>(val2, surface.size());
         } break;
 
         default:

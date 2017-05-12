@@ -235,6 +235,11 @@ public:
         VisitVariable(node->variable());
     }
 
+    virtual void VisitBuiltinCall(BuiltinCall *node) override {
+        WriteMapPair("code", "%d", node->code());
+        WriteMapPair("arguments", node->mutable_arguments());
+    }
+
     // block:
     //   - node 1
     //   - node 2

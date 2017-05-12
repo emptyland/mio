@@ -1,0 +1,9 @@
+package main
+
+native function print(s: string): void
+
+function main: void {
+    val s = '012345'
+    var n = len(s)
+    print('len = '..n..'\n')
+}

@@ -163,6 +163,7 @@ public:
     virtual void VisitValDeclaration(ValDeclaration *node) override;
     virtual void VisitVarDeclaration(VarDeclaration *node) override;
     virtual void VisitCall(Call *node) override;
+    virtual void VisitBuiltinCall(BuiltinCall *node) override;
     virtual void VisitUnaryOperation(UnaryOperation *node) override;
     virtual void VisitAssignment(Assignment *node) override;
     virtual void VisitBinaryOperation(BinaryOperation *node) override;
@@ -309,6 +310,99 @@ private:
         CheckArrayAccessorOrMakeSlice(callee_ty, node);
     } else {
         ThrowError(node, "this type can not be call.");
+    }
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitBuiltinCall(BuiltinCall *node) {
+    switch (node->code()) {
+        case BuiltinCall::LEN: {
+            if (node->argument_size() != 1) {
+                ThrowError(node, "len: incorrect number of operands, expected %d, unexpected 1.",
+                           node->argument_size());
+                return;
+            }
+
+            auto arg = node->argument(0);
+            ACCEPT_REPLACE_EXPRESSION(arg, value);
+            if (!AnalysisType()->IsMap() &&
+                !AnalysisType()->IsArray() &&
+                !AnalysisType()->IsSlice() &&
+                !AnalysisType()->IsString()) {
+
+                ThrowError(node, "len: incorrent type of operands, expected %s.",
+                           AnalysisType()->ToString().c_str());
+                return;
+            }
+            arg->set_value_type(AnalysisType());
+            PopEvalType();
+            PushEvalType(types_->GetInt());
+        } break;
+
+        case BuiltinCall::ADD: {
+            if (node->argument_size() != 2) {
+                ThrowError(node, "add: incorrect number of operands, expected %d, unexpected 2.",
+                           node->argument_size());
+                return;
+            }
+
+            auto container = node->argument(0);
+            ACCEPT_REPLACE_EXPRESSION(container, value);
+            if (!AnalysisType()->IsArray()) {
+                ThrowError(container, "add: incorrent type of operands, expected %s.",
+                           AnalysisType()->ToString().c_str());
+                return;
+            }
+            container->set_value_type(AnalysisType());
+            PopEvalType();
+
+            auto element = node->argument(1);
+            ACCEPT_REPLACE_EXPRESSION(element, value);
+            if (!container->value_type()->AsArray()->element()->CanAcceptFrom(AnalysisType())) {
+                ThrowError(element, "add: type %s can not add to %s.",
+                           AnalysisType()->ToString().c_str(),
+                           container->value_type()->ToString().c_str());
+                return;
+            }
+            element->set_value_type(AnalysisType());
+            PopEvalType();
+
+            PushEvalType(container->value_type());
+        } break;
+
+        case BuiltinCall::DELETE: {
+            if (node->argument_size() != 2) {
+                ThrowError(node, "delete: incorrect number of operands, expected %d, unexpected 2.",
+                           node->argument_size());
+                return;
+            }
+
+            auto container = node->argument(0);
+            ACCEPT_REPLACE_EXPRESSION(container, value);
+            if (!AnalysisType()->IsMap()) {
+                ThrowError(container, "delete: incorrent type of operands, expected %s.",
+                           AnalysisType()->ToString().c_str());
+                return;
+            }
+            container->set_value_type(AnalysisType());
+            PopEvalType();
+
+            auto key = node->argument(1);
+            ACCEPT_REPLACE_EXPRESSION(key, value);
+            if (!container->value_type()->AsArray()->element()->CanAcceptFrom(AnalysisType())) {
+                ThrowError(key, "delete: key type %s can not delete from %s.",
+                           AnalysisType()->ToString().c_str(),
+                           container->value_type()->ToString().c_str());
+                return;
+            }
+            key->set_value_type(AnalysisType());
+            PopEvalType();
+
+            PushEvalType(types_->GetI8());
+        } break;
+
+        default:
+            ThrowError(node, "builtin call not support yet.");
+            break;
     }
 }
 

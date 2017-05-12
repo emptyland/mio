@@ -107,16 +107,20 @@ namespace mio {
     M(Array) \
     M(ArraySet) \
     M(ArrayDirectSet) \
+    M(ArrayAdd) \
     M(ArrayGet) \
     M(ArraySize) \
     M(Slice) \
     M(Map) \
     M(MapPut) \
+    M(MapDelete) \
     M(MapGet) \
     M(MapFirstKey) \
     M(MapNextKey) \
+    M(MapSize) \
     M(ToString) \
-    M(StrCat)
+    M(StrCat) \
+    M(StrLen)
 
 enum BCInstruction : uint8_t {
 #define BitCode_ENUM_DEFINE(name) BC_##name,

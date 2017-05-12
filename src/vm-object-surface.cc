@@ -78,6 +78,9 @@ MIOPair *MIOHashMapSurface::GetOrInsertRoom(const void *key, bool *insert) {
 
     *insert = true;
     node = static_cast<MIOPair *>(allocator_->Allocate(MIOPair::kMIOPairOffset));
+    if (!node) {
+        return nullptr;
+    }
     memcpy(node->GetKey(), key, key_size_);
     node->SetNext(slot->head);
     slot->head = node;

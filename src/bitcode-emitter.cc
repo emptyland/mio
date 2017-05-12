@@ -315,6 +315,7 @@ public:
     virtual void VisitReturn(Return *node) override;
     virtual void VisitBlock(Block *node) override;
     virtual void VisitCall(Call *node) override;
+    virtual void VisitBuiltinCall(BuiltinCall *node) override;
     virtual void VisitValDeclaration(ValDeclaration *node) override;
     virtual void VisitVarDeclaration(VarDeclaration *node) override;
     virtual void VisitIfOperation(IfOperation *node) override;
@@ -760,6 +761,66 @@ void EmittingAstVisitor::VisitCall(Call *node) {
         EmitArrayAccessorOrMakeSlice(expr, node);
     } else {
         DLOG(FATAL) << "noreached! callee: " << node->callee_type()->ToString();
+    }
+}
+
+void EmittingAstVisitor::VisitBuiltinCall(BuiltinCall *node) {
+    switch (node->code()) {
+        case BuiltinCall::LEN: {
+            auto container = Emit(node->argument(0)->value());
+            BCObjectOperatorId op;
+            if (node->argument(0)->value_type()->IsArray() ||
+                node->argument(0)->value_type()->IsSlice()) {
+                op = OO_ArraySize;
+            } else if (node->argument(0)->value_type()->IsMap()) {
+                op = OO_MapSize;
+            } else if (node->argument(0)->value_type()->IsString()) {
+                op = OO_StrLen;
+            } else {
+                DLOG(FATAL) << "noreached!";
+            }
+            auto len = current_->MakeLocalValue(emitter_->types_->GetInt());
+            builder(node->position())->oop(op, container.offset, 0, len.offset);
+            PushValue(len);
+        } break;
+
+        case BuiltinCall::ADD: {
+            DCHECK(node->argument(0)->value_type()->IsArray());
+            auto container = Emit(node->argument(0)->value());
+
+            auto array = node->argument(0)->value_type()->AsArray();
+            auto element = node->argument(1);
+            VMValue value;
+            if (array->element()->IsUnion() &&
+                !node->argument(1)->value_type()->IsUnion()) {
+                auto tmp = Emit(element->value());
+                value = current_->MakeLocalValue(array->element());
+                EmitCreateUnion(value, tmp, element->value_type(), element->position());
+            } else {
+                value = Emit(element->value());
+            }
+            builder(node->position())->oop(OO_ArrayAdd, container.offset, 0,
+                                           value.offset);
+            PushValue(VMValue::Void());
+        } break;
+
+        case BuiltinCall::DELETE: {
+            DCHECK(node->argument(0)->value_type()->IsMap());
+            auto container = Emit(node->argument(0)->value());
+            auto map = node->argument(0)->value_type()->AsMap();
+            auto key = node->argument(1);
+            DCHECK_EQ(map->key(), key->value_type());
+
+            auto key_value = Emit(key->value());
+            auto rv = current_->MakeLocalValue(emitter_->types_->GetI8());
+            builder(node->position())->oop(OO_MapDelete, container.offset,
+                                           key_value.offset, 0);
+            PushValue(rv);
+        } break;
+
+        default:
+            DLOG(FATAL) << "noreached!";
+            break;
     }
 }
 

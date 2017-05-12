@@ -23,10 +23,16 @@ public:
 
     DEF_GETTER(Handle<MIOHashMap>, core)
 
-    bool RawPut(const void *key, const void *value) {
+    int size() const { return core_->GetSize(); }
+
+    bool RawPut(const void *key, const void *value, bool *ok) {
         bool insert = false;
         auto pair = GetOrInsertRoom(key, &insert);
-        memcpy(pair->GetValue(), value, value_size_);
+        if (!pair) {
+            *ok = false;
+        } else {
+            memcpy(pair->GetValue(), value, value_size_);
+        }
         return insert;
     }
 
@@ -184,8 +190,9 @@ public:
         : MIOHashMapSurface(core, allocator) {}
 
     inline bool Put(K key, V value) {
+        bool ok = true;
         return RawPut(d::Traits<K>().Address(&key),
-                      d::Traits<V>().Address(&value));
+                      d::Traits<V>().Address(&value), &ok);
     }
 
     inline V Get(K key) {

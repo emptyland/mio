@@ -412,7 +412,11 @@ Expression *Parser::ParseExpression(bool ignore, int limit, int *rop, bool *ok) 
             *rop = OP_OTHER;
             return ParseIfOperation(ok);
 
-        // TODO:
+        case TOKEN_ADD:
+        case TOKEN_DELETE:
+        case TOKEN_LEN:
+            *rop = OP_OTHER;
+            return ParseBuiltinCall(ok);
 
         default:
             if (ignore) {
@@ -447,6 +451,35 @@ Block *Parser::ParseBlock(bool *ok) {
 
     LeaveScope();
     return factory_->CreateBlock(body, scope, position, ahead_.position());
+}
+
+BuiltinCall *Parser::ParseBuiltinCall(bool *ok) {
+    auto position = ahead_.position();
+    auto token = ahead_.token_code();
+
+    lexer_->Next(&ahead_);
+    Match(TOKEN_LPAREN, CHECK_OK);
+    auto args = new (zone_) ZoneVector<Element *>(zone_);
+    do {
+        auto expr_position = ahead_.position();
+        auto expr = ParseExpression(false, CHECK_OK);
+        auto arg = factory_->CreateElement(expr, expr_position);
+
+        args->Add(arg);
+    } while (Test(TOKEN_COMMA));
+    Match(TOKEN_RPAREN, CHECK_OK);
+
+    BuiltinCall::Function code;
+    switch (token) {
+    #define DEFINE_CASE(name) \
+        case TOKEN_##name: code = BuiltinCall::name; break;
+        DEFINE_BUILTIN_OPS(DEFINE_CASE)
+    #undef DEFINE_CASE
+        default:
+            DLOG(FATAL) << "noreached!";
+            break;
+    }
+    return factory_->CreateBuiltinCall(code, args, position);
 }
 
 // if ( condition) then_statement else else_statement

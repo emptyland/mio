@@ -31,14 +31,15 @@ TEST_F(ObjectSurefaceTest, Sanity) {
     ASSERT_FALSE(map.empty());
     auto key = factory_->GetOrNewString("1st", 3);
     int64_t val = 1;
+    bool ok = true;
 
     MIOHashMapSurface surface(map.get(), vm_->allocator());
-    ASSERT_TRUE(surface.RawPut(key.address(), &val));
+    ASSERT_TRUE(surface.RawPut(key.address(), &val, &ok));
 
     key = factory_->GetOrNewString("2nd", 3);
     val = 2;
-    ASSERT_TRUE(surface.RawPut(key.address(), &val));
-    ASSERT_FALSE(surface.RawPut(key.address(), &val));
+    ASSERT_TRUE(surface.RawPut(key.address(), &val, &ok));
+    ASSERT_FALSE(surface.RawPut(key.address(), &val, &ok));
 
     ASSERT_EQ(2, *static_cast<int *>(surface.RawGet(key.address())));
 }

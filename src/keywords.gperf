@@ -50,3 +50,6 @@ lambda, TOKEN_LAMBDA
 def, TOKEN_DEF
 native, TOKEN_NATIVE
 export, TOKEN_EXPORT
+len, TOKEN_LEN
+add, TOKEN_ADD
+delete, TOKEN_DELETE

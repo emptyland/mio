@@ -19,6 +19,7 @@ class Block;
 class IfOperation;
 class ForeachLoop;
 class TypeMatch;
+class BuiltinCall;
 
 class Lexer;
 class TextInputStream;
@@ -71,6 +72,7 @@ public:
     Expression *ParseExpression(bool ignore, bool *ok);
     Expression *ParseExpression(bool ignore, int limit, int *rop, bool *ok);
     Block *ParseBlock(bool *ok);
+    BuiltinCall *ParseBuiltinCall(bool *ok);
     IfOperation *ParseIfOperation(bool *ok);
     Expression *ParseOperation(int limit, int *rop, bool *ok);
     Expression *ParseSimpleExpression(bool *ok);

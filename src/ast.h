@@ -34,6 +34,7 @@ namespace mio {
     M(Reference) \
     M(Symbol) \
     M(Call) \
+    M(BuiltinCall) \
     M(FieldAccessing) \
     M(IfOperation) \
     M(Assignment) \
@@ -71,6 +72,7 @@ class AstNode;
             class Reference;
             class Symbol;
             class Call;
+            class BuiltinCall;
             class FieldAccessing;
             class Literal;
                 class SmiLiteral;
@@ -591,7 +593,7 @@ private:
 class Element : public Literal {
 public:
     Expression *value() const { return value_; }
-    void set_value(Expression *value) { value_ = DCHECK_NOTNULL(value_); }
+    void set_value(Expression *value) { value_ = DCHECK_NOTNULL(value); }
 
     Type *value_type() const { return DCHECK_NOTNULL(value_type_); }
     void set_value_type(Type *type) { value_type_ = DCHECK_NOTNULL(type); }
@@ -984,6 +986,44 @@ private:
 }; // class Call
 
 
+#define DEFINE_BUILTIN_OPS(M) \
+    M(LEN) \
+    M(ADD) \
+    M(DELETE)
+
+class BuiltinCall : public Expression {
+public:
+    enum Function: int {
+    #define BuiltinCall_ENUM(name) name,
+        DEFINE_BUILTIN_OPS(BuiltinCall_ENUM)
+    #undef  BuiltinCall_ENUM
+    };
+
+    DEF_GETTER(Function, code)
+
+    ZoneVector<Element *> *mutable_arguments() { return arguments_; }
+
+    int argument_size() const { return arguments_->size(); }
+
+    Element *argument(int index) const { return arguments_->At(index); }
+
+    void set_argument(int index, Element *expr) {
+        arguments_->Set(index, DCHECK_NOTNULL(expr));
+    }
+
+    DECLARE_AST_NODE(BuiltinCall)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(BuiltinCall)
+private:
+    BuiltinCall(Function code, ZoneVector<Element *> *arguments, int position)
+        : Expression(position)
+        , code_(code)
+        , arguments_(DCHECK_NOTNULL(arguments)) {}
+
+    Function code_;
+    ZoneVector<Element *> *arguments_;
+}; // class Call
+
+
 class FieldAccessing : public Expression {
 public:
     RawStringRef field_name() const { return field_name_; }
@@ -1279,6 +1319,12 @@ public:
     Call *CreateCall(Expression *expression, ZoneVector<Expression *> *arguments,
                      int position) {
         return new (zone_) Call(expression, arguments, position);
+    }
+
+    BuiltinCall *CreateBuiltinCall(BuiltinCall::Function code,
+                                   ZoneVector<Element *> *arguments,
+                                   int position) {
+        return new (zone_) BuiltinCall(code, arguments, position);
     }
 
     FieldAccessing *CreateFieldAccessing(const std::string &field_name,

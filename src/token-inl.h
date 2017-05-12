@@ -106,7 +106,11 @@ namespace mio {
     M(EXPORT, 0, "export") \
     M(DEF, 0, "def") \
     M(TRUE, 0, "true") \
-    M(FALSE, 0, "false")
+    M(FALSE, 0, "false") \
+    M(LEN, 0, "len") \
+    M(ADD, 0, "add") \
+    M(DELETE, 0, "delete")
+    
 
 
 #define Token_CODE_ENUM(name, prio, text) TOKEN_##name,
