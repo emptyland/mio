@@ -127,6 +127,10 @@ public:
         return Emit4Op(BC_cmp_f64, op, result, lhs, rhs);
     }
 
+    int logic_not(uint16_t result, int16_t input) {
+        return Emit3Addr(BC_logic_not, result, input, 0);
+    }
+
     int add_i8(uint16_t result, uint16_t lhs, uint16_t rhs) {
         return Emit3Addr(BC_add_i8, result, lhs, rhs);
     }

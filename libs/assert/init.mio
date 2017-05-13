@@ -7,18 +7,42 @@ function equal(
     expected match {
         v: i8 -> {
             if (not actual?[i8])
-                base::panic('')
-            if (actual![i8] != v)
-                base::panic('')
+                base::panic('unexpected type i8')
+            if (actual![i8] <> v)
+                base::panic('expected '..expected..', actual: '..actual)
         }
         v: i16 -> {
             if (not actual?[i16])
-                base::panic('')
-            if (actual![i16] != v)
-                base::panic('')
+                base::panic('unexpected type i16')
+            if (actual![i16] <> v)
+                base::panic('expected '..expected..', actual: '..actual)
+        }
+        v: i32 -> {
+            if (not actual?[i32])
+                base::panic('unexpected type i32')
+            if (actual![i32] <> v)
+                base::panic('expected '..expected..', actual: '..actual)
+        }
+        v: int -> {
+            if (not actual?[int])
+                base::panic('unexpected type int')
+            if (actual![int] <> v)
+                base::panic('expected '..expected..', actual: '..actual)
+        }
+        v: f32 -> {
+            if (not actual?[f32])
+                base::panic('unexpected type f32')
+            if (actual![f32] <> v)
+                base::panic('expected '..expected..', actual: '..actual)
+        }
+        v: f64 -> {
+            if (not actual?[f64])
+                base::panic('unexpected type f64')
+            if (actual![f64] <> v)
+                base::panic('expected '..expected..', actual: '..actual)
         }
         else -> {
-            
+            base::panic('not support yet! '..expected..', '..actual)
         }
     }
 }

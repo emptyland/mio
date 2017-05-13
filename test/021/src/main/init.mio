@@ -1,9 +1,26 @@
-package main
+package main with ('assert')
 
 native function print(s: string): void
 
+function demo(u: [i8, i16, i32, int, string, void]): void {
+    u match {
+        v: i8 -> base::println('->i8')
+        v: i16 -> base::println('->i16')
+        v: i32 -> base::println('->i32')
+        v: int -> base::println('->int')
+        v: string -> base::println('->string')
+        else -> base::println('void')
+    }
+}
+
 function main: void {
+    demo(1b)
+    demo(1w)
+    demo(1d)
+    demo(1)
+    val u: [i8, i16, i32, int, string, void]
+    demo(u)
+    
     val s = '012345'
-    var n = len(s)
-    print('len = '..n..'\n')
+    assert::equal(6, len(s))
 }

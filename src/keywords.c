@@ -39,7 +39,7 @@ struct mio_keyword {
 	int id;
 };
 
-#define TOTAL_KEYWORDS 46
+#define TOTAL_KEYWORDS 47
 #define MIN_WORD_LENGTH 2
 #define MAX_WORD_LENGTH 8
 #define MIN_HASH_VALUE 0
@@ -62,7 +62,7 @@ hash (register const char *str, register unsigned int len)
       126, 126, 126, 126, 126, 126, 126, 126, 126, 126,
       126, 126, 126, 126, 126, 126, 126, 126, 126, 126,
       126, 126, 126, 126, 126, 126, 126, 126, 126, 126,
-      126, 126, 126, 126, 126, 126, 126, 126, 126,  35,
+      126, 126, 126, 126, 126, 126, 126, 126, 126,  26,
         1,   0,  60, 126,  55, 126,  11, 126, 126, 126,
       126, 126, 126, 126, 126, 126, 126, 126, 126, 126,
       126, 126, 126, 126, 126, 126, 126, 126, 126, 126,
@@ -70,7 +70,7 @@ hash (register const char *str, register unsigned int len)
       126, 126, 126, 126, 126, 126, 126,  10,  25,   1,
        15,   5,   5, 126,   0,   0,  50, 126,   5,   1,
        35,   1,  10, 126,  30,   0,  30,   6,  40,  56,
-       16, 126, 126, 126, 126, 126, 126, 126, 126, 126,
+       16,  45, 126, 126, 126, 126, 126, 126, 126, 126,
       126, 126, 126, 126, 126, 126, 126, 126, 126, 126,
       126, 126, 126, 126, 126, 126, 126, 126, 126, 126,
       126, 126, 126, 126, 126, 126, 126, 126, 126, 126,
@@ -201,14 +201,16 @@ mio_parse_keyword (register const char *str, register unsigned int len)
       {""}, {""}, {""},
 #line 47 "keywords.gperf"
       {"var", TOKEN_VAR},
-      {""}, {""}, {""}, {""},
+#line 21 "keywords.gperf"
+      {"i16", TOKEN_I16},
+      {""}, {""}, {""},
 #line 44 "keywords.gperf"
       {"break", TOKEN_BREAK},
 #line 14 "keywords.gperf"
       {"with", TOKEN_WITH},
       {""}, {""}, {""},
-#line 21 "keywords.gperf"
-      {"i16", TOKEN_I16},
+#line 56 "keywords.gperf"
+      {"typeof", TOKEN_TYPEOF},
       {""}, {""}, {""}, {""},
 #line 33 "keywords.gperf"
       {"array", TOKEN_ARRAY},

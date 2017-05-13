@@ -34,6 +34,7 @@ namespace mio {
     M(cmp_i64) \
     M(cmp_f32) \
     M(cmp_f64) \
+    M(logic_not) \
     M(add_i8) \
     M(add_i16) \
     M(add_i32) \
@@ -223,6 +224,13 @@ enum BCSegment : int {
  *    * val1:   Key for putting.
  *    * val2:   Value for putting.
  *
+ * OO_MapDelete
+ * -- desc: Delete key from map object.
+ * -- params:
+ *    * result: Offset of map for deleting.
+ *    * val1:   Key for deleting.
+ *    * val2:   Deleting result, 0 key not exists, otherwise key is exists.
+ *
  * OO_MapGet
  * -- desc: Get value by key, if not exists, return error.
  *          return type is [`key-type', error].
@@ -245,6 +253,13 @@ enum BCSegment : int {
  *    * val1:   Offset of input and output key.
  *    * val2:   Offset of value.
  *
+ * OO_MapSize
+ * -- desc: Get map size.
+ * -- params:
+ *    * result: Offset of map.
+ *    * val1:   Unused.
+ *    * val2:   Offset of result for getting size.
+ *
  * OO_ToString
  * -- desc: Make a value to string object
  *    * result: Offset of string result.
@@ -257,6 +272,11 @@ enum BCSegment : int {
  *    * val1:   Offset of first one string for connection.
  *    * val2:   Offset of last one string for connection.
  *
+ * OO_StrLen
+ * -- desc: Get string object payload size.
+ *    * result: Offset of string.
+ *    * val1:   Unused.
+ *    * val2:   Offset of result for getting size.
  */
 
 enum BCObjectOperatorId : int {

@@ -10,6 +10,8 @@
 #include "memory-output-stream.h"
 #include "handles.h"
 #include "glog/logging.h"
+#include <float.h>
+#include <limits>
 
 namespace mio {
 
@@ -207,6 +209,12 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
             MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
         #undef DEFINE_CASE
 
+            case BC_logic_not: {
+                auto dest = BitCodeDisassembler::GetOp1(bc);
+                auto operand = BitCodeDisassembler::GetOp2(bc);
+                p_stack_->Set<mio_bool_t>(dest, GetI8(operand) == 0 ? 1 : 0);
+            } break;
+
         #define DEFINE_CASE(byte, bit) \
             case BC_store_##byte##b: { \
                 auto src = BitCodeDisassembler::GetOp1(bc); \
@@ -238,22 +246,22 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 auto val2 = BitCodeDisassembler::GetVal2(bc); \
                 switch (op) { \
                     case CC_EQ: \
-                        p_stack_->Set<mio_i8_t>(result, GetI##bit(val1) == GetI##bit(val2)); \
+                        p_stack_->Set<mio_bool_t>(result, GetI##bit(val1) == GetI##bit(val2)); \
                         break; \
                     case CC_NE: \
-                        p_stack_->Set<mio_i8_t>(result, GetI##bit(val1) != GetI##bit(val2)); \
+                        p_stack_->Set<mio_bool_t>(result, GetI##bit(val1) != GetI##bit(val2)); \
                         break; \
                     case CC_LT: \
-                        p_stack_->Set<mio_i8_t>(result, GetI##bit(val1) < GetI##bit(val2)); \
+                        p_stack_->Set<mio_bool_t>(result, GetI##bit(val1) < GetI##bit(val2)); \
                         break; \
                     case CC_LE: \
-                        p_stack_->Set<mio_i8_t>(result, GetI##bit(val1) <= GetI##bit(val2)); \
+                        p_stack_->Set<mio_bool_t>(result, GetI##bit(val1) <= GetI##bit(val2)); \
                         break; \
                     case CC_GT: \
-                        p_stack_->Set<mio_i8_t>(result, GetI##bit(val1) > GetI##bit(val2)); \
+                        p_stack_->Set<mio_bool_t>(result, GetI##bit(val1) > GetI##bit(val2)); \
                         break; \
                     case CC_GE: \
-                        p_stack_->Set<mio_i8_t>(result, GetI##bit(val1) >= GetI##bit(val2)); \
+                        p_stack_->Set<mio_bool_t>(result, GetI##bit(val1) >= GetI##bit(val2)); \
                         break; \
                     default: \
                         Panic(PANIC, ok, "bad comparator %d", op); \
@@ -262,6 +270,66 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
             } break;
             MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
         #undef DEFINE_CASE
+
+            case BC_cmp_f32: {
+                auto op = static_cast<BCComparator>(BitCodeDisassembler::GetOp1(bc));
+                auto result = BitCodeDisassembler::GetOp2(bc);
+                auto val1 = BitCodeDisassembler::GetVal1(bc);
+                auto val2 = BitCodeDisassembler::GetVal2(bc);
+                switch (op) {
+                    case CC_EQ:
+                        p_stack_->Set<mio_bool_t>(result, ::fabsf(GetF32(val1) - GetF32(val2)) < FLT_EPSILON);
+                        break;
+                    case CC_NE:
+                        p_stack_->Set<mio_bool_t>(result, ::fabsf(GetF32(val1) - GetF32(val2)) >= FLT_EPSILON);
+                        break;
+                    case CC_LT:
+                        p_stack_->Set<mio_bool_t>(result, GetF32(val1) < GetF32(val2));
+                        break;
+                    case CC_LE:
+                        p_stack_->Set<mio_bool_t>(result, GetF32(val1) <= GetF32(val2));
+                        break;
+                    case CC_GT:
+                        p_stack_->Set<mio_bool_t>(result, GetF32(val1) > GetF32(val2));
+                        break;
+                    case CC_GE:
+                        p_stack_->Set<mio_bool_t>(result, GetF32(val1) >= GetF32(val2));
+                        break;
+                    default:
+                        Panic(PANIC, ok, "bad comparator %d", op);
+                        return;
+                }
+            } break;
+
+            case BC_cmp_f64: {
+                auto op = static_cast<BCComparator>(BitCodeDisassembler::GetOp1(bc));
+                auto result = BitCodeDisassembler::GetOp2(bc);
+                auto val1 = BitCodeDisassembler::GetVal1(bc);
+                auto val2 = BitCodeDisassembler::GetVal2(bc);
+                switch (op) {
+                    case CC_EQ:
+                        p_stack_->Set<mio_bool_t>(result, ::fabs(GetF64(val1) - GetF64(val2)) < DBL_EPSILON);
+                        break;
+                    case CC_NE:
+                        p_stack_->Set<mio_bool_t>(result, ::fabs(GetF64(val1) - GetF64(val2)) >= DBL_EPSILON);
+                        break;
+                    case CC_LT:
+                        p_stack_->Set<mio_bool_t>(result, GetF64(val1) < GetF64(val2));
+                        break;
+                    case CC_LE:
+                        p_stack_->Set<mio_bool_t>(result, GetF64(val1) <= GetF64(val2));
+                        break;
+                    case CC_GT:
+                        p_stack_->Set<mio_bool_t>(result, GetF64(val1) > GetF64(val2));
+                        break;
+                    case CC_GE:
+                        p_stack_->Set<mio_bool_t>(result, GetF64(val1) >= GetF64(val2));
+                        break;
+                    default:
+                        Panic(PANIC, ok, "bad comparator %d", op);
+                        return;
+                }
+            } break;
 
             case BC_sext_i8: {
                 auto result = BitCodeDisassembler::GetOp1(bc);
@@ -922,9 +990,9 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                 return;
             }
             if (ob->GetTypeInfo() == type_info.get()) {
-                p_stack_->Set<mio_i8_t>(result, 1);
+                p_stack_->Set<mio_bool_t>(result, 1);
             } else {
-                p_stack_->Set<mio_i8_t>(result, 0);
+                p_stack_->Set<mio_bool_t>(result, 0);
             }
         } break;
 

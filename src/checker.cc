@@ -423,7 +423,7 @@ private:
             break;
 
         case OP_NOT:
-            if (!AnalysisType()->IsIntegral()) {
+            if (AnalysisType() != types_->GetI1()) {
                 ThrowError(node, "`not' operator only accept bool type.");
             }
             PopEvalType();
@@ -514,12 +514,11 @@ private:
                 ThrowError(node, "operator: `%s' has different type of operands.",
                            GetOperatorText(node->op()));
             }
-            // TODO: string type
-            if (!lhs_ty->is_numeric()) {
-                ThrowError(node, "operator: `%s' only accept numeric type.",
+            if (!lhs_ty->is_numeric() && !lhs_ty->IsString()) {
+                ThrowError(node, "operator: `%s' only accept numeric and string type.",
                            GetOperatorText(node->op()));
             }
-            PushEvalType(lhs_ty);
+            PushEvalType(types_->GetI1());
             break;
 
         case OP_OR:
@@ -528,11 +527,11 @@ private:
                 ThrowError(node, "operator: `%s' has different type of operands.",
                            GetOperatorText(node->op()));
             }
-            if (!lhs_ty->IsIntegral()) {
-                ThrowError(node, "operator: `%s' only accept integral type.",
+            if (lhs_ty != types_->GetI1()) {
+                ThrowError(node, "operator: `%s' only accept bool type.",
                            GetOperatorText(node->op()));
             }
-            PushEvalType(lhs_ty);
+            PushEvalType(types_->GetI1());
             break;
 
         case OP_STRCAT:
@@ -1041,7 +1040,7 @@ void CheckingAstVisitor::CheckFunctionCall(FunctionPrototype *proto, Call *node)
                 return;
             }
 
-        ACCEPT_REPLACE_EXPRESSION_I(node, mutable_arguments, i);
+        ACCEPT_REPLACE_EXPRESSION(arg, value);
         auto arg_ty = AnalysisType();
         PopEvalType();
 
@@ -1057,6 +1056,7 @@ void CheckingAstVisitor::CheckFunctionCall(FunctionPrototype *proto, Call *node)
             }
             return;
         }
+        arg->set_value_type(arg_ty);
     }
     PushEvalType(proto->return_type());
 }
@@ -1068,15 +1068,17 @@ void CheckingAstVisitor::CheckMapAccessor(Map *map, Call *node) {
     }
 
     // Getting
-    ACCEPT_REPLACE_EXPRESSION_I(node, mutable_arguments, 0);
-    auto key = AnalysisType();
+    auto key = node->argument(0);
+    ACCEPT_REPLACE_EXPRESSION(key, value);
+
+    auto key_ty = AnalysisType();
     PopEvalType();
 
-    if (!map->key()->CanAcceptFrom(key)) {
+    if (!map->key()->CanAcceptFrom(key_ty)) {
         ThrowError(node->mutable_arguments()->At(0),
                    "map key can not accept input type, (%s vs %s)",
                    map->key()->ToString().c_str(),
-                   key->ToString().c_str());
+                   key_ty->ToString().c_str());
         return;
     }
 
@@ -1090,52 +1092,56 @@ void CheckingAstVisitor::CheckArrayAccessorOrMakeSlice(Type *callee, Call *node)
 
     if (node->argument_size() == 1) {
         // Getting
-        ACCEPT_REPLACE_EXPRESSION_I(node, mutable_arguments, 0);
-        auto index = AnalysisType();
+        auto index = node->argument(0);
+        ACCEPT_REPLACE_EXPRESSION(index, value);
+
+        auto index_ty = AnalysisType();
         PopEvalType();
 
-        if (!index->IsIntegral()) {
+        if (!index_ty->IsIntegral()) {
             ThrowError(node->argument(0), "array/slice index need integral number.");
             return;
         }
-        if (index != types_->GetInt()) {
+        if (index_ty != types_->GetInt()) {
             auto arg = node->argument(0);
-            auto cast = factory_->CreateTypeCast(arg, types_->GetInt(),
+            auto cast = factory_->CreateTypeCast(arg->value(), types_->GetInt(),
                                                  arg->position());
-            node->set_argument(0, cast);
+            arg->set_value(cast);
         }
         PushEvalType(array->element());
     } else if (node->argument_size() == 2) {
-        ACCEPT_REPLACE_EXPRESSION_I(node, mutable_arguments, 0);
-        auto begin = AnalysisType();
+        auto begin = node->argument(0);
+        ACCEPT_REPLACE_EXPRESSION(begin, value);
+        auto begin_ty = AnalysisType();
         PopEvalType();
 
-        if (!begin->IsIntegral()) {
+        if (!begin_ty->IsIntegral()) {
             ThrowError(node->argument(0), "make slice need integral number "
                        "\"begin\" position.");
             return;
         }
-        if (begin != types_->GetInt()) {
+        if (begin_ty != types_->GetInt()) {
             auto arg = node->argument(0);
-            auto cast = factory_->CreateTypeCast(arg, types_->GetInt(),
+            auto cast = factory_->CreateTypeCast(arg->value(), types_->GetInt(),
                                                  arg->position());
-            node->set_argument(0, cast);
+            arg->set_value(cast);
         }
 
-        ACCEPT_REPLACE_EXPRESSION_I(node, mutable_arguments, 1);
-        auto size = AnalysisType();
+        auto size = node->argument(1);
+        ACCEPT_REPLACE_EXPRESSION(size, value);
+        auto size_ty = AnalysisType();
         PopEvalType();
 
-        if (!size->IsIntegral()) {
+        if (!size_ty->IsIntegral()) {
             ThrowError(node->argument(1), "make slice need integral number "
                        "\"size\".");
             return;
         }
-        if (size != types_->GetInt()) {
+        if (size_ty != types_->GetInt()) {
             auto arg = node->argument(1);
-            auto cast = factory_->CreateTypeCast(arg, types_->GetInt(),
+            auto cast = factory_->CreateTypeCast(arg->value(), types_->GetInt(),
                                                  arg->position());
-            node->set_argument(1, cast);
+            arg->set_value(cast);
         }
 
         if (array->IsSlice()) {

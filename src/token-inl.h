@@ -109,7 +109,8 @@ namespace mio {
     M(FALSE, 0, "false") \
     M(LEN, 0, "len") \
     M(ADD, 0, "add") \
-    M(DELETE, 0, "delete")
+    M(DELETE, 0, "delete") \
+    M(TYPEOF, 0, "typeof")
     
 
 

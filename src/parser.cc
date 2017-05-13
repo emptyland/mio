@@ -399,6 +399,7 @@ Expression *Parser::ParseExpression(bool ignore, int limit, int *rop, bool *ok) 
         case TOKEN_STRING_LITERAL:
         case TOKEN_MINUS:
         case TOKEN_WAVE:
+        case TOKEN_NOT:
         case TOKEN_TRUE:
         case TOKEN_FALSE:
         case TOKEN_FUNCTION:
@@ -634,14 +635,17 @@ Expression *Parser::ParseSuffixed(bool *ok) {
         switch (Peek()) {
             // expr ( a1, b1, c1)
             case TOKEN_LPAREN: {
-                auto args = new (zone_) ZoneVector<Expression *>(zone_);
+                auto args = new (zone_) ZoneVector<Element *>(zone_);
                 Match(TOKEN_LPAREN, CHECK_OK);
                 if (!Test(TOKEN_RPAREN)) {
-                    auto arg = ParseExpression(false, CHECK_OK);
-                    args->Add(arg);
+                    auto expr_position = ahead_.position();
+                    auto expr = ParseExpression(false, CHECK_OK);
+
+                    args->Add(factory_->CreateElement(expr, expr_position));
                     while (Test(TOKEN_COMMA)) {
-                        arg = ParseExpression(false, CHECK_OK);
-                        args->Add(arg);
+                        expr_position = ahead_.position();
+                        expr = ParseExpression(false, CHECK_OK);
+                        args->Add(factory_->CreateElement(expr, expr_position));
                     }
                     Match(TOKEN_RPAREN, CHECK_OK);
                 }
@@ -663,6 +667,11 @@ Expression *Parser::ParseSuffixed(bool *ok) {
                 Match(TOKEN_AS, CHECK_OK);
 
                 auto type = ParseType(CHECK_OK);
+                if (type->IsUnion()) {
+                    ThrowError("incorrect type, union is not allow!");
+                    *ok = false;
+                    return nullptr;
+                }
                 return factory_->CreateTypeCast(node, type, position);
             } break;
 
@@ -671,6 +680,11 @@ Expression *Parser::ParseSuffixed(bool *ok) {
                 Match(TOKEN_IS, CHECK_OK);
 
                 auto type = ParseType(CHECK_OK);
+                if (type->IsUnion()) {
+                    ThrowError("incorrect type, union is not allow!");
+                    *ok = false;
+                    return nullptr;
+                }
                 return factory_->CreateTypeTest(node, type, position);
             } break;
 
@@ -680,6 +694,11 @@ Expression *Parser::ParseSuffixed(bool *ok) {
 
                 Match(TOKEN_LBRACK, CHECK_OK);
                 auto type = ParseType(CHECK_OK);
+                if (type->IsUnion()) {
+                    ThrowError("incorrect type, union is not allow!");
+                    *ok = false;
+                    return nullptr;
+                }
                 Match(TOKEN_RBRACK, CHECK_OK);
                 
                 return factory_->CreateTypeCast(node, type, position);
@@ -691,6 +710,11 @@ Expression *Parser::ParseSuffixed(bool *ok) {
 
                 Match(TOKEN_LBRACK, CHECK_OK);
                 auto type = ParseType(CHECK_OK);
+                if (type->IsUnion()) {
+                    ThrowError("incorrect type, union is not allow!");
+                    *ok = false;
+                    return nullptr;
+                }
                 Match(TOKEN_RBRACK, CHECK_OK);
 
                 return factory_->CreateTypeTest(node, type, position);

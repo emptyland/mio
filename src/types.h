@@ -301,6 +301,11 @@ private:
 class FunctionPrototype : public Type {
 public:
     ZoneVector<Paramter *> *mutable_paramters() { return paramters_; }
+
+    Paramter *paramter(int index) const { return paramters_->At(index); }
+
+    int paramter_size() const { return paramters_->size(); }
+
     Type *return_type() const { return return_type_; }
     void set_return_type(Type *type) { return_type_ = type; }
 

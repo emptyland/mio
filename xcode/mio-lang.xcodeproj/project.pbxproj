@@ -104,7 +104,6 @@
 		23E6BA0E1EB1DD3600FC1A55 /* vm-object-extra-factory.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA0D1EB1DD3600FC1A55 /* vm-object-extra-factory.cc */; };
 		23E6BA0F1EB1DD3600FC1A55 /* vm-object-extra-factory.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA0D1EB1DD3600FC1A55 /* vm-object-extra-factory.cc */; };
 		23E6BA111EB332FC00FC1A55 /* source-file-position-dict.h in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA101EB332FC00FC1A55 /* source-file-position-dict.h */; };
-		23E6BA121EB332FC00FC1A55 /* source-file-position-dict.h in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA101EB332FC00FC1A55 /* source-file-position-dict.h */; };
 		23E6BA141EB335A100FC1A55 /* source-file-position-dict.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA131EB335A100FC1A55 /* source-file-position-dict.cc */; };
 		23E6BA151EB335A100FC1A55 /* source-file-position-dict.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA131EB335A100FC1A55 /* source-file-position-dict.cc */; };
 		23E6BA171EB345D000FC1A55 /* source-file-position-dict-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E6BA161EB345D000FC1A55 /* source-file-position-dict-test.cc */; };
@@ -610,7 +609,6 @@
 				232434651E78EEC70054C385 /* vm.cc in Sources */,
 				2349E5921E56FF02002883BC /* parser.cc in Sources */,
 				2324346D1E7926F50054C385 /* vm-memory-segment.cc in Sources */,
-				23E6BA121EB332FC00FC1A55 /* source-file-position-dict.h in Sources */,
 				23658AF81E8A3FD700F7F72A /* do-nothing-garbage-collector.cc in Sources */,
 				2349E58B1E56F3DB002883BC /* raw-string.cc in Sources */,
 				236202521E45BC7E00B6B949 /* base-test.cc in Sources */,

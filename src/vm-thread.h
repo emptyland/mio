@@ -164,7 +164,7 @@ inline Handle<MIOError> Thread::GetError(int addr, bool *ok) {
 inline Handle<MIOUnion> Thread::GetUnion(int addr, bool *ok) {
     auto ob = GetObject(addr);
 
-    if (!ob->IsUnion()) {
+    if (ob.empty() || !ob->IsUnion()) {
         *ok = false;
         return make_handle<MIOUnion>(nullptr);
     }

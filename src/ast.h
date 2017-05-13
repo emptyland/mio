@@ -961,27 +961,27 @@ public:
     Type *callee_type() const { return DCHECK_NOTNULL(callee_type_); }
     void set_callee_type(Type *type) { callee_type_ = DCHECK_NOTNULL(type); }
 
-    ZoneVector<Expression *> *mutable_arguments() { return arguments_; }
+    ZoneVector<Element *> *mutable_arguments() { return arguments_; }
 
     int argument_size() const { return arguments_->size(); }
 
-    Expression *argument(int index) const { return arguments_->At(index); }
+    Element *argument(int index) const { return arguments_->At(index); }
 
-    void set_argument(int index, Expression *expr) {
+    void set_argument(int index, Element *expr) {
         arguments_->Set(index, DCHECK_NOTNULL(expr));
     }
 
     DECLARE_AST_NODE(Call)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Call)
 private:
-    Call(Expression *expression, ZoneVector<Expression *> *arguments,
+    Call(Expression *expression, ZoneVector<Element *> *arguments,
          int position)
         : Expression(position)
         , expression_(DCHECK_NOTNULL(expression))
         , arguments_(DCHECK_NOTNULL(arguments)) {}
 
     Expression *expression_;
-    ZoneVector<Expression *> *arguments_;
+    ZoneVector<Element *> *arguments_;
     Type *callee_type_ = nullptr;
 }; // class Call
 
@@ -1316,7 +1316,7 @@ public:
                                   position);
     }
 
-    Call *CreateCall(Expression *expression, ZoneVector<Expression *> *arguments,
+    Call *CreateCall(Expression *expression, ZoneVector<Element *> *arguments,
                      int position) {
         return new (zone_) Call(expression, arguments, position);
     }

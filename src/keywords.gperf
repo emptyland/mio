@@ -53,3 +53,4 @@ export, TOKEN_EXPORT
 len, TOKEN_LEN
 add, TOKEN_ADD
 delete, TOKEN_DELETE
+typeof, TOKEN_TYPEOF

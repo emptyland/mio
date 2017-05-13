@@ -99,6 +99,10 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
                             GetOp3(bc));
             break;
 
+        case BC_logic_not:
+            stream_->Printf("[%u] [%u]", GetOp1(bc), GetOp2(bc));
+            break;
+
         case BC_add_i8_imm:
         case BC_add_i16_imm:
         case BC_add_i32_imm:
