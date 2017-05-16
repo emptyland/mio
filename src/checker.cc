@@ -186,6 +186,13 @@ public:
     virtual void VisitVariable(Variable *node) override;
     virtual void VisitReference(Reference *node) override;
 
+    virtual void VisitElement(Element *node) override {
+        DLOG(FATAL) << "noreached!";
+    }
+    virtual void VisitPair(Pair *node) override {
+        DLOG(FATAL) << "noreached!";
+    }
+
     Type *AnalysisType() { return type_stack_.top(); };
 
     void PopEvalType() {
@@ -581,6 +588,12 @@ private:
     }
 
     if (var->type() == types_->GetUnknown()) {
+        if (var->scope() == scope_) {
+            ThrowError(node, "symbol \'%s\', its' type unknown.",
+                       node->name()->c_str());
+            return;
+        }
+
         ScopeHolder holder(var->scope(), &scope_);
         var->declaration()->Accept(this);
         PopEvalType();
@@ -1034,9 +1047,9 @@ void CheckingAstVisitor::CheckFunctionCall(FunctionPrototype *proto, Call *node)
         auto arg   = node->mutable_arguments()->At(i);
         auto param = proto->mutable_paramters()->At(i);
 
-        if (arg->IsFunctionLiteral() &&
+        if (arg->value()->IsFunctionLiteral() &&
             !AcceptOrReduceFunctionLiteral(node, param->param_type(),
-                                           arg->AsFunctionLiteral())) {
+                                           arg->value()->AsFunctionLiteral())) {
                 return;
             }
 

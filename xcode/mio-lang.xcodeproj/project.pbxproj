@@ -57,6 +57,12 @@
 		2349E5911E56FF02002883BC /* parser.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E5901E56FF02002883BC /* parser.cc */; };
 		2349E5921E56FF02002883BC /* parser.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E5901E56FF02002883BC /* parser.cc */; };
 		2349E5941E56FF12002883BC /* parser-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2349E5931E56FF12002883BC /* parser-test.cc */; };
+		234D81961ECA8416006CA3BA /* asm.c in Sources */ = {isa = PBXBuildFile; fileRef = 234D81901ECA8416006CA3BA /* asm.c */; };
+		234D819E1ECA8999006CA3BA /* asm-amd64.c in Sources */ = {isa = PBXBuildFile; fileRef = 234D819D1ECA8999006CA3BA /* asm-amd64.c */; };
+		234D819F1ECA8A31006CA3BA /* asm-amd64.c in Sources */ = {isa = PBXBuildFile; fileRef = 234D819D1ECA8999006CA3BA /* asm-amd64.c */; };
+		234D81A01ECA8A31006CA3BA /* asm.c in Sources */ = {isa = PBXBuildFile; fileRef = 234D81901ECA8416006CA3BA /* asm.c */; };
+		234D81A11ECA8A31006CA3BA /* asm-amd64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 234D81981ECA8924006CA3BA /* asm-amd64-test.cc */; };
+		234D81A31ECA90FB006CA3BA /* all-tests.cc in Sources */ = {isa = PBXBuildFile; fileRef = 234D81A21ECA90FB006CA3BA /* all-tests.cc */; };
 		235808131E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */; };
 		235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */; };
 		235808151E495CE200C8C567 /* lexer-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2358080F1E487D4C00C8C567 /* lexer-test.cc */; };
@@ -67,7 +73,6 @@
 		2362023D1E45B9EB00B6B949 /* base.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362023C1E45B9EB00B6B949 /* base.cc */; };
 		236202491E45BC0E00B6B949 /* base.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362023C1E45B9EB00B6B949 /* base.cc */; };
 		2362024E1E45BC2F00B6B949 /* libglog.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2362024B1E45BC2F00B6B949 /* libglog.a */; };
-		2362024F1E45BC2F00B6B949 /* libgtest_main.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2362024C1E45BC2F00B6B949 /* libgtest_main.a */; };
 		236202501E45BC2F00B6B949 /* libgtest.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2362024D1E45BC2F00B6B949 /* libgtest.a */; };
 		236202521E45BC7E00B6B949 /* base-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236202511E45BC7E00B6B949 /* base-test.cc */; };
 		236202551E45BE2900B6B949 /* lexer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 236202541E45BE2900B6B949 /* lexer.cc */; };
@@ -190,6 +195,14 @@
 		2349E58F1E56FE40002883BC /* parser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parser.h; sourceTree = "<group>"; };
 		2349E5901E56FF02002883BC /* parser.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parser.cc; sourceTree = "<group>"; };
 		2349E5931E56FF12002883BC /* parser-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "parser-test.cc"; sourceTree = "<group>"; };
+		234D81901ECA8416006CA3BA /* asm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = asm.c; sourceTree = "<group>"; };
+		234D81911ECA8416006CA3BA /* asm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = asm.h; sourceTree = "<group>"; };
+		234D81981ECA8924006CA3BA /* asm-amd64-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "asm-amd64-test.cc"; path = "yui/asm-amd64-test.cc"; sourceTree = "<group>"; };
+		234D819A1ECA8999006CA3BA /* asm-amd64-inl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "asm-amd64-inl.h"; sourceTree = "<group>"; };
+		234D819B1ECA8999006CA3BA /* asm-amd64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "asm-amd64.h"; sourceTree = "<group>"; };
+		234D819C1ECA8999006CA3BA /* asm-inl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "asm-inl.h"; sourceTree = "<group>"; };
+		234D819D1ECA8999006CA3BA /* asm-amd64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "asm-amd64.c"; sourceTree = "<group>"; };
+		234D81A21ECA90FB006CA3BA /* all-tests.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "all-tests.cc"; sourceTree = "<group>"; };
 		2358080F1E487D4C00C8C567 /* lexer-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "lexer-test.cc"; sourceTree = "<group>"; };
 		235808111E487D9400C8C567 /* fixed-memory-input-stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "fixed-memory-input-stream.h"; sourceTree = "<group>"; };
 		235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "fixed-memory-input-stream.cc"; sourceTree = "<group>"; };
@@ -262,7 +275,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				2362024E1E45BC2F00B6B949 /* libglog.a in Frameworks */,
-				2362024F1E45BC2F00B6B949 /* libgtest_main.a in Frameworks */,
 				236202501E45BC2F00B6B949 /* libgtest.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -273,6 +285,7 @@
 		231B099A1E45B86D00BC6D18 = {
 			isa = PBXGroup;
 			children = (
+				234D818F1ECA8416006CA3BA /* Yui */,
 				2362023A1E45B91800B6B949 /* Include */,
 				231B09A51E45B86D00BC6D18 /* Source */,
 				236202431E45BB2B00B6B949 /* Tests */,
@@ -339,6 +352,20 @@
 			path = ../src;
 			sourceTree = "<group>";
 		};
+		234D818F1ECA8416006CA3BA /* Yui */ = {
+			isa = PBXGroup;
+			children = (
+				234D819A1ECA8999006CA3BA /* asm-amd64-inl.h */,
+				234D819B1ECA8999006CA3BA /* asm-amd64.h */,
+				234D819C1ECA8999006CA3BA /* asm-inl.h */,
+				234D819D1ECA8999006CA3BA /* asm-amd64.c */,
+				234D81901ECA8416006CA3BA /* asm.c */,
+				234D81911ECA8416006CA3BA /* asm.h */,
+			);
+			name = Yui;
+			path = ../src/yui;
+			sourceTree = "<group>";
+		};
 		2362023A1E45B91800B6B949 /* Include */ = {
 			isa = PBXGroup;
 			children = (
@@ -397,6 +424,7 @@
 		236202431E45BB2B00B6B949 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				234D81981ECA8924006CA3BA /* asm-amd64-test.cc */,
 				236202511E45BC7E00B6B949 /* base-test.cc */,
 				2362025B1E45CC5F00B6B949 /* token-test.cc */,
 				2358080F1E487D4C00C8C567 /* lexer-test.cc */,
@@ -415,6 +443,7 @@
 				232434851E7B935B0054C385 /* vm-thread-test.cc */,
 				2311E38B1EAAED57007B5305 /* vm-object-surface-test.cc */,
 				23E6BA161EB345D000FC1A55 /* source-file-position-dict-test.cc */,
+				234D81A21ECA90FB006CA3BA /* all-tests.cc */,
 			);
 			name = Tests;
 			path = ../src;
@@ -536,6 +565,7 @@
 				2311E3891EA9F0BC007B5305 /* vm-object-surface.cc in Sources */,
 				23ECD4531EA5C1A000A0091D /* vm-object-scanner.cc in Sources */,
 				2324348A1E7BBEA00054C385 /* vm-objects.cc in Sources */,
+				234D81961ECA8416006CA3BA /* asm.c in Sources */,
 				2361991C1E83FE1100682485 /* vm-function-register.cc in Sources */,
 				23E3D5BC1E767F8600C51DDE /* text-output-stream.cc in Sources */,
 				231378E51E8A5514009384DF /* simple-function-register.cc in Sources */,
@@ -551,6 +581,7 @@
 				23E3D5B41E6FFF5900C51DDE /* compiler.cc in Sources */,
 				232434831E7AA13F0054C385 /* vm-stack.cc in Sources */,
 				23E6BA171EB345D000FC1A55 /* source-file-position-dict-test.cc in Sources */,
+				234D819E1ECA8999006CA3BA /* asm-amd64.c in Sources */,
 				23E3D5B11E6FA55600C51DDE /* file-input-stream.cc in Sources */,
 				2349E5761E4C5310002883BC /* zone.cc in Sources */,
 			);
@@ -560,6 +591,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				234D819F1ECA8A31006CA3BA /* asm-amd64.c in Sources */,
+				234D81A01ECA8A31006CA3BA /* asm.c in Sources */,
+				234D81A11ECA8A31006CA3BA /* asm-amd64-test.cc in Sources */,
 				23E3D5C11E77C51800C51DDE /* memory-output-stream.cc in Sources */,
 				2361991D1E83FE1100682485 /* vm-function-register.cc in Sources */,
 				232434791E7A77020054C385 /* vm-bitcode-builder-test.cc in Sources */,
@@ -610,6 +644,7 @@
 				2349E5921E56FF02002883BC /* parser.cc in Sources */,
 				2324346D1E7926F50054C385 /* vm-memory-segment.cc in Sources */,
 				23658AF81E8A3FD700F7F72A /* do-nothing-garbage-collector.cc in Sources */,
+				234D81A31ECA90FB006CA3BA /* all-tests.cc in Sources */,
 				2349E58B1E56F3DB002883BC /* raw-string.cc in Sources */,
 				236202521E45BC7E00B6B949 /* base-test.cc in Sources */,
 				2349E57D1E55DD3C002883BC /* zone-hash-map-test.cc in Sources */,

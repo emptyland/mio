@@ -1104,7 +1104,7 @@ void EmittingAstVisitor::VisitAssignment(Assignment *node) {
             DCHECK_EQ(1, target->argument_size());
 
             auto map = Emit(target->expression());
-            auto key = Emit(target->mutable_arguments()->first());
+            auto key = Emit(target->mutable_arguments()->first()->value());
 
             EmitMapPut(map, key, rval, target->callee_type()->AsMap(),
                        node->rval_type(), node->position());

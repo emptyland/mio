@@ -6,6 +6,7 @@
 #include "simple-file-system.h"
 #include "text-output-stream.h"
 #include "ast-printer.h"
+#include "source-file-position-dict.h"
 #include "gtest/gtest.h"
 
 namespace mio {
@@ -97,6 +98,7 @@ protected:
     TypeFactory      *types_   = nullptr;
     AstNodeFactory   *factory_ = nullptr;
     SimpleFileSystem *sfs_     = nullptr;
+    SourceFilePositionDict source_position_dict_;
 }; // class CheckerTest
 
 
@@ -296,7 +298,17 @@ TEST_F(CheckerTest, P005_ReduceFunctionLiteralParameters) {
     ASSERT_TRUE(all_units != nullptr) << error.ToString();
 
     Checker checker(types_, all_units, global_, zone_);
-    ASSERT_TRUE(checker.Run()) << checker.last_error().ToString();
+    auto ok = checker.Run();
+    if (!ok) {
+        auto err = checker.last_error();
+        ok = true;
+        auto line = source_position_dict_.GetLine(err.file_name.c_str(), err.position, &ok);
+        if (ok) {
+            err.line   = line.line + 1;
+            err.column = line.column + 1;
+        }
+        FAIL() << "checking fail: " << err.ToString();
+    }
 
     auto module = global_->FindInnerScopeOrNull("main");
     ASSERT_TRUE(module != nullptr);

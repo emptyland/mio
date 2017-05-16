@@ -197,7 +197,7 @@ TEST_F(ParserTest, Calling) {
     "    operand: \n"
     "      symbol: i\n";
 
-    EXPECT_STREQ(z, yaml.c_str());
+    EXPECT_STREQ(z, yaml.c_str()) << yaml;
 }
 
 TEST_F(ParserTest, IfOperationOnlyThen) {

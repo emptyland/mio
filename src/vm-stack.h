@@ -9,7 +9,7 @@ namespace mio {
 
 class Stack {
 public:
-    static const int kDefaultSize = kPageSize;
+    const int kDefaultSize = kPageSize;
 
     Stack();
     ~Stack();

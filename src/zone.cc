@@ -51,7 +51,7 @@ public:
     static ZonePage *AlignmentGet(const void *p) {
         return static_cast<ZonePage *>(
             reinterpret_cast<void *>(
-                reinterpret_cast<uintptr_t>(p) & Zone::kPageAlignmentMask));
+                reinterpret_cast<uintptr_t>(p) & kPageAlignmentMask));
     }
 
 private:

@@ -57,9 +57,13 @@ typedef mio_buf_t<const char> mio_strbuf_t;
  * Constants
  *
  */
-static const int kPageSizeShift = 12;
+extern int kPageSizeShift;
 
-static const int kPageSize = (1 << kPageSizeShift); // 4 KB
+extern int kPageSize;
+
+extern uintptr_t kPageAlignmentMask;
+
+extern int kNumberOfCpuCores;
 
 static const int kAlignmentSize = 4;
 
@@ -172,6 +176,9 @@ inline size_t AlignDownBounds(size_t bounds, size_t value) {
 void *Round16BytesFill(const uint16_t zag, void *chunk, size_t n);
 void *Round32BytesFill(const uint32_t zag, void *chunk, size_t n);
 void *Round64BytesFill(const uint64_t zag, void *chunk, size_t n);
+
+// base initializer
+void EnvirmentInitialize();
 
 } // namespace mio
 

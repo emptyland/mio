@@ -21,12 +21,10 @@ class Zone {
 public:
     static const int kNumberOfSlabs     = 8;
 
-    static const uintptr_t kPageAlignmentMask = ~(kPageSize - 1);
-
     static const int kMinAllocatedShift = 4;
     static const int kMinAllocatedSize  = (1 << kMinAllocatedShift);
 
-    static const int kDefaultMaxCacheBytes = kPageSize * 4;
+    const int kDefaultMaxCacheBytes = kPageSize * 4;
 
     static const int64_t kInitialSeed = 1315423911;
 

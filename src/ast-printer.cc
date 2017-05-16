@@ -111,7 +111,7 @@ public:
     }
 
     virtual void VisitElement(Element *node) override {
-        WriteMapPair("value", node->value());
+        node->value()->Accept(this);
     }
 
     virtual void VisitMapInitializer(MapInitializer *node) override {
