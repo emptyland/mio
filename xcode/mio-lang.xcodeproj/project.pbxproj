@@ -63,6 +63,8 @@
 		234D81A01ECA8A31006CA3BA /* asm.c in Sources */ = {isa = PBXBuildFile; fileRef = 234D81901ECA8416006CA3BA /* asm.c */; };
 		234D81A11ECA8A31006CA3BA /* asm-amd64-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 234D81981ECA8924006CA3BA /* asm-amd64-test.cc */; };
 		234D81A31ECA90FB006CA3BA /* all-tests.cc in Sources */ = {isa = PBXBuildFile; fileRef = 234D81A21ECA90FB006CA3BA /* all-tests.cc */; };
+		234D81A61ECAA08B006CA3BA /* vm-code-cache.cc in Sources */ = {isa = PBXBuildFile; fileRef = 234D81A51ECAA08B006CA3BA /* vm-code-cache.cc */; };
+		234D81A71ECAA08B006CA3BA /* vm-code-cache.cc in Sources */ = {isa = PBXBuildFile; fileRef = 234D81A51ECAA08B006CA3BA /* vm-code-cache.cc */; };
 		235808131E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */; };
 		235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */; };
 		235808151E495CE200C8C567 /* lexer-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2358080F1E487D4C00C8C567 /* lexer-test.cc */; };
@@ -84,6 +86,7 @@
 		236202611E48221700B6B949 /* text-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362025F1E48221700B6B949 /* text-input-stream.cc */; };
 		23658AF71E8A3FD700F7F72A /* do-nothing-garbage-collector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23658AF61E8A3FD700F7F72A /* do-nothing-garbage-collector.cc */; };
 		23658AF81E8A3FD700F7F72A /* do-nothing-garbage-collector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23658AF61E8A3FD700F7F72A /* do-nothing-garbage-collector.cc */; };
+		23C5D6261ECBDF77005FE7C2 /* vm-code-cache-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C5D6251ECBDF77005FE7C2 /* vm-code-cache-test.cc */; };
 		23E3D59A1E5C1A7900C51DDE /* ast-printer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5991E5C1A7900C51DDE /* ast-printer.cc */; };
 		23E3D59B1E5C1A7900C51DDE /* ast-printer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5991E5C1A7900C51DDE /* ast-printer.cc */; };
 		23E3D59F1E600DCE00C51DDE /* types.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D59E1E600DCE00C51DDE /* types.cc */; };
@@ -203,6 +206,8 @@
 		234D819C1ECA8999006CA3BA /* asm-inl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "asm-inl.h"; sourceTree = "<group>"; };
 		234D819D1ECA8999006CA3BA /* asm-amd64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "asm-amd64.c"; sourceTree = "<group>"; };
 		234D81A21ECA90FB006CA3BA /* all-tests.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "all-tests.cc"; sourceTree = "<group>"; };
+		234D81A41ECA9F92006CA3BA /* vm-code-cache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-code-cache.h"; sourceTree = "<group>"; };
+		234D81A51ECAA08B006CA3BA /* vm-code-cache.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-code-cache.cc"; sourceTree = "<group>"; };
 		2358080F1E487D4C00C8C567 /* lexer-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "lexer-test.cc"; sourceTree = "<group>"; };
 		235808111E487D9400C8C567 /* fixed-memory-input-stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "fixed-memory-input-stream.h"; sourceTree = "<group>"; };
 		235808121E487DFB00C8C567 /* fixed-memory-input-stream.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "fixed-memory-input-stream.cc"; sourceTree = "<group>"; };
@@ -227,6 +232,8 @@
 		236202621E486C9300B6B949 /* token-inl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "token-inl.h"; sourceTree = "<group>"; };
 		23658AF51E8A3F3100F7F72A /* do-nothing-garbage-collector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "do-nothing-garbage-collector.h"; sourceTree = "<group>"; };
 		23658AF61E8A3FD700F7F72A /* do-nothing-garbage-collector.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "do-nothing-garbage-collector.cc"; sourceTree = "<group>"; };
+		23C5D6241ECBDEEC005FE7C2 /* bit-operations.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "bit-operations.h"; sourceTree = "<group>"; };
+		23C5D6251ECBDF77005FE7C2 /* vm-code-cache-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-code-cache-test.cc"; sourceTree = "<group>"; };
 		23E3D5991E5C1A7900C51DDE /* ast-printer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "ast-printer.cc"; sourceTree = "<group>"; };
 		23E3D59C1E5C231400C51DDE /* ast-printer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ast-printer.h"; sourceTree = "<group>"; };
 		23E3D59D1E600CB800C51DDE /* types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = types.h; sourceTree = "<group>"; };
@@ -334,6 +341,7 @@
 				2324347E1E7A8A850054C385 /* vm-bitcode.cc */,
 				232434821E7AA13F0054C385 /* vm-stack.cc */,
 				2324346B1E7926F50054C385 /* vm-memory-segment.cc */,
+				234D81A51ECAA08B006CA3BA /* vm-code-cache.cc */,
 				2324346F1E7929DD0054C385 /* vm-bitcode-builder.cc */,
 				2324347B1E7A84C20054C385 /* vm-bitcode-disassembler.cc */,
 				232434891E7BBEA00054C385 /* vm-objects.cc */,
@@ -369,6 +377,7 @@
 		2362023A1E45B91800B6B949 /* Include */ = {
 			isa = PBXGroup;
 			children = (
+				23C5D6241ECBDEEC005FE7C2 /* bit-operations.h */,
 				2362023B1E45B9A700B6B949 /* base.h */,
 				236202531E45BD0D00B6B949 /* lexer.h */,
 				236202621E486C9300B6B949 /* token-inl.h */,
@@ -400,6 +409,7 @@
 				232434611E78DFD00054C385 /* vm-bitcode.h */,
 				232434811E7A9E970054C385 /* vm-stack.h */,
 				2324346A1E7925000054C385 /* vm-memory-segment.h */,
+				234D81A41ECA9F92006CA3BA /* vm-code-cache.h */,
 				2324346E1E7928B60054C385 /* vm-bitcode-builder.h */,
 				2324347A1E7A83470054C385 /* vm-bitcode-disassembler.h */,
 				23ECD4551EA6EF1D00A0091D /* vm-garbage-collector.h */,
@@ -439,6 +449,7 @@
 				23E3D5AD1E6D004C00C51DDE /* scopes-test.cc */,
 				231378E71E8B563D009384DF /* bitcode-emitter-test.cc */,
 				232434721E7A203D0054C385 /* vm-memory-segment-test.cc */,
+				23C5D6251ECBDF77005FE7C2 /* vm-code-cache-test.cc */,
 				232434781E7A77020054C385 /* vm-bitcode-builder-test.cc */,
 				232434851E7B935B0054C385 /* vm-thread-test.cc */,
 				2311E38B1EAAED57007B5305 /* vm-object-surface-test.cc */,
@@ -540,6 +551,7 @@
 			files = (
 				232434931E7FAF230054C385 /* bitcode-emitter.cc in Sources */,
 				232434641E78EEC70054C385 /* vm.cc in Sources */,
+				234D81A61ECAA08B006CA3BA /* vm-code-cache.cc in Sources */,
 				23E6BA141EB335A100FC1A55 /* source-file-position-dict.cc in Sources */,
 				23E3D5A81E65075C00C51DDE /* checker.cc in Sources */,
 				2349E58D1E56FCC9002883BC /* ast.cc in Sources */,
@@ -593,6 +605,7 @@
 			files = (
 				234D819F1ECA8A31006CA3BA /* asm-amd64.c in Sources */,
 				234D81A01ECA8A31006CA3BA /* asm.c in Sources */,
+				23C5D6261ECBDF77005FE7C2 /* vm-code-cache-test.cc in Sources */,
 				234D81A11ECA8A31006CA3BA /* asm-amd64-test.cc in Sources */,
 				23E3D5C11E77C51800C51DDE /* memory-output-stream.cc in Sources */,
 				2361991D1E83FE1100682485 /* vm-function-register.cc in Sources */,
@@ -635,6 +648,7 @@
 				2349E57A1E554426002883BC /* zone-test.cc in Sources */,
 				232434871E7B935B0054C385 /* vm-thread-test.cc in Sources */,
 				232434941E7FAF230054C385 /* bitcode-emitter.cc in Sources */,
+				234D81A71ECAA08B006CA3BA /* vm-code-cache.cc in Sources */,
 				2349E5731E4B1800002883BC /* keywords.c in Sources */,
 				232434801E7A8A850054C385 /* vm-bitcode.cc in Sources */,
 				232434731E7A203D0054C385 /* vm-memory-segment-test.cc in Sources */,
