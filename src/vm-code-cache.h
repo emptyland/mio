@@ -29,7 +29,7 @@ public:
     CodeCache(int default_size) : size_(default_size) {}
     ~CodeCache();
 
-    int chunk_size() const { return static_cast<int>(index_ - code_); }
+    int space_size() const { return static_cast<int>(index_ - code_); }
 
     bool Init();
 
@@ -37,22 +37,26 @@ public:
 
     void Free(CodeRef ref);
 
-    int FindFirstOne(int begin);
-
     void **MakeIndexRoom();
 
     void Compact();
 
-    bool bitmap_test(int index) {
+    bool bitmap_test(int index) const {
         return (bitmap_[index / 32] & (1u << (index % 32))) != 0;
     }
 
+    int kept_index_size();
+
+    int GetChunkSize(void *chunk) const;
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(CodeCache)
 private:
+    int FindFirstOne(int begin) const;
+    
     void MarkUsed(void *chunk, int size) {
         auto offset = static_cast<int>(static_cast<uint8_t *>(chunk) - code_);
-        bitmap_set(offset / kAlignmentSize);
-        bitmap_set((offset + size) / kAlignmentSize);
+        bitmap_set(offset >> kAlignmentSizeShift);
+        bitmap_set((offset + size - 1) >> kAlignmentSizeShift);
     }
 
     void MarkUnused(void *chunk);

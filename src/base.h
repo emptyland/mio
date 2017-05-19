@@ -65,7 +65,9 @@ extern uintptr_t kPageAlignmentMask;
 
 extern int kNumberOfCpuCores;
 
-static const int kAlignmentSize = 4;
+static const int kAlignmentSizeShift = 2;
+
+static const int kAlignmentSize = (1 << kAlignmentSizeShift);
 
 static const int kDefaultMaxCallDeep = 0xfff;
 

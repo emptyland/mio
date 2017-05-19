@@ -40,6 +40,9 @@ bool CodeCache::Init() {
 }
 
 CodeRef CodeCache::Allocate(int size) {
+    if (size <= kAlignmentSize) {
+        size = kAlignmentSize * 2;
+    }
     size = RoundUp(size, kAlignmentSize);
 
     int      begin = 0, end = 0;
@@ -48,14 +51,14 @@ CodeRef CodeCache::Allocate(int size) {
 
     do {
         begin = FindFirstOne(end);
-        if (begin >= chunk_size() / kAlignmentSize) {
+        if (begin >= space_size() >> kAlignmentSizeShift) {
             free = code_;
-            free_size = chunk_size();
+            free_size = space_size() - sizeof(void *);
         } else {
-            begin = FindFirstOne(begin + 1);
-            free = code_ + begin * kAlignmentSize;
-            end = FindFirstOne(begin + 1);
-            free_size = (end - begin) * kAlignmentSize;
+            begin = FindFirstOne(begin + 1) + 1;
+            free = code_ + (begin << kAlignmentSizeShift);
+            end = FindFirstOne(begin);
+            free_size = (end - begin) << kAlignmentSizeShift;
         }
         if (size <= free_size) {
             auto index_room = MakeIndexRoom();
@@ -66,7 +69,7 @@ CodeRef CodeCache::Allocate(int size) {
             MarkUsed(free, size);
             return CodeRef(index_room);
         }
-    } while (begin < chunk_size());
+    } while (begin < space_size());
     return CodeRef(nullptr);
 }
 
@@ -79,7 +82,7 @@ void CodeCache::Free(CodeRef ref) {
     }
 }
 
-int CodeCache::FindFirstOne(int begin) {
+int CodeCache::FindFirstOne(int begin) const {
     int index = begin / 32;
     DCHECK_GE(index, 0);
     DCHECK_LT(index, bitmap_size());
@@ -109,16 +112,33 @@ void CodeCache::Compact() {
     // TODO:
 }
 
+int CodeCache::kept_index_size() {
+    return sizeof(void *);
+}
+
+int CodeCache::GetChunkSize(void *chunk) const {
+    int offset = static_cast<int>((static_cast<uint8_t *>(chunk) - code_));
+    DCHECK_GE(offset, 0);
+    DCHECK(bitmap_test(offset / kAlignmentSize));
+
+    auto begin = offset << kAlignmentSizeShift;
+    auto end   = FindFirstOne(begin + 1);
+    DCHECK_LT(end * kAlignmentSize, space_size());
+
+    return (end - begin + 1) << kAlignmentSizeShift;
+}
+
 void CodeCache::MarkUnused(void *chunk) {
     int offset = static_cast<int>((static_cast<uint8_t *>(chunk) - code_));
     DCHECK_GE(offset, 0);
     DCHECK(bitmap_test(offset / kAlignmentSize));
 
-    auto begin = offset / kAlignmentSize;
-    auto end   = FindFirstOne(begin);
-    DCHECK_LT(end * kAlignmentSize, chunk_size());
+    auto begin = offset >> kAlignmentSizeShift;
+    auto end   = FindFirstOne(begin + 1);
+    DCHECK_LT(end * kAlignmentSize, space_size());
 
-    bitmap_unset(begin); bitmap_unset(end);
+    bitmap_unset(begin);
+    bitmap_unset(end);
 }
 
 void **CodeCache::MakeIndexRoom() {
