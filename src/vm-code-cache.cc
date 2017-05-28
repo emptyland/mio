@@ -39,41 +39,43 @@ bool CodeCache::Init() {
     return true;
 }
 
-CodeRef CodeCache::Allocate(int size) {
+void **CodeCache::RawAllocate(int size) {
     if (size <= kAlignmentSize) {
         size = kAlignmentSize * 2;
     }
     size = RoundUp(size, kAlignmentSize);
 
-    int      begin = 0, end = 0;
-    uint8_t *free = nullptr;
-    int      free_size = 0;
+    int      begin = FindFirstOne(0);
+    uint8_t *free = code_;
+    int      free_size = space_size() - sizeof(void *);
 
-    do {
-        begin = FindFirstOne(end);
-        if (begin >= space_size() >> kAlignmentSizeShift) {
-            free = code_;
-            free_size = space_size() - sizeof(void *);
-        } else {
-            begin = FindFirstOne(begin + 1) + 1;
-            free = code_ + (begin << kAlignmentSizeShift);
-            end = FindFirstOne(begin);
-            free_size = (end - begin) << kAlignmentSizeShift;
-        }
+    while ((begin << kAlignmentSizeShift) < space_size()) {
+        begin = FindFirstOne(begin + 1) + 1;
+        free = code_ + (begin << kAlignmentSizeShift);
+        auto end = FindFirstOne(begin);
+        free_size = (end - begin) << kAlignmentSizeShift;
+
         if (size <= free_size) {
-            auto index_room = MakeIndexRoom();
-            if (!index_room) {
-                return CodeRef(nullptr);
-            }
-            *index_room = free;
-            MarkUsed(free, size);
-            return CodeRef(index_room);
+            break;
         }
-    } while (begin < space_size());
-    return CodeRef(nullptr);
+    }
+
+    if (size > free_size) {
+        return nullptr;
+    }
+    auto index_room = MakeIndexRoom();
+    if (!index_room) {
+        return nullptr;
+    }
+    *index_room = free;
+    MarkUsed(free, size);
+    used_bytes_ += size;
+    return index_room;
 }
 
 void CodeCache::Free(CodeRef ref) {
+    used_bytes_ -= GetChunkSize(ref.data());
+
     MarkUnused(ref.data());
 
     *ref.index() = nullptr;
@@ -109,19 +111,59 @@ int CodeCache::FindFirstOne(int begin) const {
 }
 
 void CodeCache::Compact() {
-    // TODO:
+    std::vector<mio_buf_t<uint8_t>> chunks;
+    GetAllChunks(&chunks);
+
+    std::map<void *, void **> indexs;
+    GetIndexMap(&indexs);
+
+    auto p = code_;
+    for (auto buf : chunks) {
+        if (buf.z > p) {
+            MarkUnused(buf.z);
+            memmove(p, buf.z, buf.n);
+            MarkUsed(p, buf.n);
+            *indexs[buf.z] = p;
+            
+            p += buf.n;
+        } else {
+            p = buf.z + buf.n;
+        }
+    }
 }
 
-int CodeCache::kept_index_size() {
-    return sizeof(void *);
+void CodeCache::GetAllChunks(std::vector<mio_buf_t<uint8_t>> *chunks) const {
+    int begin = FindFirstOne(0);
+
+    while ((begin << kAlignmentSizeShift) < space_size()) {
+        mio_buf_t<uint8_t> buf;
+        buf.z = code_ + (begin << kAlignmentSizeShift);
+
+        auto end = FindFirstOne(begin + 1) + 1;
+        buf.n = (end - begin) << kAlignmentSizeShift;
+
+        chunks->push_back(buf);
+        begin = FindFirstOne(end);
+    }
+}
+
+void CodeCache::GetIndexMap(std::map<void *, void **> *indexs) const {
+    for (auto p = index_; p < code_ + size_; p += sizeof(void *)) {
+        if (!*reinterpret_cast<void **>(p)) {
+            continue;
+        }
+        indexs->emplace(*reinterpret_cast<void **>(p),
+                        reinterpret_cast<void **>(&code_[p - code_]));
+    }
 }
 
 int CodeCache::GetChunkSize(void *chunk) const {
     int offset = static_cast<int>((static_cast<uint8_t *>(chunk) - code_));
     DCHECK_GE(offset, 0);
-    DCHECK(bitmap_test(offset / kAlignmentSize));
 
-    auto begin = offset << kAlignmentSizeShift;
+    auto begin = offset >> kAlignmentSizeShift;
+    DCHECK(bitmap_test(begin));
+
     auto end   = FindFirstOne(begin + 1);
     DCHECK_LT(end * kAlignmentSize, space_size());
 
@@ -131,9 +173,10 @@ int CodeCache::GetChunkSize(void *chunk) const {
 void CodeCache::MarkUnused(void *chunk) {
     int offset = static_cast<int>((static_cast<uint8_t *>(chunk) - code_));
     DCHECK_GE(offset, 0);
-    DCHECK(bitmap_test(offset / kAlignmentSize));
 
     auto begin = offset >> kAlignmentSizeShift;
+    DCHECK(bitmap_test(begin));
+
     auto end   = FindFirstOne(begin + 1);
     DCHECK_LT(end * kAlignmentSize, space_size());
 
