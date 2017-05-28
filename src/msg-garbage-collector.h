@@ -13,6 +13,7 @@ namespace mio {
 class MemorySegment;
 class Thread;
 class ObjectScanner;
+class CodeCache;
 class ManagedAllocator;
 
 struct SweepInfo {
@@ -55,8 +56,9 @@ public:
     static const int kDefaultSweepSpeed = 50;
     static const uint32_t kFreeMemoryBytes = 0xfeedfeed;
 
-    MSGGarbageCollector(ManagedAllocator *allocator, MemorySegment *root,
-                        Thread *main_thread, bool trace_logging);
+    MSGGarbageCollector(ManagedAllocator *allocator, CodeCache *code_cache,
+                        MemorySegment *root, Thread *main_thread,
+                        bool trace_logging);
     virtual ~MSGGarbageCollector();
 
     ////////////////////////////////////////////////////////////////////////////
@@ -223,6 +225,7 @@ private:
     HeapObject  *gray_again_header_;
     HeapObject  *generations_[kMaxGeneration];
     ManagedAllocator *allocator_;
+    CodeCache *code_cache_;
     SweepInfo sweep_info_[kMaxGeneration];
 }; // class MSGGarbageCollector
 

@@ -533,7 +533,8 @@ void EmittingAstVisitor::EmitGlobalFunction(FunctionDefine *node) {
                 o_size += param->param_type()->placement_size();
             }
         }
-        auto fn = emitter_->object_factory_->CreateNativeFunction("::", nullptr);
+        auto fn = emitter_->object_factory_->CreateNativeFunction(proto->GetSignature().c_str(),
+                                                                  nullptr);
         fn->SetPrimitiveArgumentsSize(p_size);
         fn->SetObjectArgumentsSize(o_size);
         fn->SetName(name.get());

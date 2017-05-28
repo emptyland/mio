@@ -146,4 +146,44 @@ TEST_F(ThreadTest, P021_LenBuiltinCall) {
     }
 }
 
+mio_i64_t TestNativeFoo1(Thread *t) {
+    return t->vm()->tick();
+}
+
+mio_f32_t TestNativeFoo2(Thread *t) {
+    return 1.101f;
+}
+
+mio_i64_t TestNativeFoo3(Thread *t, mio_i64_t add) {
+    return 100 + add;
+}
+
+mio_f64_t TestNativeFoo4(Thread *t, mio_i64_t a, mio_f64_t b) {
+    return a + b;
+}
+
+TEST_F(ThreadTest, P022_FunctionTemplate) {
+    ParsingError error;
+
+    ASSERT_TRUE(vm_->CompileProject("test/022", &error)) << error.ToString();
+    auto ok = vm_->function_register()->RegisterFunctionTemplate("::main::foo1",
+                                                                 &TestNativeFoo1);
+    ASSERT_TRUE(ok);
+    ok = vm_->function_register()->RegisterFunctionTemplate("::main::foo2",
+                                                            &TestNativeFoo2);
+    ASSERT_TRUE(ok);
+    ok = vm_->function_register()->RegisterFunctionTemplate("::main::foo3",
+                                                            &TestNativeFoo3);
+    ASSERT_TRUE(ok);
+    ok = vm_->function_register()->RegisterFunctionTemplate("::main::foo4",
+                                                            &TestNativeFoo4);
+    ASSERT_TRUE(ok);
+
+    if (vm_->Run() != 0) {
+        std::string buf;
+        vm_->PrintBackstrace(&buf);
+        printf("%s\n", buf.c_str());
+    }
+}
+
 } // namespace mio

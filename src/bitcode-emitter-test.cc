@@ -5,6 +5,7 @@
 #include "scopes.h"
 #include "ast.h"
 #include "memory-output-stream.h"
+#include "vm-code-cache.h"
 #include "vm-memory-segment.h"
 #include "vm-bitcode-disassembler.h"
 #include "vm-bitcode-builder.h"
@@ -23,6 +24,7 @@ public:
 
     virtual void SetUp() override {
         allocator_ = new ManagedAllocator();
+        code_cache_ = new CodeCache(kDefaultNativeCodeSize);
         zone_ = new Zone();
         global_ = new (zone_) Scope(nullptr, GLOBAL_SCOPE, zone_);
         types_ = new TypeFactory(zone_);
@@ -31,7 +33,7 @@ public:
         p_global_ = new MemorySegment();
         o_global_ = new MemorySegment();
         object_factory_ = new DoNothingGarbageCollector(allocator_);
-        function_register_ = new SimpleFunctionRegister(o_global_);
+        function_register_ = new SimpleFunctionRegister(code_cache_, o_global_);
     }
 
     virtual void TearDown() override {
@@ -43,6 +45,7 @@ public:
         delete factory_;
         delete types_;
         delete zone_;
+        delete code_cache_;
         delete allocator_;
     }
 
@@ -94,6 +97,7 @@ protected:
     MemorySegment    *o_global_ = nullptr;
     DoNothingGarbageCollector  *object_factory_ = nullptr;
     SimpleFunctionRegister *function_register_ = nullptr;
+    CodeCache *code_cache_ = nullptr;
     ManagedAllocator *allocator_ = nullptr;
 };
 

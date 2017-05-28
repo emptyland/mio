@@ -63,6 +63,8 @@ struct FunctionDebugInfo;
 
 typedef int (*MIOFunctionPrototype)(VM *, Thread *);
 
+typedef int (*MIONativeWarper)(Thread *, MIONativeFunction *, void *, void *);
+
 template<class T>
 inline T HeapObjectGet(const void *obj, int offset) {
     return *reinterpret_cast<const T *>(reinterpret_cast<const uint8_t *>(obj) + offset);
@@ -290,12 +292,22 @@ public:
     static const int kPrimitiveArgumentsSizeOffset = kSignatureOffset + kObjectReferenceSize;
     static const int kObjectArgumentsSizeOffset = kPrimitiveArgumentsSizeOffset + sizeof(int);
     static const int kNativePointerOffset = kObjectArgumentsSizeOffset + sizeof(int);
-    static const int kMIONativeFunctionOffset = kNativePointerOffset + sizeof(MIOFunctionPrototype);
+    static const int kNativeWarperIndexOffset = kNativePointerOffset + sizeof(MIOFunctionPrototype);
+    static const int kMIONativeFunctionOffset = kNativeWarperIndexOffset + sizeof(void **);
 
     DEFINE_HEAP_OBJ_RW(MIOString *, Signature)
     DEFINE_HEAP_OBJ_RW(int, PrimitiveArgumentsSize)
     DEFINE_HEAP_OBJ_RW(int, ObjectArgumentsSize)
     DEFINE_HEAP_OBJ_RW(MIOFunctionPrototype, NativePointer)
+    DEFINE_HEAP_OBJ_RW(void **, NativeWarperIndex)
+
+    inline void SetTemplate(void *pointer) {
+        HeapObjectSet<void *>(this, kNativePointerOffset, pointer);
+    }
+
+    inline MIONativeWarper GetNativeWarper() const {
+        return reinterpret_cast<MIONativeWarper>(*GetNativeWarperIndex());
+    }
 
     DECLARE_VM_OBJECT(NativeFunction)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIONativeFunction)

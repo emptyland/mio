@@ -31,11 +31,11 @@ FunctionEntry *SimpleFunctionRegister::FindOrNull(const char *name) const {
 }
 
 /*virtual*/
-bool SimpleFunctionRegister::RegisterNativeFunction(const char *name,
-                                                    MIOFunctionPrototype pointer) {
+Handle<MIONativeFunction>
+SimpleFunctionRegister::FindNativeFunction(const char *name) {
     auto iter = functions_.find(name);
     if (iter == functions_.end()) {
-        return false;
+        return Handle<MIONativeFunction>();
     }
 
     auto entry = iter->second;
@@ -43,11 +43,9 @@ bool SimpleFunctionRegister::RegisterNativeFunction(const char *name,
         auto heap_obj = global_->Get<HeapObject *>(entry->offset());
         auto func = make_handle(heap_obj->AsNativeFunction());
         DCHECK(!func.empty());
-
-        func->SetNativePointer(pointer);
-        return true;
+        return func;
     }
-    return false;
+    return Handle<MIONativeFunction>();
 }
 
 int

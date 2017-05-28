@@ -610,7 +610,6 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                     ctx->o_stack_size = o_stack_->size();
                     ctx->pc           = pc_;
                     ctx->bc           = bc_;
-                    //ctx->callee       = static_cast<MIOFunction*>(ob.get());
                     ctx->callee       = callee_.get();
 
                     auto base1 = BitCodeDisassembler::GetOp1(bc);
@@ -619,7 +618,11 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                     o_stack_->AdjustFrame(base2, native->GetObjectArgumentsSize());
 
                     callee_ = static_cast<MIOFunction*>(ob.get());
-                    (*native->GetNativePointer())(vm_, this);
+                    if (native->GetNativeWarperIndex()) {
+                        (*native->GetNativeWarper())(this, native, p_stack_->offset(0), o_stack_->offset(0));
+                    } else {
+                        (*native->GetNativePointer())(vm_, this);
+                    }
                     callee_ = ctx->callee;
 
                     p_stack_->SetFrame(ctx->p_stack_base, ctx->p_stack_size);

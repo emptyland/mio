@@ -1,0 +1,14 @@
+package main
+
+native function foo1: int
+native function foo2: f32
+native function foo3(v: int): int
+native function foo4(a: int, b: f64): f64
+
+function main: void {
+    base::println('result:'..foo1())
+    base::println('result:'..foo2())
+    base::println('result:'..foo3(1))
+    base::println('result:'..foo3(100))
+    base::println('result:'..foo4(100, 1.12D))
+}

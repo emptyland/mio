@@ -1,5 +1,6 @@
 #include "vm.h"
 #include "vm-memory-segment.h"
+#include "vm-code-cache.h"
 #include "vm-thread.h"
 #include "vm-object-extra-factory.h"
 #include "vm-objects.h"
@@ -33,18 +34,31 @@ VM::~VM() {
     delete o_global_;
     delete main_thread_;
     delete gc_;
+    delete allocator_;
+    delete code_cache_;
 }
 
 bool VM::Init() {
+
+    DCHECK_GT(native_code_size_, kPageSize);
+    code_cache_ = new CodeCache(native_code_size_);
+    if (!code_cache_->Init()) {
+        DLOG(ERROR) << "native code cache initialize fail!";
+        return false;
+    }
+
     if (gc_name_.compare("msg") == 0) {
-        gc_ = new MSGGarbageCollector(allocator_, o_global_, main_thread_, false);
+        gc_ = new MSGGarbageCollector(allocator_, code_cache_, o_global_,
+                                      main_thread_, false);
     } else if (gc_name_.compare("nogc") == 0) {
         gc_ = new DoNothingGarbageCollector(allocator_);
     } else {
         DLOG(ERROR) << "bad gc name: " << gc_name_;
         return false;
     }
-    function_register_ = new SimpleFunctionRegister(o_global_);
+
+    function_register_ = new SimpleFunctionRegister(code_cache_, o_global_);
+
     // TODO:
     return true;
 }

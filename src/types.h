@@ -12,17 +12,30 @@
 namespace mio {
 
 #define DEFINE_TYPE_NODES(M) \
-    M(Slice) \
-    M(Array) \
-    M(Map) \
-    M(FunctionPrototype) \
-    M(Union) \
-    M(Integral) \
-    M(Floating) \
-    M(String) \
-    M(Void) \
-    M(Error) \
-    M(Unknown)
+    M(Slice,    's') \
+    M(Array,    'a') \
+    M(Map,      'm') \
+    M(FunctionPrototype, 'r') \
+    M(Union,    'u') \
+    M(Integral, 'I') \
+    M(Floating, 'F') \
+    M(String,   'z') \
+    M(Void,     '!') \
+    M(Error,    'e') \
+    M(Unknown,  '\0')
+
+/*
+ * Integral Signature
+ * i1  - 1
+ * i8  - 8
+ * i16 - 7
+ * i32 - 5
+ * i64 - 9
+ *
+ * Floating Signature
+ * f32 - 3
+ * f64 - 6
+ */
 
 class Type;
     class Map;
@@ -51,13 +64,13 @@ class TextOutputStream;
 class Type : public ManagedObject {
 public:
     enum Kind: int {
-    #define Type_Kind_ENUM_DEFINE(name) k##name,
+    #define Type_Kind_ENUM_DEFINE(name, sign) k##name,
         DEFINE_TYPE_NODES(Type_Kind_ENUM_DEFINE)
     #undef  Type_Kind_ENUM_DEFINE
         MAX_KIND,
     };
 
-#define Type_TYPE_ASSERT(kind) \
+#define Type_TYPE_ASSERT(kind, sign) \
     bool Is##kind () const { return type_kind() == k##kind; } \
     kind *As##kind() { \
         return Is##kind() ? reinterpret_cast<kind *>(this) : nullptr; \
@@ -309,6 +322,8 @@ public:
     Type *return_type() const { return return_type_; }
     void set_return_type(Type *type) { return_type_ = type; }
 
+    std::string GetSignature() const;
+
     virtual bool MustBeInitialized() const override { return false; }
 
     virtual int64_t GenerateId() const override;
@@ -320,6 +335,8 @@ private:
         : Type(0)
         , paramters_(DCHECK_NOTNULL(paramters))
         , return_type_(DCHECK_NOTNULL(return_type)) { id_ = GenerateId(); }
+
+    static char GetSignature(const Type *type);
     
     ZoneVector<Paramter *> *paramters_;
     Type *return_type_;

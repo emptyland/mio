@@ -9,6 +9,8 @@ int kPageSizeShift = 12;
 
 int kPageSize = (1 << kPageSizeShift); // 4 KB
 
+int kDefaultNativeCodeSize = 4 * kPageSize;
+
 uintptr_t kPageAlignmentMask = -1;
 
 int kNumberOfCpuCores = 1;
@@ -63,6 +65,8 @@ void EnvirmentInitialize() {
 
     kNumberOfCpuCores = static_cast<int>(sysconf(_SC_NPROCESSORS_ONLN));
     DLOG(INFO) << "number of cpu cores: " << kNumberOfCpuCores;
+
+    kDefaultNativeCodeSize = 4 * kPageSize;
 }
 
 } // namespace mio

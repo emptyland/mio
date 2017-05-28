@@ -63,6 +63,8 @@ extern int kPageSize;
 
 extern uintptr_t kPageAlignmentMask;
 
+extern int kDefaultNativeCodeSize;
+
 extern int kNumberOfCpuCores;
 
 static const int kAlignmentSizeShift = 2;

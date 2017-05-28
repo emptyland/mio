@@ -254,6 +254,54 @@ int Union::ToString(TextOutputStream *stream) const {
 /// FunctionPrototype
 ////////////////////////////////////////////////////////////////////////////////
 
+std::string FunctionPrototype::GetSignature() const {
+    std::string buf;
+
+    buf.append(1, GetSignature(return_type()));
+    buf.append(1, ':');
+    for (int i = 0; i < paramter_size(); ++i) {
+        auto type = paramter(i)->param_type();
+        buf.append(1, GetSignature(type));
+    }
+    return buf;
+}
+
+/*static*/ char FunctionPrototype::GetSignature(const Type *type) {
+    char s = 0;
+    switch (type->type_kind()) {
+    #define DEFINE_CASE(kind, sign) \
+        case k##kind: \
+        s = sign; \
+        break;
+            DEFINE_TYPE_NODES(DEFINE_CASE)
+    #undef DEFINE_CASE
+        default:
+            DLOG(FATAL) << "noreached!";
+            break;
+    }
+    if (s == 'I') {
+        switch (type->AsIntegral()->bitwide()) {
+            case 1:  s = '1'; break;
+            case 8:  s = '8'; break;
+            case 16: s = '7'; break;
+            case 32: s = '5'; break;
+            case 64: s = '9'; break;
+            default:
+                DLOG(FATAL) << "noreached!";
+                break;
+        }
+    } else if (s == 'F') {
+        switch (type->AsFloating()->bitwide()) {
+            case 32: s = '3'; break;
+            case 64: s = '6'; break;
+            default:
+                DLOG(FATAL) << "noreached!";
+                break;
+        }
+    }
+    return s;
+}
+
 /*virtual*/
 int FunctionPrototype::ToString(TextOutputStream *stream) const {
     auto rv = stream->Write("function (");

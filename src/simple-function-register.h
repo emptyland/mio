@@ -15,16 +15,16 @@ class FunctionEntry;
 
 class SimpleFunctionRegister : public FunctionRegister {
 public:
-    SimpleFunctionRegister(MemorySegment *global)
-        : global_(DCHECK_NOTNULL(global)) {}
+    SimpleFunctionRegister(CodeCache *code_cache, MemorySegment *global)
+        : FunctionRegister(code_cache)
+        , global_(DCHECK_NOTNULL(global)) {}
     virtual ~SimpleFunctionRegister() override;
 
     virtual FunctionEntry *FindOrInsert(const char *name) override;
 
     virtual FunctionEntry *FindOrNull(const char *name) const override;
 
-    virtual bool RegisterNativeFunction(const char *name,
-                                        MIOFunctionPrototype pointer) override;
+    virtual Handle<MIONativeFunction> FindNativeFunction(const char *name) override;
 
     virtual
     int GetAllFunctions(std::vector<Handle<MIONormalFunction>> *all_functions) override;

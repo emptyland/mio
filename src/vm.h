@@ -19,6 +19,7 @@ class FunctionRegister;
 class TextOutputStream;
 class MIOString;
 class SourceFilePositionDict;
+class CodeCache;
 struct ParsingError;
 
 typedef int (*MIOFunctionPrototype)(VM *, Thread *);
@@ -39,6 +40,7 @@ public:
     int Run();
 
     DEF_GETTER(int, max_call_deep)
+    DEF_PROP_RW(int, native_code_size)
     DEF_GETTER(int, tick);
     DEF_PROP_RW(std::string, gc_name);
     DEF_GETTER(std::vector<BacktraceLayout>, backtrace);
@@ -85,6 +87,7 @@ private:
 
     int tick_ = 0;
     int max_call_deep_ = kDefaultMaxCallDeep;
+    int native_code_size_ = kDefaultNativeCodeSize;
     Thread *main_thread_;
     MemorySegment *p_global_;
     MemorySegment *o_global_;
@@ -93,7 +96,8 @@ private:
     int type_info_size_ = 0;
     int type_void_index = 0;
     int type_error_index = 0;
-    ManagedAllocator *allocator_;
+    ManagedAllocator *allocator_ = nullptr;
+    CodeCache *code_cache_ = nullptr;
     GarbageCollector *gc_ = nullptr;
     FunctionRegister *function_register_ = nullptr;
     ParsedModuleMap *all_modules_ = nullptr;

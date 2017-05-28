@@ -1,5 +1,6 @@
 #include "msg-garbage-collector.h"
 #include "managed-allocator.h"
+#include "vm-code-cache.h"
 #include "vm-thread.h"
 #include "vm-memory-segment.h"
 #include "vm-object-scanner.h"
@@ -18,6 +19,7 @@ namespace mio {
     } (void)0
 
 MSGGarbageCollector::MSGGarbageCollector(ManagedAllocator *allocator,
+                                         CodeCache *code_cache,
                                          MemorySegment *root,
                                          Thread *main_thread,
                                          bool trace_logging)
@@ -28,7 +30,8 @@ MSGGarbageCollector::MSGGarbageCollector(ManagedAllocator *allocator,
     , handle_header_(static_cast<HeapObject *>(::malloc(HeapObject::kListEntryOffset)))
     , gray_header_(static_cast<HeapObject *>(::malloc(HeapObject::kListEntryOffset)))
     , gray_again_header_(static_cast<HeapObject *>(::malloc(HeapObject::kListEntryOffset)))
-    , allocator_(DCHECK_NOTNULL(allocator)) {
+    , allocator_(DCHECK_NOTNULL(allocator))
+    , code_cache_(DCHECK_NOTNULL(code_cache)) {
     handle_header_->InitEntry();
     gray_header_->InitEntry();
     gray_again_header_->InitEntry();
@@ -111,6 +114,7 @@ MSGGarbageCollector::CreateNativeFunction(const char *signature,
     NEW_FIXED_SIZE_OBJECT(ob, MIONativeFunction, 0);
     ob->SetSignature(sign.get());
     ob->SetNativePointer(pointer);
+    ob->SetNativeWarperIndex(nullptr);
     return make_handle(ob);
 }
 
@@ -668,6 +672,11 @@ void MSGGarbageCollector::DeleteObject(const HeapObject *ob) {
         case HeapObject::kNormalFunction: {
             auto fn = ob->AsNormalFunction();
             allocator_->Free(fn->GetDebugInfo());
+        } break;
+
+        case HeapObject::kNativeFunction: {
+            auto fn = ob->AsNativeFunction();
+            code_cache_->Free(CodeRef(fn->GetNativeWarperIndex()));
         } break;
 
         default:

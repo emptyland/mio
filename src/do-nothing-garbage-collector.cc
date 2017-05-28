@@ -63,6 +63,7 @@ DoNothingGarbageCollector::CreateNativeFunction(const char *signature,
     auto ob = NEW_OBJECT(NativeFunction);
     ob->SetSignature(sign.get());
     ob->SetNativePointer(pointer);
+    ob->SetNativeWarperIndex(nullptr);
     return make_handle(ob);
 }
 
