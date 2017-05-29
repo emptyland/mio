@@ -120,6 +120,10 @@
 		23ECD4501EA4B4C700A0091D /* msg-garbage-collector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23ECD44E1EA4B4C700A0091D /* msg-garbage-collector.cc */; };
 		23ECD4531EA5C1A000A0091D /* vm-object-scanner.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23ECD4521EA5C1A000A0091D /* vm-object-scanner.cc */; };
 		23ECD4541EA5C1A000A0091D /* vm-object-scanner.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23ECD4521EA5C1A000A0091D /* vm-object-scanner.cc */; };
+		23F311F21EDBFFDD00B02687 /* managed-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F311F11EDBFFDD00B02687 /* managed-allocator.cc */; };
+		23F311F31EDBFFDD00B02687 /* managed-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F311F11EDBFFDD00B02687 /* managed-allocator.cc */; };
+		23F311F61EDC010700B02687 /* fallback-managed-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F311F51EDC010700B02687 /* fallback-managed-allocator.cc */; };
+		23F311F71EDC010700B02687 /* fallback-managed-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F311F51EDC010700B02687 /* fallback-managed-allocator.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -267,6 +271,9 @@
 		23ECD4521EA5C1A000A0091D /* vm-object-scanner.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-object-scanner.cc"; sourceTree = "<group>"; };
 		23ECD4551EA6EF1D00A0091D /* vm-garbage-collector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-garbage-collector.h"; sourceTree = "<group>"; };
 		23ECD4561EA706E000A0091D /* managed-allocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "managed-allocator.h"; sourceTree = "<group>"; };
+		23F311F11EDBFFDD00B02687 /* managed-allocator.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "managed-allocator.cc"; sourceTree = "<group>"; };
+		23F311F41EDC00A400B02687 /* fallback-managed-allocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "fallback-managed-allocator.h"; sourceTree = "<group>"; };
+		23F311F51EDC010700B02687 /* fallback-managed-allocator.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "fallback-managed-allocator.cc"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -355,6 +362,8 @@
 				23ECD44E1EA4B4C700A0091D /* msg-garbage-collector.cc */,
 				23658AF61E8A3FD700F7F72A /* do-nothing-garbage-collector.cc */,
 				23E6BA131EB335A100FC1A55 /* source-file-position-dict.cc */,
+				23F311F11EDBFFDD00B02687 /* managed-allocator.cc */,
+				23F311F51EDC010700B02687 /* fallback-managed-allocator.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -425,6 +434,7 @@
 				23ECD44D1EA4B3D900A0091D /* msg-garbage-collector.h */,
 				23658AF51E8A3F3100F7F72A /* do-nothing-garbage-collector.h */,
 				23ECD4561EA706E000A0091D /* managed-allocator.h */,
+				23F311F41EDC00A400B02687 /* fallback-managed-allocator.h */,
 				23E6BA101EB332FC00FC1A55 /* source-file-position-dict.h */,
 			);
 			name = Include;
@@ -568,6 +578,7 @@
 				236202551E45BE2900B6B949 /* lexer.cc in Sources */,
 				23E3D59A1E5C1A7900C51DDE /* ast-printer.cc in Sources */,
 				235808131E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
+				23F311F21EDBFFDD00B02687 /* managed-allocator.cc in Sources */,
 				2362023D1E45B9EB00B6B949 /* base.cc in Sources */,
 				2349E58A1E56F3DB002883BC /* raw-string.cc in Sources */,
 				23E6BA0E1EB1DD3600FC1A55 /* vm-object-extra-factory.cc in Sources */,
@@ -593,6 +604,7 @@
 				23E3D5B41E6FFF5900C51DDE /* compiler.cc in Sources */,
 				232434831E7AA13F0054C385 /* vm-stack.cc in Sources */,
 				23E6BA171EB345D000FC1A55 /* source-file-position-dict-test.cc in Sources */,
+				23F311F61EDC010700B02687 /* fallback-managed-allocator.cc in Sources */,
 				234D819E1ECA8999006CA3BA /* asm-amd64.c in Sources */,
 				23E3D5B11E6FA55600C51DDE /* file-input-stream.cc in Sources */,
 				2349E5761E4C5310002883BC /* zone.cc in Sources */,
@@ -639,6 +651,7 @@
 				23E3D5C91E77CBCC00C51DDE /* file-output-stream.cc in Sources */,
 				23E3D5B51E6FFF5900C51DDE /* compiler.cc in Sources */,
 				2362025A1E45C58800B6B949 /* token.cc in Sources */,
+				23F311F31EDBFFDD00B02687 /* managed-allocator.cc in Sources */,
 				232434711E7929DD0054C385 /* vm-bitcode-builder.cc in Sources */,
 				236199211E84CCB900682485 /* vm-object-factory.cc in Sources */,
 				23E3D5BD1E767F8600C51DDE /* text-output-stream.cc in Sources */,
@@ -649,6 +662,7 @@
 				232434871E7B935B0054C385 /* vm-thread-test.cc in Sources */,
 				232434941E7FAF230054C385 /* bitcode-emitter.cc in Sources */,
 				234D81A71ECAA08B006CA3BA /* vm-code-cache.cc in Sources */,
+				23F311F71EDC010700B02687 /* fallback-managed-allocator.cc in Sources */,
 				2349E5731E4B1800002883BC /* keywords.c in Sources */,
 				232434801E7A8A850054C385 /* vm-bitcode.cc in Sources */,
 				232434731E7A203D0054C385 /* vm-memory-segment-test.cc in Sources */,

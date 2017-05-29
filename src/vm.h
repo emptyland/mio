@@ -35,8 +35,19 @@ public:
     VM();
     ~VM();
 
+    /**
+     * Init VM object, must be first calling.
+     */
     bool Init();
+
+    /**
+     * Compile all files of project.
+     */
     bool CompileProject(const char *project_dir, ParsingError *error);
+
+    /**
+     * Run project, entry function: `::main::main'
+     */
     int Run();
 
     DEF_GETTER(int, max_call_deep)
@@ -61,9 +72,7 @@ public:
         return DCHECK_NOTNULL(gc_);
     }
 
-    ManagedAllocator *allocator() const {
-        return allocator_;
-    }
+    ManagedAllocator *allocator() const { return allocator_; }
 
     SourceFilePositionDict *source_position_dict() const {
         return source_position_dict_;
@@ -82,9 +91,17 @@ public:
     friend class Thread;
     DISALLOW_IMPLICIT_CONSTRUCTORS(VM)
 private:
+    /**
+     * Name of garbage collector:
+     * "nogc" - The GC do nothing.
+     * "msg"  - Use Mark-sweep-generation GC.
+     */
     std::string gc_name_;
+
+    /** Search path for compiling */
     std::vector<std::string> search_path_;
 
+    /** VM execution tick */
     int tick_ = 0;
     int max_call_deep_ = kDefaultMaxCallDeep;
     int native_code_size_ = kDefaultNativeCodeSize;

@@ -61,6 +61,8 @@ extern int kPageSizeShift;
 
 extern int kPageSize;
 
+extern int kLargeSize;
+
 extern uintptr_t kPageAlignmentMask;
 
 extern int kDefaultNativeCodeSize;

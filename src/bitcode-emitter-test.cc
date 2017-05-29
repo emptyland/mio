@@ -10,6 +10,7 @@
 #include "vm-bitcode-disassembler.h"
 #include "vm-bitcode-builder.h"
 #include "vm-object-extra-factory.h"
+#include "fallback-managed-allocator.h"
 #include "do-nothing-garbage-collector.h"
 #include "simple-function-register.h"
 #include "checker.h"
@@ -23,7 +24,9 @@ public:
     BitCodeEmitterTest() : sfs_(CreatePlatformSimpleFileSystem()) {}
 
     virtual void SetUp() override {
-        allocator_ = new ManagedAllocator();
+        allocator_ = new FallbackManagedAllocator(false);
+        ASSERT_TRUE(allocator_->Init());
+
         code_cache_ = new CodeCache(kDefaultNativeCodeSize);
         zone_ = new Zone();
         global_ = new (zone_) Scope(nullptr, GLOBAL_SCOPE, zone_);
@@ -46,6 +49,7 @@ public:
         delete types_;
         delete zone_;
         delete code_cache_;
+        allocator_->Finialize();
         delete allocator_;
     }
 

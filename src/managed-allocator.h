@@ -1,17 +1,36 @@
 #ifndef MIO_MANAGED_ALLOCATOR_H_
 #define MIO_MANAGED_ALLOCATOR_H_
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "base.h"
 
 namespace mio {
 
 class ManagedAllocator {
 public:
-    void *Allocate(int size) { return ::malloc(size); }
+    ManagedAllocator() = default;
+    virtual ~ManagedAllocator() = default;
 
-    void Free(const void *p) { ::free(const_cast<void *>(p)); }
+    /**
+     * Initialize allocator
+     */
+    virtual bool Init() = 0;
 
+    /**
+     * Cleanup allocator
+     */
+    virtual void Finialize() = 0;
+
+    /**
+     * Allocate memory from managed area
+     */
+    virtual void *Allocate(int size) = 0;
+
+    /**
+     * Free memory to managed area
+     */
+    virtual void Free(const void *p) = 0;
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(ManagedAllocator)
 }; // class ManagedAllocator
 
 } // namespace mio

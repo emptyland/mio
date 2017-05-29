@@ -6,6 +6,7 @@
 #include "vm-objects.h"
 #include "vm-bitcode-disassembler.h"
 #include "vm-runtime.h"
+#include "fallback-managed-allocator.h"
 #include "zone.h"
 #include "simple-file-system.h"
 #include "types.h"
@@ -24,7 +25,6 @@ VM::VM()
     , p_global_(new MemorySegment())
     , o_global_(new MemorySegment())
     , ast_zone_(new Zone())
-    , allocator_(new ManagedAllocator())
     , source_position_dict_(new SourceFilePositionDict()) {
 }
 
@@ -34,6 +34,9 @@ VM::~VM() {
     delete o_global_;
     delete main_thread_;
     delete gc_;
+    if (allocator_) {
+        allocator_->Finialize();
+    }
     delete allocator_;
     delete code_cache_;
 }
@@ -44,6 +47,14 @@ bool VM::Init() {
     code_cache_ = new CodeCache(native_code_size_);
     if (!code_cache_->Init()) {
         DLOG(ERROR) << "native code cache initialize fail!";
+        return false;
+    }
+
+    allocator_ = new FallbackManagedAllocator(false);
+    if (!allocator_->Init()) {
+        DLOG(ERROR) << "allocator init fail!";
+        delete allocator_;
+        allocator_ = nullptr;
         return false;
     }
 
