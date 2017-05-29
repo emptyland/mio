@@ -4,6 +4,9 @@
 
 namespace mio {
 
+const Reg kPrimitiveStack = r14;
+const Reg kObjectStack = r15;
+
 void **FunctionRegister::BuildWarper(MIOString *signature) {
     std::unique_ptr<uint8_t[]> buf(new uint8_t[1024]);
     Asm state;
@@ -14,9 +17,9 @@ void **FunctionRegister::BuildWarper(MIOString *signature) {
     Emit_pushq_r(&state, rbp);
     Emit_movq_r_r(&state, rbp, rsp, 8);
 
-    Emit_movq_r_r(&state, r12, RegArgv[1], 8);
-    Emit_movq_r_r(&state, r13, RegArgv[2], 8);
-    Emit_movq_r_r(&state, r14, RegArgv[3], 8);
+    Emit_movq_r_r(&state, rax, RegArgv[1], 8);
+    Emit_movq_r_r(&state, kPrimitiveStack, RegArgv[2], 8);
+    Emit_movq_r_r(&state, kObjectStack, RegArgv[3], 8);
 
     int ooff = 0, poff = 0;
     int rarg = 1, xarg = 0;
@@ -25,34 +28,34 @@ void **FunctionRegister::BuildWarper(MIOString *signature) {
     auto sign = signature->Get();
     for (int i = 2; i < sign.n; ++i) {
         if (islower(sign.z[i])) { // object
-            Operand0(&op, r14, ooff);
+            Operand0(&op, kObjectStack, ooff);
             Emit_movq_r_op(&state, RegArgv[rarg++], &op, kObjectReferenceSize);
             ooff += kObjectReferenceSize;
         } else if (isdigit(sign.z[i])) {
             switch (sign.z[i]) {
                 case '1':
                 case '8':
-                    Operand0(&op, r13, poff);
+                    Operand0(&op, kPrimitiveStack, poff);
                     Emit_movq_r_op(&state, RegArgv[rarg++], &op, 1);
                     break;
                 case '7':
-                    Operand0(&op, r13, poff);
+                    Operand0(&op, kPrimitiveStack, poff);
                     Emit_movq_r_op(&state, RegArgv[rarg++], &op, 2);
                     break;
                 case '5':
-                    Operand0(&op, r13, poff);
+                    Operand0(&op, kPrimitiveStack, poff);
                     Emit_movq_r_op(&state, RegArgv[rarg++], &op, 4);
                     break;
                 case '9':
-                    Operand0(&op, r13, poff);
+                    Operand0(&op, kPrimitiveStack, poff);
                     Emit_movq_r_op(&state, RegArgv[rarg++], &op, 8);
                     break;
                 case '3':
-                    Operand0(&op, r13, poff);
+                    Operand0(&op, kPrimitiveStack, poff);
                     Emit_movss_x_op(&state, XmmArgv[xarg++], &op);
                     break;
                 case '6':
-                    Operand0(&op, r13, poff);
+                    Operand0(&op, kPrimitiveStack, poff);
                     Emit_movsd_x_op(&state, XmmArgv[xarg++], &op);
                     break;
                 default:
@@ -69,37 +72,37 @@ void **FunctionRegister::BuildWarper(MIOString *signature) {
         }
     }
 
-    Operand0(&op, r12, MIONativeFunction::kNativePointerOffset);
+    Operand0(&op, rax, MIONativeFunction::kNativePointerOffset);
     Emit_call_op(&state, &op);
 
     if (islower(sign.z[0])) { // object
-        Operand0(&op, r14, -kObjectReferenceSize);
+        Operand0(&op, kObjectStack, -kObjectReferenceSize);
         Emit_movq_op_r(&state, &op, rax, kObjectReferenceSize);
     } else if (isdigit(sign.z[0])) { // number
         switch (sign.z[0]) {
             case '1':
             case '8':
-                Operand0(&op, r13, -4);
+                Operand0(&op, kPrimitiveStack, -4);
                 Emit_movq_op_r(&state, &op, rax, 1);
                 break;
             case '7':
-                Operand0(&op, r13, -4);
+                Operand0(&op, kPrimitiveStack, -4);
                 Emit_movq_op_r(&state, &op, rax, 2);
                 break;
             case '5':
-                Operand0(&op, r13, -4);
+                Operand0(&op, kPrimitiveStack, -4);
                 Emit_movq_op_r(&state, &op, rax, 4);
                 break;
             case '9':
-                Operand0(&op, r13, -8);
+                Operand0(&op, kPrimitiveStack, -8);
                 Emit_movq_op_r(&state, &op, rax, 8);
                 break;
             case '3':
-                Operand0(&op, r13, -4);
+                Operand0(&op, kPrimitiveStack, -4);
                 Emit_movss_op_x(&state, &op, xmm0);
                 break;
             case '6':
-                Operand0(&op, r13, -8);
+                Operand0(&op, kPrimitiveStack, -8);
                 Emit_movsd_op_x(&state, &op, xmm0);
                 break;
             default:

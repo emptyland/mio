@@ -2,6 +2,7 @@
 #include "vm-stack.h"
 #include "vm-bitcode-builder.h"
 #include "vm-bitcode-disassembler.h"
+#include "vm-object-factory.h"
 #include "vm-objects.h"
 #include "vm.h"
 #include "vm-function-register.h"
@@ -162,6 +163,16 @@ mio_f64_t TestNativeFoo4(Thread *t, mio_i64_t a, mio_f64_t b) {
     return a + b;
 }
 
+mio_i64_t TestNativeFoo5(Thread *t, MIOString *s) {
+    return s->GetLength();
+}
+
+MIOString *TestNativeFoo6(Thread *t, mio_int_t a) {
+    char buf[64];
+    snprintf(buf, arraysize(buf), "--to--: %lld", a);
+    return t->vm()->object_factory()->GetOrNewString(buf).get();
+}
+
 TEST_F(ThreadTest, P022_FunctionTemplate) {
     ParsingError error;
 
@@ -177,6 +188,12 @@ TEST_F(ThreadTest, P022_FunctionTemplate) {
     ASSERT_TRUE(ok);
     ok = vm_->function_register()->RegisterFunctionTemplate("::main::foo4",
                                                             &TestNativeFoo4);
+    ASSERT_TRUE(ok);
+    ok = vm_->function_register()->RegisterFunctionTemplate("::main::foo5",
+                                                            &TestNativeFoo5);
+    ASSERT_TRUE(ok);
+    ok = vm_->function_register()->RegisterFunctionTemplate("::main::foo6",
+                                                            &TestNativeFoo6);
     ASSERT_TRUE(ok);
 
     if (vm_->Run() != 0) {
