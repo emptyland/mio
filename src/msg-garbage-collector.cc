@@ -266,6 +266,15 @@ MSGGarbageCollector::CreateUnion(const void *data, int size,
 }
 
 /*virtual*/
+Handle<MIOExternal> MSGGarbageCollector::CreateExternal(intptr_t type_code,
+                                                        void *value) {
+    NEW_FIXED_SIZE_OBJECT(ob, MIOExternal, 0);
+    ob->SetTypeCode(type_code);
+    ob->SetValue(value);
+    return make_handle(ob);
+}
+
+/*virtual*/
 Handle<MIOUpValue>
 MSGGarbageCollector::GetOrNewUpValue(const void *data, int size,
                                     int32_t unique_id, bool is_primitive) {
@@ -336,6 +345,15 @@ MSGGarbageCollector::CreateReflectionError(int64_t tid) {
 Handle<MIOReflectionUnion>
 MSGGarbageCollector::CreateReflectionUnion(int64_t tid) {
     NEW_FIXED_SIZE_OBJECT(ob, MIOReflectionUnion, 0);
+    ob->SetTid(tid);
+    ob->SetReferencedSize(kObjectReferenceSize);
+    return make_handle(ob);
+}
+
+/*virtual*/
+Handle<MIOReflectionExternal>
+MSGGarbageCollector::CreateReflectionExternal(int64_t tid) {
+    NEW_FIXED_SIZE_OBJECT(ob, MIOReflectionExternal, 0);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     return make_handle(ob);

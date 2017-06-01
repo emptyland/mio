@@ -78,6 +78,7 @@ namespace mio {
     M(ARRAY, 0, "array") \
     M(STRUCT, 0, "struct") \
     M(ERROR_TYPE, 0, "error") \
+    M(EXTERNAL, 0, "external") \
     M(WEAK, 0, "weak") \
     M(STRONG, 0, "strong") \
     M(ID, 0, "[$_a-zA-Z0-9]+") \

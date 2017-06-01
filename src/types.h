@@ -22,6 +22,7 @@ namespace mio {
     M(String,   'z') \
     M(Void,     '!') \
     M(Error,    'e') \
+    M(External, 'x') \
     M(Unknown,  '\0')
 
 /*
@@ -50,6 +51,7 @@ class Type;
     class Void;
     class Union;
     class Error;
+    class External;
     class Unknown;
 
 class TypeFactory;
@@ -381,6 +383,16 @@ private:
     Error(int id) : Type(id) {}
 }; // class Error
 
+class External : public Type {
+public:
+    virtual bool MustBeInitialized() const override { return true; }
+
+    DECLARE_TYPE(External)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(External)
+private:
+    External(int id) : Type(id) {}
+}; // class External
+
 class TypeFactory {
 public:
     static const int kNumberOfIntegralTypes = 5;
@@ -390,6 +402,7 @@ public:
                                      + 1  // String
                                      + 1  // Void
                                      + 1  // Error
+                                     + 1  // External
                                      + 1; // Unknown
 
     TypeFactory(Zone *zone);
@@ -410,6 +423,7 @@ public:
     Unknown *GetUnknown() const { return simple_types_[8]->AsUnknown(); }
     String *GetString() const { return simple_types_[9]->AsString(); }
     Error *GetError() const { return simple_types_[10]->AsError(); }
+    External *GetExternal() const { return simple_types_[11]->AsExternal(); }
 
     FunctionPrototype *GetFunctionPrototype(ZoneVector<Paramter *> *paramters,
                                             Type *return_type) {

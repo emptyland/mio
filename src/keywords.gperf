@@ -32,6 +32,7 @@ map, TOKEN_MAP
 slice, TOKEN_SLICE
 array, TOKEN_ARRAY
 struct, TOKEN_STRUCT
+external, TOKEN_EXTERNAL
 weak, TOKEN_WEAK
 strong, TOKEN_STRONG
 if, TOKEN_IF

@@ -19,6 +19,7 @@ class MIOFunction;
 class MIOUpValue;
 class MIOClosure;
 class MIOUnion;
+class MIOExternal;
 class MIOSlice;
 class MIOVector;
 class MIOHashMap;
@@ -29,6 +30,7 @@ class MIOReflectionType;
     class MIOReflectionString;
     class MIOReflectionError;
     class MIOReflectionUnion;
+    class MIOReflectionExternal;
     class MIOReflectionSlice;
     class MIOReflectionArray;
     class MIOReflectionMap;
@@ -43,10 +45,11 @@ struct FunctionDebugInfo;
     M(ReflectionString) \
     M(ReflectionError) \
     M(ReflectionUnion) \
+    M(ReflectionExternal) \
     M(ReflectionSlice) \
     M(ReflectionArray) \
     M(ReflectionMap) \
-    M(ReflectionFunction)
+    M(ReflectionFunction) \
 
 #define MIO_OBJECTS(M) \
     M(String) \
@@ -59,6 +62,7 @@ struct FunctionDebugInfo;
     M(HashMap) \
     M(Error) \
     M(Union) \
+    M(External) \
     MIO_REFLECTION_TYPES(M)
 
 typedef int (*MIOFunctionPrototype)(VM *, Thread *);
@@ -546,6 +550,21 @@ public:
 static_assert(sizeof(MIOUnion) == sizeof(HeapObject),
               "MIOUnion can bigger than HeapObject");
 
+class MIOExternal final : public HeapObject {
+public:
+    static const int kTypeCodeOffset = kHeapObjectOffset;
+    static const int kValueOffset = kTypeCodeOffset + sizeof(intptr_t);
+    static const int kMIOExternalOffset = kValueOffset + sizeof(void *);
+
+    DEFINE_HEAP_OBJ_RW(intptr_t, TypeCode)
+    DEFINE_HEAP_OBJ_RW(void *, Value)
+
+    DECLARE_VM_OBJECT(External)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOExternal)
+}; // class MIOExternal
+
+static_assert(sizeof(MIOExternal) == sizeof(HeapObject),
+              "MIOExternal can bigger than HeapObject");
 
 class MIOSlice : public HeapObject {
 public:
@@ -754,6 +773,14 @@ public:
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionUnion)
 }; // class MIOReflectionUnion
 
+class MIOReflectionExternal final : public MIOReflectionType {
+public:
+    static const int kMIOReflectionExternalOffset = kMIOReflectionTypeOffset;
+
+    DECLARE_VM_OBJECT(ReflectionExternal)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionExternal)
+}; // class MIOReflectionExternal
+
 class MIOReflectionArray final : public MIOReflectionType {
 public:
     static const int kElementOffset = kMIOReflectionTypeOffset;
@@ -849,6 +876,18 @@ struct MIOStringDataEqualTo {
         return val1 == val2 ? true : strcmp(val1, val2) == 0;
     }
 };
+
+template<class T>
+struct ExternalGenerator {
+
+    /**
+     * Get unique external type code
+     */
+    inline intptr_t type_code() {
+        static int code;
+        return reinterpret_cast<intptr_t>(&code);
+    }
+}; // struct ExternalGenerator
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Inline Functions:

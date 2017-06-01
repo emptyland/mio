@@ -50,6 +50,9 @@ public:
                                  Handle<MIOReflectionType> type_info) override;
 
     virtual
+    Handle<MIOExternal> CreateExternal(intptr_t type_code, void *value) override;
+
+    virtual
     Handle<MIOUpValue>
     GetOrNewUpValue(const void *data, int size, int32_t unique_id,
                     bool is_primitive) override;
@@ -73,6 +76,9 @@ public:
 
     virtual Handle<MIOReflectionUnion>
     CreateReflectionUnion(int64_t tid) override;
+
+    virtual Handle<MIOReflectionExternal>
+    CreateReflectionExternal(int64_t tid) override;
 
     virtual
     Handle<MIOReflectionArray>

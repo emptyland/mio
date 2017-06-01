@@ -15,6 +15,7 @@ class MIOClosure;
 class MIOHashMap;
 class MIOError;
 class MIOUnion;
+class MIOExternal;
 class MIOUpValue;
 class MIOFunction;
 class MIONativeFunction;
@@ -27,13 +28,12 @@ class MIOReflectionFloating;
 class MIOReflectionString;
 class MIOReflectionError;
 class MIOReflectionUnion;
+class MIOReflectionExternal;
 class MIOReflectionArray;
 class MIOReflectionSlice;
 class MIOReflectionMap;
 class MIOReflectionFunction;
 
-class MIOHashMapSurface;
-template<class K, class V> class MIOHashMapStub;
 
 class ObjectFactory {
 public:
@@ -45,6 +45,9 @@ public:
     inline Handle<MIOString> GetOrNewString(const char *z) {
         return GetOrNewString(z, static_cast<int>(strlen(z)));
     }
+
+    template<class T>
+    inline Handle<MIOExternal> NewExternalTemplate(T *value);
 
     virtual Handle<MIOString> GetOrNewString(const mio_strbuf_t *buf, int n) = 0;
 
@@ -83,6 +86,8 @@ public:
     virtual Handle<MIOUnion> CreateUnion(const void *data, int size,
                                          Handle<MIOReflectionType> type_info) = 0;
 
+    virtual Handle<MIOExternal> CreateExternal(intptr_t type_code, void *value) = 0;
+
     virtual Handle<MIOUpValue> GetOrNewUpValue(const void *data, int size,
                                                int unique_id, bool is_primitive) = 0;
 
@@ -104,6 +109,8 @@ public:
     virtual Handle<MIOReflectionError> CreateReflectionError(int64_t tid) = 0;
 
     virtual Handle<MIOReflectionUnion> CreateReflectionUnion(int64_t tid) = 0;
+
+    virtual Handle<MIOReflectionExternal> CreateReflectionExternal(int64_t tid) = 0;
 
     virtual
     Handle<MIOReflectionArray>
@@ -139,6 +146,12 @@ inline Handle<MIOError> ObjectFactory::CreateError(const char *msg,
     auto s = GetOrNewString(msg);
     auto f = file_name ? GetOrNewString(file_name) : GetOrNewString("");
     return CreateError(s, f, position, linked);
+}
+
+template<class T>
+inline Handle<MIOExternal> ObjectFactory::NewExternalTemplate(T *value) {
+    ExternalGenerator<T> generator;
+    return CreateExternal(generator.type_code(), value);
 }
 
 } // namespace mio

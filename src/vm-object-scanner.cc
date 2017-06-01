@@ -114,6 +114,7 @@ void ObjectScanner::Scan(HeapObject *ob, Callback callback) {
         case HeapObject::kReflectionFloating:
         case HeapObject::kReflectionIntegral:
         case HeapObject::kReflectionUnion:
+        case HeapObject::kReflectionExternal:
             break;
 
         case HeapObject::kReflectionArray: {

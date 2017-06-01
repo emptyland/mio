@@ -1,6 +1,7 @@
 #ifndef VM_FUNCTION_REGISTER_H_
 #define VM_FUNCTION_REGISTER_H_
 
+#include "object-traits.h"
 #include "vm-objects.h"
 #include "base.h"
 #include <vector>
@@ -47,106 +48,6 @@ inline bool FunctionRegister::RegisterNativeFunction(const char *name,
     }
     return !fn.empty();
 }
-
-////////////////////////////////////////////////////////////////////////////////
-/// NativeValue analyer
-////////////////////////////////////////////////////////////////////////////////
-
-template<class T>
-struct NativeValue {};
-
-template<>
-struct NativeValue<mio_i8_t> {
-    inline bool Check(char s) const { return s == '8'; }
-    inline const char *type() const { return "mio_i8_t"; }
-};
-
-template<>
-struct NativeValue<mio_i16_t> {
-    inline bool Check(char s) const { return s == '7'; }
-    inline const char *type() const { return "mio_i16_t"; }
-};
-
-template<>
-struct NativeValue<mio_i32_t> {
-    inline bool Check(char s) const { return s == '5'; }
-    inline const char *type() const { return "mio_i32_t"; }
-};
-
-template<>
-struct NativeValue<mio_i64_t> {
-    inline bool Check(char s) const { return s == '9'; }
-    inline const char *type() const { return "mio_int_t/mio_i64_t"; }
-};
-
-template<>
-struct NativeValue<mio_f32_t> {
-    inline bool Check(char s) const { return s == '3'; }
-    inline const char *type() const { return "mio_f32_t"; }
-};
-
-template<>
-struct NativeValue<mio_f64_t> {
-    inline bool Check(char s) const { return s == '6'; }
-    inline const char *type() const { return "mio_f64_t"; }
-};
-
-template<>
-struct NativeValue<void> {
-    inline bool Check(char s) const { return s == '!'; }
-    inline const char *type() const { return "void"; }
-};
-
-template<>
-struct NativeValue<HeapObject*> {
-    inline bool Check(char s) const {
-        return s == 's' || s == 'a' || s == 'm' || s == 'r' || s == 'u' ||
-               s == 'z' || s == 'e';
-    }
-    inline const char *type() const { return "HeapObject *"; }
-};
-
-template<>
-struct NativeValue<MIOString *> {
-    inline bool Check(char s) const { return s == 'z'; }
-    inline const char *type() const { return "MIOString *"; }
-};
-
-template<>
-struct NativeValue<MIOError *> {
-    inline bool Check(char s) const { return s == 'e'; }
-    inline const char *type() const { return "MIOError *"; }
-};
-
-template<>
-struct NativeValue<MIOUnion *> {
-    inline bool Check(char s) const { return s == 'u'; }
-    inline const char *type() const { return "MIOUnion *"; }
-};
-
-template<>
-struct NativeValue<MIOSlice *> {
-    inline bool Check(char s) const { return s == 's'; }
-    inline const char *type() const { return "MIOSlice *"; }
-};
-
-template<>
-struct NativeValue<MIOVector *> {
-    inline bool Check(char s) const { return s == 'a'; }
-    inline const char *type() const { return "MIOVector *"; }
-};
-
-template<>
-struct NativeValue<MIOHashMap *> {
-    inline bool Check(char s) const { return s == 'm'; }
-    inline const char *type() const { return "MIOHashMap *"; }
-};
-
-template<>
-struct NativeValue<MIOFunction *> {
-    inline bool Check(char s) const { return s == 'r'; }
-    inline const char *type() const { return "MIOFunction *"; }
-};
 
 
 ////////////////////////////////////////////////////////////////////////////////

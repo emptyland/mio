@@ -3,6 +3,7 @@
 #include "vm-bitcode-builder.h"
 #include "vm-bitcode-disassembler.h"
 #include "vm-object-factory.h"
+#include "vm-object-surface.h"
 #include "vm-objects.h"
 #include "vm.h"
 #include "vm-function-register.h"
@@ -173,6 +174,17 @@ MIOString *TestNativeFoo6(Thread *t, mio_int_t a) {
     return t->vm()->object_factory()->GetOrNewString(buf).get();
 }
 
+MIOExternal *TestNativeFoo7(Thread *t) {
+    return t->vm()->object_factory()->NewExternalTemplate(new std::string("ok")).get();
+}
+
+void TestNativeFoo8(Thread *t, MIOExternal *ex) {
+    auto s = MIOExternalStub::Get<std::string>(ex);
+    printf("extenal: %s\n", s->c_str());
+    delete s;
+    ex->SetValue(nullptr);
+}
+
 TEST_F(ThreadTest, P022_FunctionTemplate) {
     ParsingError error;
 
@@ -194,6 +206,12 @@ TEST_F(ThreadTest, P022_FunctionTemplate) {
     ASSERT_TRUE(ok);
     ok = vm_->function_register()->RegisterFunctionTemplate("::main::foo6",
                                                             &TestNativeFoo6);
+    ASSERT_TRUE(ok);
+    ok = vm_->function_register()->RegisterFunctionTemplate("::main::foo7",
+                                                            &TestNativeFoo7);
+    ASSERT_TRUE(ok);
+    ok = vm_->function_register()->RegisterFunctionTemplate("::main::foo8",
+                                                            &TestNativeFoo8);
     ASSERT_TRUE(ok);
 
     if (vm_->Run() != 0) {

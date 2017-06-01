@@ -3,6 +3,7 @@
 
 #include "vm-objects.h"
 #include "vm-runtime.h"
+#include "object-traits.h"
 #include "managed-allocator.h"
 #include "glog/logging.h"
 
@@ -69,98 +70,13 @@ private:
     int value_size_;
 }; // class MIOHashMapSurface
 
-namespace detail {
-
-template<class T>
-struct Traits {
-    inline const void *Address(T *value) {
-        return static_cast<const void *>(value);
-    }
-
-    inline T Deref(void *addr) {
-        return *static_cast<T *>(addr);
-    }
-
-    inline bool Allow(MIOReflectionType *) {
-        return false;
-    }
-}; // struct Traits
-
-template<>
-struct Traits<mio_i8_t> {
-    inline const void *Address(mio_i8_t *value) {
-        return static_cast<const void *>(value);
-    }
-
-    inline mio_i8_t Deref(void *addr) {
-        return *static_cast<mio_i8_t *>(addr);
-    }
-
-    inline bool Allow(MIOReflectionType *type) {
-        return type->IsReflectionIntegral() &&
-               type->AsReflectionIntegral()->GetBitWide() == 8;
-    }
-}; // struct Traits<mio_i8_t>
-
-template<>
-struct Traits<mio_i32_t> {
-    inline const void *Address(mio_i32_t *value) {
-        return static_cast<const void *>(value);
-    }
-
-    inline mio_i32_t Deref(void *addr) {
-        return *static_cast<mio_i32_t *>(addr);
-    }
-
-    inline bool Allow(MIOReflectionType *type) {
-        return type->IsReflectionIntegral() &&
-               type->AsReflectionIntegral()->GetBitWide() == 32;
-    }
-}; // struct Traits<mio_i32_t>
-
-// TODO: other types
-
-template<>
-struct Traits<Handle<MIOString>> {
-    inline const void *Address(Handle<MIOString> *value) {
-        return static_cast<const void *>(value->address());
-    }
-
-    inline Handle<MIOString> Deref(void *addr) {
-        return make_handle(*static_cast<MIOString **>(addr));
-    }
-
-    inline bool Allow(MIOReflectionType *type) {
-        return type->IsReflectionString();
-    }
-}; // struct Traits<Handle<MIOString>>
-
-template<>
-struct Traits<Handle<MIOError>> {
-    inline const void *Address(Handle<MIOError> *value) {
-        return static_cast<const void *>(value->address());
-    }
-
-    inline Handle<MIOError> Deref(void *addr) {
-        return make_handle(*static_cast<MIOError **>(addr));
-    }
-
-    inline bool Allow(MIOReflectionType *type) {
-        return type->IsReflectionError();
-    }
-}; // struct Traits<Handle<MIOError>>
-
-} // namespace detail
-
-namespace d = detail;
-
 template<class K, class V>
 class MIOHashMapStubIterator {
 public:
     inline explicit MIOHashMapStubIterator(MIOHashMapSurface *surface)
         : surface_(DCHECK_NOTNULL(surface)) {
-        DCHECK(d::Traits<K>().Allow(surface->core()->GetKey()));
-        DCHECK(d::Traits<V>().Allow(surface->core()->GetValue()));
+        DCHECK(NativeValue<K>().Allow(surface->core()->GetKey()));
+        DCHECK(NativeValue<V>().Allow(surface->core()->GetValue()));
     }
 
     inline void Init() { pair_ = surface_->GetNextRoom(nullptr); }
@@ -172,9 +88,9 @@ public:
         pair_ = surface_->GetNextRoom(pair_->GetKey());
     }
 
-    inline K key() const { return d::Traits<K>().Deref(pair_->GetKey()); }
+    inline K key() const { return NativeValue<K>().Deref(pair_->GetKey()); }
 
-    inline V value() const { return d::Traits<V>().Deref(pair_->GetValue()); }
+    inline V value() const { return NativeValue<V>().Deref(pair_->GetValue()); }
 
 private:
     MIOHashMapSurface *surface_;
@@ -191,34 +107,34 @@ public:
 
     inline bool Put(K key, V value) {
         bool ok = true;
-        return RawPut(d::Traits<K>().Address(&key),
-                      d::Traits<V>().Address(&value), &ok);
+        return RawPut(NativeValue<K>().Address(&key),
+                      NativeValue<V>().Address(&value), &ok);
     }
 
     inline V Get(K key) {
-        auto addr = RawGet(d::Traits<K>().Address(&key));
-        return addr ? d::Traits<V>().Deref(addr) : V(0);
+        auto addr = RawGet(NativeValue<K>().Address(&key));
+        return addr ? NativeValue<V>().Deref(addr) : V(0);
     }
 
     inline bool Exist(K key) {
         int index;
-        return GetRoom(d::Traits<K>().Address(&key), &index) != nullptr;
+        return GetRoom(NativeValue<K>().Address(&key), &index) != nullptr;
     }
 
     inline K GetFirstKey(bool *exist) {
         auto pair = GetNextRoom(nullptr);
         *exist = pair != nullptr;
-        return *exist ? d::Traits<K>().Deref(pair->GetKey()) : K(0);
+        return *exist ? NativeValue<K>().Deref(pair->GetKey()) : K(0);
     }
 
     inline K GetNextKey(K key, bool *exist) {
-        auto pair = GetNextRoom(d::Traits<K>().Address(&key));
+        auto pair = GetNextRoom(NativeValue<K>().Address(&key));
         *exist = pair != nullptr;
-        return *exist ? d::Traits<K>().Deref(pair->GetKey()) : K(0);
+        return *exist ? NativeValue<K>().Deref(pair->GetKey()) : K(0);
     }
 
     inline bool Delete(K key) {
-        return RawDelete(d::Traits<K>().Address(&key));
+        return RawDelete(NativeValue<K>().Address(&key));
     }
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOHashMapStub)
@@ -228,10 +144,10 @@ template<class K, class V>
 inline MIOHashMapStub<K, V> *MIOHashMapSurface::ToStub() {
     static_assert(sizeof(MIOHashMapStub<K, V>) == sizeof(*this), "do not allow to stub");
 
-    if (!d::Traits<K>().Allow(core_->GetKey())) {
+    if (!NativeValue<K>().Allow(core_->GetKey())) {
         return nullptr;
     }
-    if (!d::Traits<V>().Allow(core_->GetValue())) {
+    if (!NativeValue<V>().Allow(core_->GetValue())) {
         return nullptr;
     }
     return static_cast<MIOHashMapStub<K, V> *>(this);
@@ -264,6 +180,23 @@ private:
     int               element_size_;
 }; // class MIOArraySurface
 
+
+class MIOExternalStub {
+public:
+    template<class T>
+    static inline T *RawGet(MIOExternal *ex) {
+        return static_cast<T *>(ex->GetValue());
+    }
+
+    template<class T>
+    static inline T *Get(MIOExternal *ex) {
+        ExternalGenerator<T> generator;
+        return ex->GetTypeCode() == generator.type_code() ?
+               RawGet<T>(ex) : nullptr;
+    }
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOExternalStub)
+}; // class MIOArraySurface
 
 } // namespace mio
 

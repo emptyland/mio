@@ -184,8 +184,10 @@ DoNothingGarbageCollector::CreateHashMap(int seed, int initial_slots,
 
 /*virtual*/
 Handle<MIOError>
-DoNothingGarbageCollector::CreateError(Handle<MIOString> msg, Handle<MIOString> file_name,
-                                       int position, Handle<MIOError> linked) {
+DoNothingGarbageCollector::CreateError(Handle<MIOString> msg,
+                                       Handle<MIOString> file_name,
+                                       int position,
+                                       Handle<MIOError> linked) {
     auto ob = NEW_OBJECT(Error);
     ob->SetFileName(file_name.get());
     ob->SetPosition(position);
@@ -197,7 +199,7 @@ DoNothingGarbageCollector::CreateError(Handle<MIOString> msg, Handle<MIOString> 
 /*virtual*/
 Handle<MIOUnion>
 DoNothingGarbageCollector::CreateUnion(const void *data, int size,
-                                   Handle<MIOReflectionType> type_info) {
+                                       Handle<MIOReflectionType> type_info) {
     DCHECK_GE(size, 0);
     DCHECK_LE(size, kMaxReferenceValueSize);
 
@@ -206,6 +208,15 @@ DoNothingGarbageCollector::CreateUnion(const void *data, int size,
     if (size > 0) {
         memcpy(ob->GetMutableData(), data, size);
     }
+    return make_handle(ob);
+}
+
+/*virtual*/
+Handle<MIOExternal>
+DoNothingGarbageCollector::CreateExternal(intptr_t type_code, void *value) {
+    auto ob = NEW_OBJECT(External);
+    ob->SetTypeCode(type_code);
+    ob->SetValue(value);
     return make_handle(ob);
 }
 
@@ -279,6 +290,14 @@ DoNothingGarbageCollector::CreateReflectionError(int64_t tid) {
 Handle<MIOReflectionUnion>
 DoNothingGarbageCollector::CreateReflectionUnion(int64_t tid) {
     auto ob = NEW_OBJECT(ReflectionUnion);
+    ob->SetTid(tid);
+    ob->SetReferencedSize(kObjectReferenceSize);
+    return make_handle(ob);
+}
+
+Handle<MIOReflectionExternal>
+DoNothingGarbageCollector::CreateReflectionExternal(int64_t tid) {
+    auto ob = NEW_OBJECT(ReflectionExternal);
     ob->SetTid(tid);
     ob->SetReferencedSize(kObjectReferenceSize);
     return make_handle(ob);

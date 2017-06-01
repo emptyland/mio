@@ -50,6 +50,7 @@ TypeFactory::TypeFactory(Zone *zone)
     simple_types_[8]  = new (zone_) Unknown(-1);
     simple_types_[9]  = new (zone_) String(TOKEN_STRING);
     simple_types_[10] = new (zone_) Error(TOKEN_ERROR_TYPE);
+    simple_types_[11] = new (zone_) External(TOKEN_EXTERNAL);
 
     for (auto type : simple_types_) {
         Record(type);
@@ -411,6 +412,18 @@ int Map::ToString(TextOutputStream *stream) const {
 /*virtual*/
 int Error::ToString(TextOutputStream *stream) const {
     return stream->Write("error");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// External
+////////////////////////////////////////////////////////////////////////////////
+/*virtual*/ int External::placement_size() const {
+    return kObjectReferenceSize;
+}
+
+/*virtual*/
+int External::ToString(TextOutputStream *stream) const {
+    return stream->Write("external");
 }
 
 } // namespace mio

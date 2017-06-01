@@ -942,6 +942,10 @@ Type *Parser::ParseType(bool *ok) {
             lexer_->Next(&ahead_);
             return types_->GetError();
 
+        case TOKEN_EXTERNAL:
+            lexer_->Next(&ahead_);
+            return types_->GetExternal();
+
         case TOKEN_FUNCTION:
             return ParseFunctionPrototype(true, nullptr, ok);
 

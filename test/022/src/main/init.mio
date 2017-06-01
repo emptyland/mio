@@ -6,6 +6,8 @@ native function foo3(v: int): int
 native function foo4(a: int, b: f64): f64
 native function foo5(a: string): int
 native function foo6(a: int): string
+native function foo7: external
+native function foo8(ex: external): void
 
 function main: void {
     base::println('result:'..foo1())
@@ -15,4 +17,5 @@ function main: void {
     base::println('result:'..foo4(100, 1.12D))
     base::println('result:'..foo5('abcdef'))
     base::println('result:'..foo6(2017))
+    foo8(foo7())
 }

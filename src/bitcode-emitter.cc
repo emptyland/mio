@@ -2035,6 +2035,10 @@ TypeToReflection(Type *type, ObjectFactory *factory,
             reft = factory->CreateReflectionUnion(tid);
             break;
 
+        case Type::kExternal:
+            reft = factory->CreateReflectionExternal(tid);
+            break;
+
         case Type::kArray: {
             auto array = type->AsArray();
             auto element = TypeToReflection(array->element(), factory, all);
