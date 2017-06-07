@@ -651,6 +651,7 @@ void MSGGarbageCollector::CollectWeakReferences() {
                     prev->SetNext(node->GetNext());
                     allocator_->Free(node);
                     node = prev->GetNext();
+                    map->SetSize(map->GetSize() - 1);
                 } else {
                     prev = node;
                     node = node->GetNext();
