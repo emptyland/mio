@@ -113,6 +113,7 @@ namespace mio {
     M(ArraySize) \
     M(Slice) \
     M(Map) \
+    M(MapWeak) \
     M(MapPut) \
     M(MapDelete) \
     M(MapGet) \

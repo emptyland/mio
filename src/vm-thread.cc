@@ -535,7 +535,8 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 auto clean2 = BitCodeDisassembler::GetVal2(bc);
                 memset(o_stack_->offset(clean2), 0, size2 - clean2);
                 vm_->gc_->Active(true);
-                RunGC();
+
+                //RunGC();
             } break;
 
             case BC_ret: {
@@ -545,6 +546,11 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 callee_ = ctx->callee;
 
                 p_stack_->SetFrame(ctx->p_stack_base, ctx->p_stack_size);
+
+                auto buf = o_stack_->frame<HeapObject *>();
+                for (int i = 0; i < buf.n; ++i) {
+                    buf.z[i] = nullptr;
+                }
                 o_stack_->SetFrame(ctx->o_stack_base, ctx->o_stack_size);
                 call_stack_->Pop();
                 if (call_stack_->size() == 0) {
@@ -640,7 +646,6 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                     ctx->o_stack_size = o_stack_->size();
                     ctx->pc = pc_;
                     ctx->bc = bc_;
-                    //ctx->callee = static_cast<MIOFunction*>(ob.get());
                     ctx->callee = callee_.get();
                     callee_ = static_cast<MIOFunction*>(ob.get());
 
@@ -1216,6 +1221,15 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             RunGC();
         } break;
 
+        case OO_MapWeak: {
+            auto ob = GetHashMap(result, ok);
+            if (!*ok) {
+                Panic(PANIC, ok, "object is not map. addr: %d", result);
+                return;
+            }
+            ob->SetWeakFlags(val1);
+        } break;
+
         case OO_MapPut: {
             auto ob = GetHashMap(result, ok);
             if (!*ok) {
@@ -1223,14 +1237,14 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                 return;
             }
 
-            const void *key = nullptr;
+            void *key = nullptr;
             if (ob->GetKey()->IsObject()) {
                 key = o_stack_->offset(val1);
             } else {
                 key = p_stack_->offset(val1);
             }
 
-            const void *value = nullptr;
+            void *value = nullptr;
             if (ob->GetValue()->IsObject()) {
                 value = o_stack_->offset(val2);
             } else {
@@ -1241,6 +1255,12 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
             if (!*ok) {
                 Panic(OUT_OF_MEMORY, ok, "no memory for putting map key-value pair.");
                 return;
+            }
+            if (ob->GetKey()->IsObject()) {
+                vm_->gc_->WriteBarrier(ob.get(), *static_cast<HeapObject **>(key));
+            }
+            if (ob->GetValue()->IsObject()) {
+                vm_->gc_->WriteBarrier(ob.get(), *static_cast<HeapObject **>(value));
             }
 
             RunGC();

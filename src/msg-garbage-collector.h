@@ -39,6 +39,7 @@ public:
         kPause,      // gc not running.
         kRemark,     // remark handled objects.
         kPropagate,  // mark gray objects to black.
+        kSweepWeak,  // sweep weak references.
         kSweepYoung, // sweep young generation objects.
         kSweepOld,   // sweep old generation objects.
         kFinialize,  // gc loop finish.
@@ -52,6 +53,7 @@ public:
     };
 
     static const int kMaxGeneration = 2;
+    static const int kWeakReferenceSweep = kMaxGeneration;
     static const int kDefaultPropagateSpeed = 50;
     static const int kDefaultSweepSpeed = 50;
     static const uint32_t kFreeMemoryBytes = 0xfeedfeed;
@@ -176,6 +178,7 @@ private:
     void MarkRoot();
     void Propagate();
     void Atomic();
+    void CollectWeakReferences();
     void SweepYoung();
     void SweepOld();
 
@@ -194,7 +197,9 @@ private:
     void DeleteObject(const HeapObject *ob);
 
     void White2Gray(HeapObject *ob) {
-        DCHECK(ob->GetColor() == kWhite0 || ob->GetColor() == kWhite1) << ob->GetColor();
+        DCHECK(ob->GetColor() == kWhite0 || ob->GetColor() == kWhite1)
+            << "color: " << ob->GetColor()
+            << ", kind: " << ob->GetKind();
         ob->SetColor(kGray);
     }
 
@@ -229,10 +234,11 @@ private:
     HeapObject  *handle_header_;
     HeapObject  *gray_header_;
     HeapObject  *gray_again_header_;
+    HeapObject  *weak_header_;
     HeapObject  *generations_[kMaxGeneration];
     ManagedAllocator *allocator_;
     CodeCache *code_cache_;
-    SweepInfo sweep_info_[kMaxGeneration];
+    SweepInfo sweep_info_[kMaxGeneration + 1];
 }; // class MSGGarbageCollector
 
 template<class T>

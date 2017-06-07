@@ -41,14 +41,12 @@ public:
 
     template<class T>
     void Set(int delta, T value) {
-        //DCHECK_GE(delta, 0);
         DCHECK_LT(delta, size());
         *static_cast<T *>(offset(delta)) = value;
     }
 
     template<class T>
     T Get(int delta) {
-        //DCHECK_GE(delta, 0);
         DCHECK_LT(delta, size());
         return *static_cast<T *>(offset(delta));
     }
@@ -61,6 +59,14 @@ public:
         return {
             .z = static_cast<T *>(chunk_),
             .n = static_cast<int>(total_size() / sizeof(T)),
+        };
+    }
+
+    template<class T>
+    mio_buf_t<T> frame() const {
+        return {
+            .z = reinterpret_cast<T *>(base_),
+            .n = static_cast<int>((top_ - base_) / sizeof(T)),
         };
     }
 

@@ -734,6 +734,7 @@ void EmittingAstVisitor::VisitForeachLoop(ForeachLoop *node) {
         builder(node->position())->jmp(retry - naked_builder()->pc());
         naked_builder()->jz_fill(outter, cond.offset, naked_builder()->pc() - outter);
     }
+    PushValue(VMValue::Void());
 }
 
 void EmittingAstVisitor::VisitReturn(Return *node) {
@@ -1386,6 +1387,16 @@ void EmittingAstVisitor::VisitMapInitializer(MapInitializer *node) {
     builder(node->position())->oop(OO_Map, dest.offset,
                                    TypeInfoIndex(type->key()),
                                    TypeInfoIndex(type->value()));
+    uint32_t weak_flags = 0;
+    if (node->annotation()->Contains("weak key")) {
+        weak_flags |= MIOHashMap::kWeakKeyFlag;
+    }
+    if (node->annotation()->Contains("weak value")) {
+        weak_flags |= MIOHashMap::kWeakValueFlag;
+    }
+    if (weak_flags) {
+        builder(node->position())->oop(OO_MapWeak, dest.offset, weak_flags, 0);
+    }
 
     for (int i = 0; i < node->pair_size(); ++i) {
         auto pair = node->pair(i);

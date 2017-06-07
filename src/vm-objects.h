@@ -640,22 +640,41 @@ public:
         MIOPair *head;
     };
 
+    static const uint32_t kWeakKeyFlag   = 0x1;
+    static const uint32_t kWeakValueFlag = 0x2;
+
     static const int kDefaultInitialSlots = 4;
 
-    static const int kSeedOffset = kHeapObjectOffset;
-    static const int kKeyOffset = kSeedOffset + sizeof(int);
+    static const int kMapFlagsOffset = kHeapObjectOffset;
+    static const int kKeyOffset = kMapFlagsOffset + sizeof(uint32_t);
     static const int kValueOffset = kKeyOffset + kObjectReferenceSize;
     static const int kSizeOffset = kValueOffset + kObjectReferenceSize;
     static const int kSlotSizeOffset = kSizeOffset + sizeof(int);
     static const int kSlotsOffset = kSlotSizeOffset + sizeof(int);
     static const int kMIOHashMapOffset = kSlotsOffset + sizeof(Slot *);
 
-    DEFINE_HEAP_OBJ_RW(int, Seed)
+    DEFINE_HEAP_OBJ_RW(uint32_t, MapFlags)
     DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Key)
     DEFINE_HEAP_OBJ_RW(MIOReflectionType *, Value)
     DEFINE_HEAP_OBJ_RW(int, Size)
     DEFINE_HEAP_OBJ_RW(int, SlotSize)
     DEFINE_HEAP_OBJ_RW(Slot *, Slots)
+
+    int32_t GetSeed() const {
+        return (GetMapFlags() & 0xfffffff0) >> 8;
+    }
+
+    void SetSeed(int32_t seed) {
+        SetMapFlags((GetMapFlags() & 0xf) | ((seed << 8) & 0xfffffff0));
+    }
+
+    uint32_t GetWeakFlags() const {
+        return (GetMapFlags() & 0xf);
+    }
+
+    void SetWeakFlags(uint32_t flags) {
+        SetMapFlags((GetMapFlags() & 0xfffffff0) | (flags & 0xf));
+    }
 
     Slot *GetSlot(int index) {
         DCHECK_GE(index, 0);

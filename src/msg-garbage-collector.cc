@@ -18,6 +18,24 @@ namespace mio {
         return Handle<name>(); \
     } (void)0
 
+bool ShouldProcessWeakMap(HeapObject *x) {
+    if (!x->IsHashMap()) {
+        return false;
+    }
+
+    auto map = x->AsHashMap();
+    if (map->GetKey()->IsObject() &&
+        (map->GetWeakFlags() & MIOHashMap::kWeakKeyFlag)) {
+        return true;
+    }
+    if (map->GetValue()->IsObject() &&
+        (map->GetWeakFlags() & MIOHashMap::kWeakValueFlag)) {
+        return true;
+    }
+    
+    return false;
+}
+
 MSGGarbageCollector::MSGGarbageCollector(ManagedAllocator *allocator,
                                          CodeCache *code_cache,
                                          MemorySegment *root,
@@ -30,11 +48,13 @@ MSGGarbageCollector::MSGGarbageCollector(ManagedAllocator *allocator,
     , handle_header_(static_cast<HeapObject *>(::malloc(HeapObject::kListEntryOffset)))
     , gray_header_(static_cast<HeapObject *>(::malloc(HeapObject::kListEntryOffset)))
     , gray_again_header_(static_cast<HeapObject *>(::malloc(HeapObject::kListEntryOffset)))
+    , weak_header_(static_cast<HeapObject *>(::malloc(HeapObject::kListEntryOffset)))
     , allocator_(DCHECK_NOTNULL(allocator))
     , code_cache_(DCHECK_NOTNULL(code_cache)) {
     handle_header_->InitEntry();
     gray_header_->InitEntry();
     gray_again_header_->InitEntry();
+    weak_header_->InitEntry();
 
     for (int i = 0; i < kMaxGeneration; ++i) {
         generations_[i] = static_cast<HeapObject *>(::malloc(HeapObject::kListEntryOffset));
@@ -474,6 +494,10 @@ void MSGGarbageCollector::WriteBarrier(HeapObject *target, HeapObject *other) {
             HOInsertHead(generations_[other->GetGeneration()], target);
         }
     }
+
+    if (target->GetColor() == kBlack) {
+        other->SetColor(kBlack);
+    }
 }
 
 /*virtual*/
@@ -529,6 +553,16 @@ void MSGGarbageCollector::Propagate() {
 
     while (n < propagate_speed_ && HOIsNotEmpty(gray_header_)) {
         auto x = gray_header_->GetNext();
+        if (ShouldProcessWeakMap(x)) {
+            x->SetColor(kBlack);
+
+            HORemove(x);
+            DCHECK_NE(x, gray_again_header_);
+            HOInsertHead(weak_header_, x);
+            n++;
+            continue;
+        }
+
         scanner.Scan(x, [this, &n] (HeapObject *ob) {
             switch (ob->GetColor()) {
                 case kWhite0:
@@ -569,6 +603,10 @@ void MSGGarbageCollector::Atomic() {
         Propagate();
     }
 
+    while (HOIsNotEmpty(weak_header_)) {
+        CollectWeakReferences();
+    }
+
     while (HOIsNotEmpty(gray_again_header_)) {
         auto x = gray_again_header_->GetNext();
         HORemove(x);
@@ -577,6 +615,52 @@ void MSGGarbageCollector::Atomic() {
     SwitchWhite();
     phase_ = kSweepYoung;
     sweep_info_[0].iter = generations_[0]->GetNext();
+}
+
+void MSGGarbageCollector::CollectWeakReferences() {
+    auto n = 0;
+    auto info = &sweep_info_[kWeakReferenceSweep];
+
+    ++info->times;
+    while (n < sweep_speed_ && HOIsNotEmpty(weak_header_)) {
+        auto x = weak_header_->GetNext();
+        auto map = DCHECK_NOTNULL(x->AsHashMap());
+        for (int i = 0; i < map->GetSlotSize(); ++i) {
+            auto prev = reinterpret_cast<MIOPair *>(map->GetSlot(i));
+            auto node = prev->GetNext();
+            while (node) {
+                bool should_sweep = false;
+                if ((map->GetWeakFlags() & MIOHashMap::kWeakKeyFlag) &&
+                    map->GetKey()->IsObject()) {
+                    auto key = *static_cast<HeapObject **>(node->GetKey());
+                    if (key->GetColor() == PrevWhite()) {
+                        should_sweep = true;
+                    }
+                }
+
+                if (map->GetWeakFlags() & MIOHashMap::kWeakValueFlag &&
+                    map->GetValue()->IsObject()) {
+                    auto value = *static_cast<HeapObject **>(node->GetValue());
+                    if (value->GetColor() == kWhite0 ||
+                        value->GetColor() == kWhite1) {
+                        should_sweep = true;
+                    }
+                }
+
+                if (should_sweep) {
+                    prev->SetNext(node->GetNext());
+                    allocator_->Free(node);
+                    node = prev->GetNext();
+                } else {
+                    prev = node;
+                    node = node->GetNext();
+                }
+            }
+        }
+        HORemove(x);
+        HOInsertHead(generations_[x->GetGeneration()], x); // move to old generation.
+        n++;
+    }
 }
 
 void MSGGarbageCollector::SweepYoung() {
@@ -604,7 +688,6 @@ void MSGGarbageCollector::SweepYoung() {
         } else {
             ++info->grow_up;
             x->SetGeneration(1);
-            x->SetColor(white_);
             HORemove(x);
             HOInsertHead(generations_[1], x); // move to old generation.
         }
@@ -649,6 +732,10 @@ void MSGGarbageCollector::SweepOld() {
             DeleteObject(x);
         } else if (x->GetColor() == white_) {
             // junks
+            ++info->junks;
+            info->junks_bytes += x->GetSize();
+        } else {
+            x->SetColor(white_);
             ++info->junks;
             info->junks_bytes += x->GetSize();
         }
@@ -700,6 +787,7 @@ void MSGGarbageCollector::DeleteObject(const HeapObject *ob) {
         default:
             break;
     }
+    //printf("!!!delete ob: %p, kind: %d\n", ob, ob->GetKind());
     Round32BytesFill(kFreeMemoryBytes, const_cast<HeapObject *>(ob), ob->GetSize());
     allocator_->Free(ob);
 }

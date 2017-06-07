@@ -38,6 +38,10 @@ public:
         return this == rhs ? 0 : strcmp(c_str(), rhs->c_str());
     }
 
+    bool Contains(const char *z) const {
+        return strnstr(c_str(), z, size()) != nullptr;
+    }
+
     static RawStringRef Create(const std::string &s, Zone *zone) {
         return Create(s.data(), s.size(), zone);
     }
