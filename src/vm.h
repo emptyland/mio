@@ -56,6 +56,8 @@ public:
     DEF_PROP_RW(std::string, gc_name);
     DEF_GETTER(std::vector<BacktraceLayout>, backtrace);
 
+    MIOHashMap *all_var() const { return DCHECK_NOTNULL(all_var_); }
+
     Thread *main_thread() const {
         return DCHECK_NOTNULL(main_thread_);
     }
@@ -113,6 +115,7 @@ private:
     int type_info_size_ = 0;
     int type_void_index = 0;
     int type_error_index = 0;
+    MIOHashMap *all_var_ = nullptr;
     ManagedAllocator *allocator_ = nullptr;
     CodeCache *code_cache_ = nullptr;
     GarbageCollector *gc_ = nullptr;

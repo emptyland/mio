@@ -124,6 +124,8 @@
 		23F311F31EDBFFDD00B02687 /* managed-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F311F11EDBFFDD00B02687 /* managed-allocator.cc */; };
 		23F311F61EDC010700B02687 /* fallback-managed-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F311F51EDC010700B02687 /* fallback-managed-allocator.cc */; };
 		23F311F71EDC010700B02687 /* fallback-managed-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F311F51EDC010700B02687 /* fallback-managed-allocator.cc */; };
+		23F311FB1EE8F6B700B02687 /* ring-buffer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F311FA1EE8F6B700B02687 /* ring-buffer.cc */; };
+		23F311FC1EE8F6B700B02687 /* ring-buffer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F311FA1EE8F6B700B02687 /* ring-buffer.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -275,6 +277,8 @@
 		23F311F41EDC00A400B02687 /* fallback-managed-allocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "fallback-managed-allocator.h"; sourceTree = "<group>"; };
 		23F311F51EDC010700B02687 /* fallback-managed-allocator.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "fallback-managed-allocator.cc"; sourceTree = "<group>"; };
 		23F311F81EDFAD9500B02687 /* object-traits.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "object-traits.h"; sourceTree = "<group>"; };
+		23F311F91EE8F62000B02687 /* ring-buffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ring-buffer.h"; sourceTree = "<group>"; };
+		23F311FA1EE8F6B700B02687 /* ring-buffer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "ring-buffer.cc"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -365,6 +369,7 @@
 				23E6BA131EB335A100FC1A55 /* source-file-position-dict.cc */,
 				23F311F11EDBFFDD00B02687 /* managed-allocator.cc */,
 				23F311F51EDC010700B02687 /* fallback-managed-allocator.cc */,
+				23F311FA1EE8F6B700B02687 /* ring-buffer.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -438,6 +443,7 @@
 				23ECD4561EA706E000A0091D /* managed-allocator.h */,
 				23F311F41EDC00A400B02687 /* fallback-managed-allocator.h */,
 				23E6BA101EB332FC00FC1A55 /* source-file-position-dict.h */,
+				23F311F91EE8F62000B02687 /* ring-buffer.h */,
 			);
 			name = Include;
 			path = ../src;
@@ -582,6 +588,7 @@
 				235808131E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
 				23F311F21EDBFFDD00B02687 /* managed-allocator.cc in Sources */,
 				2362023D1E45B9EB00B6B949 /* base.cc in Sources */,
+				23F311FB1EE8F6B700B02687 /* ring-buffer.cc in Sources */,
 				2349E58A1E56F3DB002883BC /* raw-string.cc in Sources */,
 				23E6BA0E1EB1DD3600FC1A55 /* vm-object-extra-factory.cc in Sources */,
 				23E3D5C81E77CBCC00C51DDE /* file-output-stream.cc in Sources */,
@@ -660,6 +667,7 @@
 				23E3D5A01E600DCE00C51DDE /* types.cc in Sources */,
 				2349E58E1E56FCC9002883BC /* ast.cc in Sources */,
 				23E3D5A91E65075C00C51DDE /* checker.cc in Sources */,
+				23F311FC1EE8F6B700B02687 /* ring-buffer.cc in Sources */,
 				2349E57A1E554426002883BC /* zone-test.cc in Sources */,
 				232434871E7B935B0054C385 /* vm-thread-test.cc in Sources */,
 				232434941E7FAF230054C385 /* bitcode-emitter.cc in Sources */,

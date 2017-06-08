@@ -53,9 +53,14 @@ public:
         return 0;
     }
 
-    static int newError(VM *vm, Thread *thread);
+    static int NewError(VM *vm, Thread *thread);
 
-    static int newErrorWith(VM *vm, Thread *thread);
+    static int NewErrorWith(VM *vm, Thread *thread);
+
+    static int AllGlobalVariables(VM *vm, Thread *thread) {
+        thread->o_stack()->Set(-kObjectReferenceSize, vm->all_var());
+        return 0;
+    }
 
     static int PrimitiveHash(const void *z, int n) {
         auto p = static_cast<const uint8_t *>(z);

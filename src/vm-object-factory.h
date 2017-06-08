@@ -49,6 +49,8 @@ public:
     template<class T>
     inline Handle<MIOExternal> NewExternalTemplate(T *value);
 
+    virtual ManagedAllocator *allocator() = 0;
+
     virtual Handle<MIOString> GetOrNewString(const mio_strbuf_t *buf, int n) = 0;
 
     virtual Handle<MIONativeFunction>

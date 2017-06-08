@@ -483,6 +483,9 @@ private:
                stmt->position();
     }
 
+    void RegisterGlobalVariable(const std::string &full_name, const Type *type,
+                                const VMValue &value, bool readonly);
+
     RawStringRef module_name_;
     RawStringRef unit_name_ = RawString::kEmpty;
     BitCodeEmitter *emitter_;
@@ -867,6 +870,8 @@ void EmittingAstVisitor::VisitValDeclaration(ValDeclaration *node) {
         value = EmitStoreMakeRoom(tmp, node->position());
         DCHECK_NOTNULL(node->instance())->set_bind_kind(Variable::GLOBAL);
         DCHECK_NOTNULL(node->instance())->set_offset(value.offset);
+        RegisterGlobalVariable(node->scope()->MakeFullName(node->name()),
+                               node->type(), value, true);
     } else {
         if (node->type()->is_primitive()) {
             if (node->has_initializer()) {
@@ -926,6 +931,8 @@ void EmittingAstVisitor::VisitVarDeclaration(VarDeclaration *node) {
         value = EmitStoreMakeRoom(tmp, node->position());
         DCHECK_NOTNULL(node->instance())->set_bind_kind(Variable::GLOBAL);
         DCHECK_NOTNULL(node->instance())->set_offset(value.offset);
+        RegisterGlobalVariable(node->scope()->MakeFullName(node->name()),
+                               node->type(), value, false);
     } else {
         if (node->type()->is_primitive()) {
             if (node->has_initializer()) {
@@ -2006,6 +2013,25 @@ VMValue EmittingAstVisitor::GetOrNewString(const char *z, int n, Handle<MIOStrin
     return value;
 }
 
+void EmittingAstVisitor::RegisterGlobalVariable(const std::string &full_name,
+                                                const Type *type,
+                                                const VMValue &value, bool readonly) {
+    auto name = emitter_->object_factory_->GetOrNewString(full_name.c_str());
+    auto code = (value.offset << 2) & ~0x3;
+    if (readonly) {
+        code |= 0x1;
+    }
+    if (type->is_object()) {
+        code |= 0x2;
+    }
+    auto ok = emitter_->all_var_->Put(name, code);
+    DCHECK(ok) << full_name;
+    if (ok) {
+        auto gc = static_cast<GarbageCollector *>(emitter_->object_factory_);
+        gc->WriteBarrier(emitter_->all_var_->core().get(), name.get());
+    }
+}
+
 Handle<MIOReflectionType>
 TypeToReflection(Type *type, ObjectFactory *factory,
                  std::map<int64_t, Handle<MIOReflectionType>> *all) {
@@ -2106,6 +2132,7 @@ BitCodeEmitter::BitCodeEmitter(MemorySegment *p_global,
 }
 
 BitCodeEmitter::~BitCodeEmitter() {
+    delete all_var_;
 }
 
 void BitCodeEmitter::Init() {
@@ -2129,6 +2156,13 @@ void BitCodeEmitter::Init() {
         type_id2index_.emplace(pair.first, index++);
         o_global_->Add(pair.second.get());
     }
+
+    auto idx = type_id2index_[types_->GetString()->GenerateId()];
+    auto key = o_global_->Get<MIOReflectionType *>(all_type_base_ + idx * kObjectReferenceSize);
+    idx = type_id2index_[types_->GetI32()->GenerateId()];
+    auto value = o_global_->Get<MIOReflectionType *>(all_type_base_ + idx * kObjectReferenceSize);
+    auto core = object_factory_->CreateHashMap(0, 17, make_handle(key), make_handle(value));
+    all_var_ = new MIOHashMapStub<Handle<MIOString>, mio_i32_t>(core.get(), object_factory_->allocator());
 }
 
 
@@ -2156,6 +2190,7 @@ bool BitCodeEmitter::Run(ParsedModuleMap *all_modules, CompiledInfo *info) {
         info->error_type_index = type_id2index_[types_->GetError()->GenerateId()];
         info->global_primitive_segment_bytes = p_global_->size();
         info->global_object_segment_bytes    = o_global_->size();
+        info->all_var = all_var_->core().get();
     }
     return ok;
 }

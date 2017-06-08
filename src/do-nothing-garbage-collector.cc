@@ -20,6 +20,11 @@ DoNothingGarbageCollector::~DoNothingGarbageCollector() {
 }
 
 /*virtual*/
+ManagedAllocator *DoNothingGarbageCollector::allocator() {
+    return allocator_;
+}
+
+/*virtual*/
 Handle<MIOString> DoNothingGarbageCollector::GetOrNewString(const mio_strbuf_t *bufs, int n) {
     auto payload_length = 0;
     DCHECK_GE(n, 0);

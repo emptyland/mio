@@ -11,13 +11,14 @@ const RtNativeFunctionEntry kRtNaFn[] = {
     { "::base::gc",     &NativeBaseLibrary::GC,     },
     { "::base::fullGC", &NativeBaseLibrary::FullGC, },
     { "::base::panic",  &NativeBaseLibrary::Panic,  },
-    { "::base::newError",  &NativeBaseLibrary::newError,  },
-    { "::base::newErrorWith",  &NativeBaseLibrary::newErrorWith,  },
+    { "::base::newError",  &NativeBaseLibrary::NewError,  },
+    { "::base::newErrorWith",  &NativeBaseLibrary::NewErrorWith,  },
+    { "::base::allGlobalVariables", &NativeBaseLibrary::AllGlobalVariables, },
 
     { .name = nullptr, .pointer = nullptr, } // end of functions
 };
 
-/* static */ int NativeBaseLibrary::newError(VM *vm, Thread *thread) {
+/* static */ int NativeBaseLibrary::NewError(VM *vm, Thread *thread) {
     bool ok = true;
     auto message = thread->GetString(0, &ok);
     if (!ok) {
@@ -34,7 +35,7 @@ const RtNativeFunctionEntry kRtNaFn[] = {
     return 0;
 }
 
-/* static */ int NativeBaseLibrary::newErrorWith(VM *vm, Thread *thread) {
+/* static */ int NativeBaseLibrary::NewErrorWith(VM *vm, Thread *thread) {
     bool ok = true;
     auto message = thread->GetString(0, &ok);
     if (!ok) {

@@ -33,6 +33,10 @@ VM::~VM() {
     delete p_global_;
     delete o_global_;
     delete main_thread_;
+
+    if (all_var_) {
+        all_var_->Drop();
+    }
     delete gc_;
     if (allocator_) {
         allocator_->Finialize();
@@ -110,6 +114,8 @@ bool VM::CompileProject(const char *project_dir, ParsingError *error) {
     type_info_base_  = info.all_type_base;
     type_void_index  = info.void_type_index;
     type_error_index = info.error_type_index;
+    all_var_         = DCHECK_NOTNULL(info.all_var);
+    all_var_->Grab();
 
     auto nafn = &kRtNaFn[0];
     while (nafn->name != nullptr) {

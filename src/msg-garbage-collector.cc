@@ -77,6 +77,11 @@ MSGGarbageCollector::~MSGGarbageCollector() {
 ////////////////////////////////////////////////////////////////////////////////
 
 /*virtual*/
+ManagedAllocator *MSGGarbageCollector::allocator() {
+    return allocator_;
+}
+
+/*virtual*/
 Handle<MIOString> MSGGarbageCollector::GetOrNewString(const mio_strbuf_t *bufs, int n) {
     auto payload_length = 0;
     DCHECK_GE(n, 0);
@@ -495,7 +500,7 @@ void MSGGarbageCollector::WriteBarrier(HeapObject *target, HeapObject *other) {
         }
     }
 
-    if (target->GetColor() == kBlack) {
+    if (target->GetColor() == kBlack || target->IsGrabbed()) {
         if (other->GetColor() != kBlack) {
             ObjectScanner scanner;
             scanner.Scan(other, [this] (HeapObject *ob) {
@@ -793,7 +798,10 @@ void MSGGarbageCollector::DeleteObject(const HeapObject *ob) {
         default:
             break;
     }
-    //printf("!!!delete ob: %p, kind: %d\n", ob, ob->GetKind());
+//    printf("!!!delete ob: %p, kind: %d\n", ob, ob->GetKind());
+//    if (ob->IsString()) {
+//        printf("!!delete: %s\n", ob->AsString()->GetData());
+//    }
     Round32BytesFill(kFreeMemoryBytes, const_cast<HeapObject *>(ob), ob->GetSize());
     allocator_->Free(ob);
 }

@@ -2,6 +2,9 @@
 #define MIO_BITCODE_EMITTER_H_
 
 #include "compiler.h"
+#include "vm-objects.h"
+#include "vm-object-surface.h"
+#include "handles.h"
 #include "vm-bitcode.h"
 #include <unordered_set>
 
@@ -53,6 +56,7 @@ private:
     ObjectFactory *object_factory_;
     ObjectExtraFactory *extra_factory_;
     FunctionRegister *function_register_;
+    MIOHashMapStub<Handle<MIOString>, mio_i32_t> *all_var_ = nullptr;
     std::unordered_set<Declaration *> emitted_;
     std::unordered_set<std::string> imported_;
     int all_type_base_ = 0;

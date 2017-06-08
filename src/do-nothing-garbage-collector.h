@@ -14,6 +14,8 @@ public:
     DoNothingGarbageCollector(ManagedAllocator *allocator);
     virtual ~DoNothingGarbageCollector() override;
 
+    virtual ManagedAllocator *allocator() override;
+
     virtual
     Handle<MIOString> GetOrNewString(const mio_strbuf_t *bufs, int n) override;
 

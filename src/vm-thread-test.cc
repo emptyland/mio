@@ -227,8 +227,19 @@ TEST_F(ThreadTest, P023_WeakMap) {
     ASSERT_TRUE(vm_->CompileProject("test/023", &error)) << error.ToString();
 
     std::string buf;
-//    vm_->DisassembleAll(&buf);
-//    printf("bitcode: %s\n", buf.c_str());
+
+    if (vm_->Run() != 0) {
+        vm_->PrintBackstrace(&buf);
+        printf("%s\n", buf.c_str());
+    }
+}
+
+TEST_F(ThreadTest, P024_AllGlobalVariables) {
+    ParsingError error;
+
+    ASSERT_TRUE(vm_->CompileProject("test/024", &error)) << error.ToString();
+
+    std::string buf;
 
     if (vm_->Run() != 0) {
         vm_->PrintBackstrace(&buf);

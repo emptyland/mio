@@ -12,6 +12,8 @@ native function fullGC: void
 
 native function tick: i32
 
+native function allGlobalVariables: map[string, i32]
+
 function println(s: string) = print(s..'\n')
 
 native function print(s: string): void

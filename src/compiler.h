@@ -18,6 +18,7 @@ class ObjectFactory;
 class ObjectExtraFactory;
 class FunctionRegister;
 
+class MIOHashMap;
 class MIOFunction;
 
 // [unitName, [statement]]
@@ -46,6 +47,7 @@ struct CompiledInfo {
     int error_type_index;
     int global_primitive_segment_bytes;
     int global_object_segment_bytes;
+    MIOHashMap *all_var;
 };
 
 class FunctionEntry {
