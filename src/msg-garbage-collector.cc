@@ -496,7 +496,12 @@ void MSGGarbageCollector::WriteBarrier(HeapObject *target, HeapObject *other) {
     }
 
     if (target->GetColor() == kBlack) {
-        other->SetColor(kBlack);
+        if (other->GetColor() != kBlack) {
+            ObjectScanner scanner;
+            scanner.Scan(other, [this] (HeapObject *ob) {
+                ob->SetColor(kBlack);
+            });
+        }
     }
 }
 

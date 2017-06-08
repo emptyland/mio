@@ -1147,13 +1147,16 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                 return;
             }
 
-            const void *src = nullptr;
+            void *src = nullptr;
             if (surface.element()->IsObject()) {
                 src = o_stack_->offset(val2);
             } else {
                 src = p_stack_->offset(val2);
             }
             FastMemoryMove(surface.RawGet(index), src, surface.element_size());
+            if (surface.element()->IsObject()) {
+                vm_->gc_->WriteBarrier(ob.get(), *static_cast<HeapObject **>(src));
+            }
         } break;
 
         case OO_ArrayGet: {
