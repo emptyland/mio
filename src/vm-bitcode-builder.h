@@ -101,95 +101,106 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
+    // bit op
+    ////////////////////////////////////////////////////////////////////////////
+#define DEFINE_EMIT(byte, bit) \
+    int or_i##bit(uint16_t result, uint16_t lhs, uint16_t rhs) { \
+        return Emit3Addr(BC_or_i##bit, result, lhs, rhs); \
+    }
+
+    MIO_INT_BYTES_TO_BITS(DEFINE_EMIT)
+
+#undef DEFINE_EMIT
+
+#define DEFINE_EMIT(byte, bit) \
+    int xor_i##bit(uint16_t result, uint16_t lhs, uint16_t rhs) { \
+        return Emit3Addr(BC_xor_i##bit, result, lhs, rhs); \
+    }
+
+    MIO_INT_BYTES_TO_BITS(DEFINE_EMIT)
+
+#undef DEFINE_EMIT
+
+#define DEFINE_EMIT(byte, bit) \
+    int and_i##bit(uint16_t result, uint16_t lhs, uint16_t rhs) { \
+        return Emit3Addr(BC_and_i##bit, result, lhs, rhs); \
+    }
+
+    MIO_INT_BYTES_TO_BITS(DEFINE_EMIT)
+
+#undef DEFINE_EMIT
+
+#define DEFINE_EMIT(byte, bit) \
+    int inv_i##bit(uint16_t result, uint16_t operand) { \
+        return Emit2Addr(BC_inv_i##bit, result, operand); \
+    }
+
+    MIO_INT_BYTES_TO_BITS(DEFINE_EMIT)
+
+#undef DEFINE_EMIT
+
+    ////////////////////////////////////////////////////////////////////////////
     // arithmetic
     ////////////////////////////////////////////////////////////////////////////
-    int cmp_i8(BCComparator op, uint16_t result, int16_t lhs, int16_t rhs) {
-        return Emit4Op(BC_cmp_i8, op, result, lhs, rhs);
+#define DEFINE_EMIT(byte, stuffix) \
+    int cmp_##stuffix(BCComparator op, uint16_t result, int16_t lhs, int16_t rhs) { \
+        return Emit4Op(BC_cmp_##stuffix, op, result, lhs, rhs); \
     }
 
-    int cmp_i16(BCComparator op, uint16_t result, int16_t lhs, int16_t rhs) {
-        return Emit4Op(BC_cmp_i16, op, result, lhs, rhs);
-    }
+    MIO_NUM_BYTES_TO_BITS(DEFINE_EMIT)
 
-    int cmp_i32(BCComparator op, uint16_t result, int16_t lhs, int16_t rhs) {
-        return Emit4Op(BC_cmp_i32, op, result, lhs, rhs);
-    }
-
-    int cmp_i64(BCComparator op, uint16_t result, int16_t lhs, int16_t rhs) {
-        return Emit4Op(BC_cmp_i64, op, result, lhs, rhs);
-    }
-
-    int cmp_f32(BCComparator op, uint16_t result, int16_t lhs, int16_t rhs) {
-        return Emit4Op(BC_cmp_f32, op, result, lhs, rhs);
-    }
-
-    int cmp_f64(BCComparator op, uint16_t result, int16_t lhs, int16_t rhs) {
-        return Emit4Op(BC_cmp_f64, op, result, lhs, rhs);
-    }
+#undef DEFINE_EMIT
 
     int logic_not(uint16_t result, int16_t input) {
         return Emit3Addr(BC_logic_not, result, input, 0);
     }
 
-    int add_i8(uint16_t result, uint16_t lhs, uint16_t rhs) {
-        return Emit3Addr(BC_add_i8, result, lhs, rhs);
+#define DEFINE_EMIT(byte, stuffix) \
+    int add_##stuffix(uint16_t result, uint16_t lhs, uint16_t rhs) { \
+        return Emit3Addr(BC_add_##stuffix, result, lhs, rhs); \
     }
 
-    int add_i16(uint16_t result, uint16_t lhs, uint16_t rhs) {
-        return Emit3Addr(BC_add_i16, result, lhs, rhs);
+    MIO_NUM_BYTES_TO_BITS(DEFINE_EMIT)
+
+#undef DEFINE_EMIT
+
+
+#define DEFINE_EMIT(byte, bit) \
+    int add_i##bit##_imm(uint16_t result, uint16_t lhs, int8_t imm) { \
+        return Emit3Addr(BC_add_i##bit##_imm, result, lhs, imm); \
     }
 
-    int add_i32(uint16_t result, uint16_t lhs, uint16_t rhs) {
-        return Emit3Addr(BC_add_i32, result, lhs, rhs);
+    MIO_SMI_BYTES_TO_BITS(DEFINE_EMIT)
+
+#undef DEFINE_EMIT
+
+
+#define DEFINE_EMIT(byte, stuffix) \
+    int sub_##stuffix(uint16_t result, uint16_t lhs, uint16_t rhs) { \
+        return Emit3Addr(BC_sub_##stuffix, result, lhs, rhs); \
     }
 
-    int add_i64(uint16_t result, uint16_t lhs, uint16_t rhs) {
-        return Emit3Addr(BC_add_i64, result, lhs, rhs);
+    MIO_NUM_BYTES_TO_BITS(DEFINE_EMIT)
+
+#undef DEFINE_EMIT
+
+#define DEFINE_EMIT(byte, stuffix) \
+    int mul_##stuffix(uint16_t result, uint16_t lhs, uint16_t rhs) { \
+        return Emit3Addr(BC_mul_##stuffix, result, lhs, rhs); \
     }
 
-    int add_f32(uint16_t result, uint16_t lhs, uint16_t rhs) {
-        return Emit3Addr(BC_add_f32, result, lhs, rhs);
+    MIO_NUM_BYTES_TO_BITS(DEFINE_EMIT)
+
+#undef DEFINE_EMIT
+
+#define DEFINE_EMIT(byte, stuffix) \
+    int div_##stuffix(uint16_t result, uint16_t lhs, uint16_t rhs) { \
+        return Emit3Addr(BC_div_##stuffix, result, lhs, rhs); \
     }
 
-    int add_f64(uint16_t result, uint16_t lhs, uint16_t rhs) {
-        return Emit3Addr(BC_add_f64, result, lhs, rhs);
-    }
+    MIO_NUM_BYTES_TO_BITS(DEFINE_EMIT)
 
-    int add_i8_imm(uint16_t result, uint16_t lhs, int8_t imm) {
-        return Emit3Addr(BC_add_i8_imm, result, lhs, imm);
-    }
-
-    int add_i16_imm(uint16_t result, uint16_t lhs, int16_t imm) {
-        return Emit3Addr(BC_add_i16_imm, result, lhs, imm);
-    }
-
-    int add_i32_imm(uint16_t result, uint16_t lhs, int32_t imm) {
-        return Emit3Addr(BC_add_i32_imm, result, lhs, imm);
-    }
-
-    int sub_i8(uint16_t result, uint16_t lhs, uint16_t rhs) {
-        return Emit3Addr(BC_sub_i8, result, lhs, rhs);
-    }
-
-    int sub_i16(uint16_t result, uint16_t lhs, uint16_t rhs) {
-        return Emit3Addr(BC_sub_i16, result, lhs, rhs);
-    }
-
-    int sub_i32(uint16_t result, uint16_t lhs, uint16_t rhs) {
-        return Emit3Addr(BC_sub_i32, result, lhs, rhs);
-    }
-
-    int sub_i64(uint16_t result, uint16_t lhs, uint16_t rhs) {
-        return Emit3Addr(BC_sub_i64, result, lhs, rhs);
-    }
-
-    int sub_f32(uint16_t result, uint16_t lhs, uint16_t rhs) {
-        return Emit3Addr(BC_sub_f64, result, lhs, rhs);
-    }
-
-    int sub_f64(uint16_t result, uint16_t lhs, uint16_t rhs) {
-        return Emit3Addr(BC_sub_f64, result, lhs, rhs);
-    }
+#undef DEFINE_EMIT
 
     ////////////////////////////////////////////////////////////////////////////
     // type cast

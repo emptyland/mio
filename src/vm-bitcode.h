@@ -49,7 +49,37 @@ namespace mio {
     M(sub_i32) \
     M(sub_i64) \
     M(sub_f32) \
-    M(sub_f64)
+    M(sub_f64) \
+    M(mul_i8) \
+    M(mul_i16) \
+    M(mul_i32) \
+    M(mul_i64) \
+    M(mul_f32) \
+    M(mul_f64) \
+    M(div_i8) \
+    M(div_i16) \
+    M(div_i32) \
+    M(div_i64) \
+    M(div_f32) \
+    M(div_f64)
+
+#define VM_BIT_BC(M) \
+    M(or_i8)         \
+    M(or_i16)        \
+    M(or_i32)        \
+    M(or_i64)        \
+    M(xor_i8)        \
+    M(xor_i16)       \
+    M(xor_i32)       \
+    M(xor_i64)       \
+    M(and_i8)        \
+    M(and_i16)       \
+    M(and_i32)       \
+    M(and_i64)       \
+    M(inv_i8)        \
+    M(inv_i16)       \
+    M(inv_i32)       \
+    M(inv_i64)
 
 #define VM_TYPE_CAST(M) \
     M(sext_i32) \
@@ -84,12 +114,13 @@ namespace mio {
     M(close_fn)
 
 #define VM_ALL_BITCODE(M) \
-    M(debug) \
-    VM_LOAD_BC(M) \
-    VM_MOV_BC(M) \
-    VM_ARITH_BC(M) \
-    VM_TYPE_CAST(M) \
-    VM_TEST_BC(M) \
+    M(debug)              \
+    VM_LOAD_BC(M)         \
+    VM_MOV_BC(M)          \
+    VM_BIT_BC(M)          \
+    VM_ARITH_BC(M)        \
+    VM_TYPE_CAST(M)       \
+    VM_TEST_BC(M)         \
     VM_CALL_BC(M)
 
 

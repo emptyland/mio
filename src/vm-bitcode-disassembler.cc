@@ -83,21 +83,56 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
                             GetVal2(bc));
             break;
 
+        case BC_or_i8:
+        case BC_or_i16:
+        case BC_or_i32:
+        case BC_or_i64:
+
+        case BC_xor_i8:
+        case BC_xor_i16:
+        case BC_xor_i32:
+        case BC_xor_i64:
+
+        case BC_and_i8:
+        case BC_and_i16:
+        case BC_and_i32:
+        case BC_and_i64:
+
         case BC_add_i8:
         case BC_add_i16:
         case BC_add_i32:
         case BC_add_i64:
         case BC_add_f32:
         case BC_add_f64:
+
         case BC_sub_i8:
         case BC_sub_i16:
         case BC_sub_i32:
         case BC_sub_i64:
         case BC_sub_f32:
         case BC_sub_f64:
+
+        case BC_mul_i8:
+        case BC_mul_i16:
+        case BC_mul_i32:
+        case BC_mul_i64:
+        case BC_mul_f32:
+        case BC_mul_f64:
+
+        case BC_div_i8:
+        case BC_div_i16:
+        case BC_div_i32:
+        case BC_div_i64:
+        case BC_div_f32:
+        case BC_div_f64:
             stream_->Printf("[%u] [%u] [%u]", GetOp1(bc), GetOp2(bc),
                             GetOp3(bc));
             break;
+
+        case BC_inv_i8:
+        case BC_inv_i16:
+        case BC_inv_i32:
+        case BC_inv_i64:
 
         case BC_logic_not:
             stream_->Printf("[%u] [%u]", GetOp1(bc), GetOp2(bc));

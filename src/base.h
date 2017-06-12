@@ -17,18 +17,26 @@ namespace mio {
  * mio_float_t -> fixed 32 bits floating number
  * mio_double_t -> fixed 64 bits floating number
  */
-#define MIO_SMI_BYTES_TO_BITS(M) \
-    M(1, 8) \
-    M(2, 16) \
+#define MIO_SMI_BYTES_TO_BITS(M)   \
+    M(1, 8)                        \
+    M(2, 16)                       \
     M(4, 32)
 
-#define MIO_INT_BYTES_TO_BITS(M) \
-    MIO_SMI_BYTES_TO_BITS(M) \
+#define MIO_INT_BYTES_TO_BITS(M)   \
+    MIO_SMI_BYTES_TO_BITS(M)       \
     M(8, 64)
 
 #define MIO_FLOAT_BYTES_TO_BITS(M) \
-    M(4, 32) \
+    M(4, 32)                       \
     M(8, 64)
+
+#define MIO_NUM_BYTES_TO_BITS(M)   \
+    M(1, i8)                       \
+    M(2, i16)                      \
+    M(4, i32)                      \
+    M(8, i64)                      \
+    M(4, f32)                      \
+    M(8, f64)
 
 typedef int8_t   mio_bool_t;
 typedef int8_t   mio_i8_t;

@@ -1226,6 +1226,12 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
             PushValue(result);
         } break;
 
+        case OP_BIT_OR:
+        case OP_BIT_AND:
+        case OP_BIT_XOR:
+            // TODO:
+            break;
+
             // TODO: other operator
         default:
             DLOG(FATAL) << "noreached!";
