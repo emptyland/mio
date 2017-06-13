@@ -247,4 +247,19 @@ TEST_F(ThreadTest, P024_AllGlobalVariables) {
     }
 }
 
+TEST_F(ThreadTest, P025_BitOperators) {
+    ParsingError error;
+
+    ASSERT_TRUE(vm_->CompileProject("test/025", &error)) << error.ToString();
+    std::string buf;
+    vm_->DisassembleAll(&buf);
+    printf("%s\n", buf.c_str());
+
+    if (vm_->Run() != 0) {
+        buf.clear();
+        vm_->PrintBackstrace(&buf);
+        FAIL() << buf;
+    }
+}
+
 } // namespace mio

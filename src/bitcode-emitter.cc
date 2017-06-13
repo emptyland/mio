@@ -1310,9 +1310,11 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
             DCHECK_EQ(BC_LOCAL_PRIMITIVE_SEGMENT, rhs.segment);
 
             auto result = current_->MakeLocalValue(node->lhs_type());
-        #define DEFINE_CASE(byte, bit) case bit: \
-            builder(node->position())->or_i##bit(result.offset, lhs.offset, rhs.offset);
-            MIO_INT_BYTES_SWITCH(node->lhs_type()->AsIntegral()->bitwide(), DEFINE_CASE)
+        #define DEFINE_CASE(byte, bit) \
+            case byte: \
+                builder(node->position())->or_i##bit(result.offset, lhs.offset, rhs.offset); \
+                break;
+            MIO_INT_BYTES_SWITCH(lhs.size, DEFINE_CASE)
         #undef DEFINE_CASE
             PushValue(result);
         } break;
@@ -1327,9 +1329,11 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
             DCHECK_EQ(BC_LOCAL_PRIMITIVE_SEGMENT, rhs.segment);
 
             auto result = current_->MakeLocalValue(node->lhs_type());
-        #define DEFINE_CASE(byte, bit) case bit: \
-            builder(node->position())->and_i##bit(result.offset, lhs.offset, rhs.offset);
-            MIO_INT_BYTES_SWITCH(node->lhs_type()->AsIntegral()->bitwide(), DEFINE_CASE)
+        #define DEFINE_CASE(byte, bit) \
+            case byte: \
+                builder(node->position())->and_i##bit(result.offset, lhs.offset, rhs.offset); \
+                break;
+            MIO_INT_BYTES_SWITCH(lhs.size, DEFINE_CASE)
         #undef DEFINE_CASE
             PushValue(result);
         } break;
@@ -1344,9 +1348,11 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
             DCHECK_EQ(BC_LOCAL_PRIMITIVE_SEGMENT, rhs.segment);
 
             auto result = current_->MakeLocalValue(node->lhs_type());
-        #define DEFINE_CASE(byte, bit) case bit: \
-            builder(node->position())->xor_i##bit(result.offset, lhs.offset, rhs.offset);
-            MIO_INT_BYTES_SWITCH(node->lhs_type()->AsIntegral()->bitwide(), DEFINE_CASE)
+        #define DEFINE_CASE(byte, bit) \
+            case byte: \
+                builder(node->position())->xor_i##bit(result.offset, lhs.offset, rhs.offset); \
+                break;
+            MIO_INT_BYTES_SWITCH(lhs.size, DEFINE_CASE)
         #undef DEFINE_CASE
             PushValue(result);
         } break;
@@ -1357,7 +1363,9 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
                                       uint16_t result, uint16_t lhs,
                                       int32_t imm) {
             #define DEFINE_CASE(byte, bit) \
-                case bit: builder->shl_i##bit##_imm(result, lhs, imm);
+                case bit: \
+                    builder->shl_i##bit##_imm(result, lhs, imm); \
+                    break;
                                        MIO_INT_BYTES_SWITCH(bitwide, DEFINE_CASE)
             #undef DEFINE_CASE
                                    },
@@ -1365,7 +1373,9 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
                                       uint16_t result, uint16_t lhs,
                                       int32_t rhs) {
             #define DEFINE_CASE(byte, bit) \
-                case bit: builder->shl_i##bit(result, lhs, rhs);
+                case bit: \
+                    builder->shl_i##bit(result, lhs, rhs); \
+                    break;
                                        MIO_INT_BYTES_SWITCH(bitwide, DEFINE_CASE)
             #undef DEFINE_CASE
                                    }));
@@ -1377,7 +1387,9 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
                                       uint16_t result, uint16_t lhs,
                                       int32_t imm) {
             #define DEFINE_CASE(byte, bit) \
-                case bit: builder->shr_i##bit##_imm(result, lhs, imm);
+                case bit: \
+                    builder->shr_i##bit##_imm(result, lhs, imm); \
+                    break;
                                        MIO_INT_BYTES_SWITCH(bitwide, DEFINE_CASE)
             #undef DEFINE_CASE
                                    },
@@ -1385,7 +1397,9 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
                                       uint16_t result, uint16_t lhs,
                                       int32_t rhs) {
             #define DEFINE_CASE(byte, bit) \
-                case bit: builder->shr_i##bit(result, lhs, rhs);
+                case bit: \
+                    builder->shr_i##bit(result, lhs, rhs); \
+                    break;
                                        MIO_INT_BYTES_SWITCH(bitwide, DEFINE_CASE)
             #undef DEFINE_CASE
                                    }));
@@ -1397,7 +1411,9 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
                                       uint16_t result, uint16_t lhs,
                                       int32_t imm) {
             #define DEFINE_CASE(byte, bit) \
-                case bit: builder->ushr_i##bit##_imm(result, lhs, imm);
+                case bit: \
+                    builder->ushr_i##bit##_imm(result, lhs, imm); \
+                    break;
                                        MIO_INT_BYTES_SWITCH(bitwide, DEFINE_CASE)
             #undef DEFINE_CASE
                                    },
@@ -1405,7 +1421,9 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
                                       uint16_t result, uint16_t lhs,
                                       int32_t rhs) {
             #define DEFINE_CASE(byte, bit) \
-                case bit: builder->ushr_i##bit(result, lhs, rhs);
+                case bit: \
+                    builder->ushr_i##bit(result, lhs, rhs); \
+                    break;
                                        MIO_INT_BYTES_SWITCH(bitwide, DEFINE_CASE)
             #undef DEFINE_CASE
                                    }));
@@ -1732,7 +1750,8 @@ VMValue EmittingAstVisitor::EmitBitShift(BinaryOperation *node,
 
         int32_t imm32 = 0;
         #define DEFINE_CASE(byte, bit) case bit: \
-            imm32 = static_cast<int32_t>(smi->i##bit());
+            imm32 = static_cast<int32_t>(smi->i##bit()); \
+            break;
         MIO_INT_BYTES_SWITCH(smi->bitwide(), DEFINE_CASE)
         #undef DEFINE_CASE
 
