@@ -6,6 +6,7 @@
 #include "text-input-stream.h"
 #include "text-output-stream.h"
 #include <stdarg.h>
+#include <limits>
 
 namespace mio {
 
@@ -402,6 +403,10 @@ Expression *Parser::ParseExpression(bool ignore, int limit, int *rop, bool *ok) 
         case TOKEN_NOT:
         case TOKEN_TRUE:
         case TOKEN_FALSE:
+        case TOKEN_NAN32:
+        case TOKEN_NAN64:
+        case TOKEN_INF32:
+        case TOKEN_INF64:
         case TOKEN_FUNCTION:
         case TOKEN_LAMBDA:
         case TOKEN_LPAREN:
@@ -577,6 +582,24 @@ Expression *Parser::ParseSimpleExpression(bool *ok) {
         case TOKEN_FALSE:
             lexer_->Next(&ahead_);
             return factory_->CreateI1SmiLiteral(false, position);
+
+        case TOKEN_NAN32:
+            lexer_->Next(&ahead_);
+            static_assert(std::numeric_limits<mio_f32_t>::has_quiet_NaN, "unexpected quiet NaN");
+            return factory_->CreateF32FloatLiteral(std::numeric_limits<mio_f32_t>::quiet_NaN(), position);
+
+        case TOKEN_NAN64:
+            lexer_->Next(&ahead_);
+            static_assert(std::numeric_limits<mio_f64_t>::has_quiet_NaN, "unexpected quiet NaN");
+            return factory_->CreateF64FloatLiteral(std::numeric_limits<mio_f64_t>::quiet_NaN(), position);
+
+        case TOKEN_INF32:
+            lexer_->Next(&ahead_);
+            return factory_->CreateF32FloatLiteral(std::numeric_limits<mio_f32_t>::infinity(), position);
+
+        case TOKEN_INF64:
+            lexer_->Next(&ahead_);
+            return factory_->CreateF64FloatLiteral(std::numeric_limits<mio_f64_t>::infinity(), position);
 
         case TOKEN_I8_LITERAL:
             lexer_->Next(&ahead_);

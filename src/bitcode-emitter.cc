@@ -1045,7 +1045,8 @@ void EmittingAstVisitor::VisitUnaryOperation(UnaryOperation *node) {
 
         #define DEFINE_CASE(byte, bit) \
             case byte: \
-                builder(node->position())->inv_i##bit(result.offset, operand.offset);
+                builder(node->position())->inv_i##bit(result.offset, operand.offset); \
+                break;
             MIO_INT_BYTES_SWITCH(operand.size, DEFINE_CASE)
         #undef DEFINE_CASE
             PushValue(result);
@@ -1061,13 +1062,15 @@ void EmittingAstVisitor::VisitUnaryOperation(UnaryOperation *node) {
             if (node->operand_type()->IsIntegral()) {
             #define DEFINE_CASE(byte, bit) \
                 case bit: \
-                    builder(node->position())->sub_i##bit(result.offset, zero.offset, operand.offset);
+                    builder(node->position())->sub_i##bit(result.offset, zero.offset, operand.offset); \
+                    break;
                 MIO_INT_BYTES_SWITCH(node->operand_type()->AsIntegral()->bitwide(), DEFINE_CASE)
             #undef DEFINE_CASE
             } else {
             #define DEFINE_CASE(byte, bit) \
                 case bit: \
-                    builder(node->position())->sub_f##bit(result.offset, zero.offset, operand.offset);
+                    builder(node->position())->sub_f##bit(result.offset, zero.offset, operand.offset); \
+                    break;
                 MIO_FLOAT_BYTES_SWITCH(node->operand_type()->AsFloating()->bitwide(), DEFINE_CASE)
             #undef DEFINE_CASE
             }

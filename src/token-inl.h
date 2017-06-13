@@ -108,11 +108,14 @@ namespace mio {
     M(DEF, 0, "def") \
     M(TRUE, 0, "true") \
     M(FALSE, 0, "false") \
+    M(NAN32, 0, "nan32") \
+    M(NAN64, 0, "nan64") \
+    M(INF32, 0, "inf32") \
+    M(INF64, 0, "inf64") \
     M(LEN, 0, "len") \
     M(ADD, 0, "add") \
     M(DELETE, 0, "delete") \
     M(TYPEOF, 0, "typeof")
-    
 
 
 #define Token_CODE_ENUM(name, prio, text) TOKEN_##name,

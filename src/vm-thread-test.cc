@@ -252,9 +252,18 @@ TEST_F(ThreadTest, P025_BitOperators) {
 
     ASSERT_TRUE(vm_->CompileProject("test/025", &error)) << error.ToString();
     std::string buf;
-    vm_->DisassembleAll(&buf);
-    printf("%s\n", buf.c_str());
+    if (vm_->Run() != 0) {
+        buf.clear();
+        vm_->PrintBackstrace(&buf);
+        FAIL() << buf;
+    }
+}
 
+TEST_F(ThreadTest, P026_NaNAndInf) {
+    ParsingError error;
+
+    ASSERT_TRUE(vm_->CompileProject("test/026", &error)) << error.ToString();
+    std::string buf;
     if (vm_->Run() != 0) {
         buf.clear();
         vm_->PrintBackstrace(&buf);
