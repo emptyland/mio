@@ -501,6 +501,17 @@ private:
         case OP_BIT_OR:
         case OP_BIT_AND:
         case OP_BIT_XOR:
+            if (lhs_ty->GenerateId() != rhs_ty->GenerateId()) {
+                ThrowError(node, "operator: `%s' has different type of operands.",
+                           GetOperatorText(node->op()));
+            }
+            if (!lhs_ty->IsIntegral()) {
+                ThrowError(node, "operator: `%s' only accept numeric type.",
+                           GetOperatorText(node->op()));
+            }
+            PushEvalType(lhs_ty);
+            break;
+
         case OP_LSHIFT:
         case OP_RSHIFT_A:
         case OP_RSHIFT_L:

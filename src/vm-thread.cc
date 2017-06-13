@@ -190,6 +190,131 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
             } break;
 
         #define DEFINE_CASE(byte, bit) \
+            case BC_and_i##bit: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto rhs = BitCodeDisassembler::GetOp3(bc); \
+                p_stack_->Set(dest, GetI##bit(lhs) & GetI##bit(rhs)); \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_or_i##bit: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto rhs = BitCodeDisassembler::GetOp3(bc); \
+                p_stack_->Set(dest, GetI##bit(lhs) | GetI##bit(rhs)); \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_xor_i##bit: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto rhs = BitCodeDisassembler::GetOp3(bc); \
+                p_stack_->Set(dest, GetI##bit(lhs) ^ GetI##bit(rhs)); \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_inv_i##bit: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto operand = BitCodeDisassembler::GetOp2(bc); \
+                p_stack_->Set(dest, ~GetI##bit(operand)); \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_shl_i##bit: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto rhs = BitCodeDisassembler::GetOp3(bc); \
+                if (GetInt(rhs) < 0) { \
+                    Panic(PANIC, ok, "negative shift left: %lld", GetInt(rhs)); \
+                    return; \
+                } \
+                p_stack_->Set<mio_i##bit##_t>(dest, GetI##bit(lhs) << GetInt(rhs)); \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_shr_i##bit: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto rhs = BitCodeDisassembler::GetOp3(bc); \
+                if (GetInt(rhs) < 0) { \
+                    Panic(PANIC, ok, "negative arithmetic shift right: %lld", GetInt(rhs)); \
+                    return; \
+                } \
+                p_stack_->Set<mio_i##bit##_t>(dest, GetI##bit(lhs) >> GetInt(rhs)); \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_ushr_i##bit: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto rhs = BitCodeDisassembler::GetOp3(bc); \
+                if (GetInt(rhs) < 0) { \
+                    Panic(PANIC, ok, "negative logic shift right: %lld", GetInt(rhs)); \
+                    return; \
+                } \
+                auto result = GetI##bit(lhs) >> GetInt(rhs); \
+                p_stack_->Set<mio_i##bit##_t>(dest, GetI##bit(lhs) >= 0 ? result : result & ~(1ULL << ((bit) - 1))); \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_shl_i##bit##_imm: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto imm = BitCodeDisassembler::GetImm32(bc); \
+                if (imm < 0) { \
+                    Panic(PANIC, ok, "negative shift left: %d", imm); \
+                    return; \
+                } \
+                p_stack_->Set<mio_i##bit##_t>(dest, GetI##bit(lhs) << imm); \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_shr_i##bit##_imm: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto imm = BitCodeDisassembler::GetImm32(bc); \
+                if (imm < 0) { \
+                    Panic(PANIC, ok, "negative shift left: %d", imm); \
+                    return; \
+                } \
+                p_stack_->Set<mio_i##bit##_t>(dest, GetI##bit(lhs) >> imm); \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_ushr_i##bit##_imm: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto imm = BitCodeDisassembler::GetImm32(bc); \
+                if (imm < 0) { \
+                    Panic(PANIC, ok, "negative shift left: %d", imm); \
+                    return; \
+                } \
+                auto result = GetI##bit(lhs) >> imm; \
+                p_stack_->Set<mio_i##bit##_t>(dest, GetI##bit(lhs) >= 0 ? result : result & ~(1ULL << ((bit) - 1))); \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
             case BC_add_i##bit##_imm: { \
                 auto dest = BitCodeDisassembler::GetOp1(bc); \
                 auto lhs  = BitCodeDisassembler::GetOp2(bc); \
@@ -207,6 +332,80 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 p_stack_->Set(dest, GetI##bit(lhs) + GetI##bit(rhs)); \
             } break;
             MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_sub_i##bit: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto rhs = BitCodeDisassembler::GetOp3(bc); \
+                p_stack_->Set(dest, GetI##bit(lhs) - GetI##bit(rhs)); \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_mul_i##bit: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto rhs = BitCodeDisassembler::GetOp3(bc); \
+                p_stack_->Set(dest, GetI##bit(lhs) * GetI##bit(rhs)); \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_div_i##bit: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto rhs = BitCodeDisassembler::GetOp3(bc); \
+                if (GetI##bit(rhs) == 0) { \
+                    Panic(DIV_ZERO, ok, "div zero."); \
+                    return; \
+                } \
+                p_stack_->Set(dest, GetI##bit(lhs) / GetI##bit(rhs)); \
+            } break;
+            MIO_INT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_add_f##bit: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto rhs = BitCodeDisassembler::GetOp3(bc); \
+                p_stack_->Set(dest, GetF##bit(lhs) + GetF##bit(rhs)); \
+            } break;
+            MIO_FLOAT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_sub_f##bit: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto rhs = BitCodeDisassembler::GetOp3(bc); \
+                p_stack_->Set(dest, GetF##bit(lhs) - GetF##bit(rhs)); \
+            } break;
+            MIO_FLOAT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_mul_f##bit: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto rhs = BitCodeDisassembler::GetOp3(bc); \
+                p_stack_->Set(dest, GetF##bit(lhs) * GetF##bit(rhs)); \
+            } break;
+            MIO_FLOAT_BYTES_TO_BITS(DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        #define DEFINE_CASE(byte, bit) \
+            case BC_div_f##bit: { \
+                auto dest = BitCodeDisassembler::GetOp1(bc); \
+                auto lhs = BitCodeDisassembler::GetOp2(bc); \
+                auto rhs = BitCodeDisassembler::GetOp3(bc); \
+                p_stack_->Set(dest, GetF##bit(lhs) / GetF##bit(rhs)); \
+            } break;
+            MIO_FLOAT_BYTES_TO_BITS(DEFINE_CASE)
         #undef DEFINE_CASE
 
             case BC_logic_not: {

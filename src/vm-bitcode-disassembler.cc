@@ -87,38 +87,53 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
         case BC_or_i16:
         case BC_or_i32:
         case BC_or_i64:
-
+            // fallthrough
         case BC_xor_i8:
         case BC_xor_i16:
         case BC_xor_i32:
         case BC_xor_i64:
-
+            // fallthrough
         case BC_and_i8:
         case BC_and_i16:
         case BC_and_i32:
         case BC_and_i64:
-
+            // fallthrough
+        case BC_shl_i8:
+        case BC_shl_i16:
+        case BC_shl_i32:
+        case BC_shl_i64:
+            // fallthrough
+        case BC_shr_i8:
+        case BC_shr_i16:
+        case BC_shr_i32:
+        case BC_shr_i64:
+            // fallthrough
+        case BC_ushr_i8:
+        case BC_ushr_i16:
+        case BC_ushr_i32:
+        case BC_ushr_i64:
+            // fallthrough
         case BC_add_i8:
         case BC_add_i16:
         case BC_add_i32:
         case BC_add_i64:
         case BC_add_f32:
         case BC_add_f64:
-
+            // fallthrough
         case BC_sub_i8:
         case BC_sub_i16:
         case BC_sub_i32:
         case BC_sub_i64:
         case BC_sub_f32:
         case BC_sub_f64:
-
+            // fallthrough
         case BC_mul_i8:
         case BC_mul_i16:
         case BC_mul_i32:
         case BC_mul_i64:
         case BC_mul_f32:
         case BC_mul_f64:
-
+            // fallthrough
         case BC_div_i8:
         case BC_div_i16:
         case BC_div_i32:
@@ -133,11 +148,26 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
         case BC_inv_i16:
         case BC_inv_i32:
         case BC_inv_i64:
-
+            // fallthrough
         case BC_logic_not:
             stream_->Printf("[%u] [%u]", GetOp1(bc), GetOp2(bc));
             break;
 
+        case BC_shl_i8_imm:
+        case BC_shl_i16_imm:
+        case BC_shl_i32_imm:
+        case BC_shl_i64_imm:
+            // fallthrough
+        case BC_shr_i8_imm:
+        case BC_shr_i16_imm:
+        case BC_shr_i32_imm:
+        case BC_shr_i64_imm:
+            // fallthrough
+        case BC_ushr_i8_imm:
+        case BC_ushr_i16_imm:
+        case BC_ushr_i32_imm:
+        case BC_ushr_i64_imm:
+            // fallthrough
         case BC_add_i8_imm:
         case BC_add_i16_imm:
         case BC_add_i32_imm:
@@ -148,17 +178,22 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
         case BC_sext_i8:
         case BC_sext_i16:
         case BC_sext_i32:
+            // fallthrough
         case BC_trunc_i16:
         case BC_trunc_i32:
         case BC_trunc_i64:
+            // fallthrough
         case BC_fpext_f32:
         case BC_fpext_f64:
+            // fallthrough
         case BC_fptrunc_f32:
         case BC_fptrunc_f64:
+            // fallthrough
         case BC_sitofp_i8:
         case BC_sitofp_i16:
         case BC_sitofp_i32:
         case BC_sitofp_i64:
+            // fallthrough
         case BC_fptosi_f32:
         case BC_fptosi_f64:
             stream_->Printf("[%u] <%u> [%u]", GetOp1(bc), GetOp2(bc) * 8, GetImm32(bc));

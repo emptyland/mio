@@ -79,7 +79,31 @@ namespace mio {
     M(inv_i8)        \
     M(inv_i16)       \
     M(inv_i32)       \
-    M(inv_i64)
+    M(inv_i64)       \
+    M(shl_i8)        \
+    M(shl_i16)       \
+    M(shl_i32)       \
+    M(shl_i64)       \
+    M(shl_i8_imm)    \
+    M(shl_i16_imm)   \
+    M(shl_i32_imm)   \
+    M(shl_i64_imm)   \
+    M(shr_i8)        \
+    M(shr_i16)       \
+    M(shr_i32)       \
+    M(shr_i64)       \
+    M(shr_i8_imm)    \
+    M(shr_i16_imm)   \
+    M(shr_i32_imm)   \
+    M(shr_i64_imm)   \
+    M(ushr_i8)       \
+    M(ushr_i16)      \
+    M(ushr_i32)      \
+    M(ushr_i64)      \
+    M(ushr_i8_imm)   \
+    M(ushr_i16_imm)  \
+    M(ushr_i32_imm)  \
+    M(ushr_i64_imm)
 
 #define VM_TYPE_CAST(M) \
     M(sext_i32) \

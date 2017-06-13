@@ -25,6 +25,7 @@ public:
         NULL_NATIVE_FUNCTION,
         BAD_BIT_CODE,
         OUT_OF_MEMORY,
+        DIV_ZERO,
     };
 
     Thread(VM *vm);

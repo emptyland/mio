@@ -139,6 +139,60 @@ public:
 
 #undef DEFINE_EMIT
 
+#define DEFINE_EMIT(byte, bit) \
+    int shl_i##bit(uint16_t result, uint16_t lhs, uint16_t rhs) { \
+        return Emit3Addr(BC_shl_i##bit, result, lhs, rhs); \
+    }
+
+    MIO_INT_BYTES_TO_BITS(DEFINE_EMIT)
+
+#undef DEFINE_EMIT
+
+#define DEFINE_EMIT(byte, bit) \
+    int shl_i##bit##_imm(uint16_t result, uint16_t lhs, int32_t imm) { \
+        return Emit3Addr(BC_shl_i##bit##_imm, result, lhs, imm); \
+    }
+
+    MIO_INT_BYTES_TO_BITS(DEFINE_EMIT)
+
+#undef DEFINE_EMIT
+
+#define DEFINE_EMIT(byte, bit) \
+    int shr_i##bit(uint16_t result, uint16_t lhs, uint16_t rhs) { \
+        return Emit3Addr(BC_shr_i##bit, result, lhs, rhs); \
+    }
+
+    MIO_INT_BYTES_TO_BITS(DEFINE_EMIT)
+
+#undef DEFINE_EMIT
+
+#define DEFINE_EMIT(byte, bit) \
+    int shr_i##bit##_imm(uint16_t result, uint16_t lhs, int32_t imm) { \
+        return Emit3Addr(BC_shr_i##bit##_imm, result, lhs, imm); \
+    }
+
+    MIO_INT_BYTES_TO_BITS(DEFINE_EMIT)
+
+#undef DEFINE_EMIT
+
+#define DEFINE_EMIT(byte, bit) \
+    int ushr_i##bit(uint16_t result, uint16_t lhs, uint16_t rhs) { \
+        return Emit3Addr(BC_ushr_i##bit, result, lhs, rhs); \
+    }
+
+    MIO_INT_BYTES_TO_BITS(DEFINE_EMIT)
+
+#undef DEFINE_EMIT
+
+#define DEFINE_EMIT(byte, bit) \
+    int ushr_i##bit##_imm(uint16_t result, uint16_t lhs, int32_t imm) { \
+        return Emit3Addr(BC_ushr_i##bit##_imm, result, lhs, imm); \
+    }
+
+    MIO_INT_BYTES_TO_BITS(DEFINE_EMIT)
+
+#undef DEFINE_EMIT
+
     ////////////////////////////////////////////////////////////////////////////
     // arithmetic
     ////////////////////////////////////////////////////////////////////////////

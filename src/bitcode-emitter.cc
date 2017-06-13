@@ -371,13 +371,22 @@ public:
 
     VMValue GetOrNewString(const char *z, int n, Handle<MIOString> *obj);
 private:
+
     void EmitGlobalFunction(FunctionDefine *node);
     void EmitLocalFunction(FunctionDefine *node);
+
+    VMValue EmitBitShift(BinaryOperation *node,
+            std::function<void(BitCodeBuilder *, int, uint16_t, uint16_t, int32_t)> build_imm,
+            std::function<void(BitCodeBuilder *, int, uint16_t, uint16_t, int32_t)> build_reg);
 
     VMValue EmitIntegralAdd(Type *type, Expression *lhs, Expression *rhs);
     VMValue EmitFloatingAdd(Type *type, Expression *lhs, Expression *rhs);
     VMValue EmitIntegralSub(Type *type, Expression *lhs, Expression *rhs);
     VMValue EmitFloatingSub(Type *type, Expression *lhs, Expression *rhs);
+    VMValue EmitIntegralMul(Type *type, Expression *lhs, Expression *rhs);
+    VMValue EmitFloatingMul(Type *type, Expression *lhs, Expression *rhs);
+    VMValue EmitIntegralDiv(Type *type, Expression *lhs, Expression *rhs);
+    VMValue EmitFloatingDiv(Type *type, Expression *lhs, Expression *rhs);
     VMValue EmitIntegralCmp(Type *type, Expression *lhs, Expression *rhs,
                             Operator op);
     VMValue EmitFloatingCmp(Type *type, Expression *lhs, Expression *rhs,
@@ -1030,10 +1039,41 @@ void EmittingAstVisitor::VisitUnaryOperation(UnaryOperation *node) {
             PushValue(result);
         } break;
 
-        case OP_MINUS:
-            // TODO:
-        case OP_BIT_INV:
-            // TODO:
+        case OP_BIT_INV: {
+            auto operand = Emit(node->operand());
+            auto result = current_->MakeLocalValue(node->operand_type());
+
+        #define DEFINE_CASE(byte, bit) \
+            case byte: \
+                builder(node->position())->inv_i##bit(result.offset, operand.offset);
+            MIO_INT_BYTES_SWITCH(operand.size, DEFINE_CASE)
+        #undef DEFINE_CASE
+            PushValue(result);
+        } break;
+
+        case OP_MINUS: {
+            auto operand = Emit(node->operand());
+            auto result = current_->MakeLocalValue(node->operand_type());
+            auto zero = current_->MakeConstantPrimitiveValue<mio_i64_t>(0);
+            zero = EmitLoadMakeRoom(zero, node->position());
+
+            DCHECK(node->operand_type()->is_numeric());
+            if (node->operand_type()->IsIntegral()) {
+            #define DEFINE_CASE(byte, bit) \
+                case bit: \
+                    builder(node->position())->sub_i##bit(result.offset, zero.offset, operand.offset);
+                MIO_INT_BYTES_SWITCH(node->operand_type()->AsIntegral()->bitwide(), DEFINE_CASE)
+            #undef DEFINE_CASE
+            } else {
+            #define DEFINE_CASE(byte, bit) \
+                case bit: \
+                    builder(node->position())->sub_f##bit(result.offset, zero.offset, operand.offset);
+                MIO_FLOAT_BYTES_SWITCH(node->operand_type()->AsFloating()->bitwide(), DEFINE_CASE)
+            #undef DEFINE_CASE
+            }
+            PushValue(result);
+        } break;
+
         default:
             DLOG(FATAL) << "noreached!";
             break;
@@ -1186,6 +1226,40 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
             }
             break;
 
+        case OP_MUL:
+            if (node->lhs_type()->IsIntegral()) {
+                DCHECK_EQ(node->lhs_type()->GenerateId(),
+                          node->rhs_type()->GenerateId());
+
+                PushValue(EmitIntegralMul(node->lhs_type(), node->lhs(),
+                                          node->rhs()));
+            } else if (node->lhs_type()->IsFloating()) {
+
+                DCHECK_EQ(node->lhs_type()->GenerateId(),
+                          node->rhs_type()->GenerateId());
+
+                PushValue(EmitFloatingMul(node->lhs_type(), node->lhs(),
+                                          node->rhs()));
+            }
+            break;
+
+        case OP_DIV:
+            if (node->lhs_type()->IsIntegral()) {
+                DCHECK_EQ(node->lhs_type()->GenerateId(),
+                          node->rhs_type()->GenerateId());
+
+                PushValue(EmitIntegralDiv(node->lhs_type(), node->lhs(),
+                                          node->rhs()));
+            } else if (node->lhs_type()->IsFloating()) {
+
+                DCHECK_EQ(node->lhs_type()->GenerateId(),
+                          node->rhs_type()->GenerateId());
+
+                PushValue(EmitFloatingDiv(node->lhs_type(), node->lhs(),
+                                          node->rhs()));
+            }
+            break;
+
         case OP_EQ:
         case OP_NE:
         case OP_LT:
@@ -1226,10 +1300,115 @@ void EmittingAstVisitor::VisitBinaryOperation(BinaryOperation *node) {
             PushValue(result);
         } break;
 
-        case OP_BIT_OR:
-        case OP_BIT_AND:
-        case OP_BIT_XOR:
-            // TODO:
+        case OP_BIT_OR: {
+            DCHECK_EQ(node->lhs_type(), node->rhs_type());
+            DCHECK(node->lhs_type()->IsIntegral());
+
+            auto lhs = Emit(node->lhs());
+            DCHECK_EQ(BC_LOCAL_PRIMITIVE_SEGMENT, lhs.segment);
+            auto rhs = Emit(node->rhs());
+            DCHECK_EQ(BC_LOCAL_PRIMITIVE_SEGMENT, rhs.segment);
+
+            auto result = current_->MakeLocalValue(node->lhs_type());
+        #define DEFINE_CASE(byte, bit) case bit: \
+            builder(node->position())->or_i##bit(result.offset, lhs.offset, rhs.offset);
+            MIO_INT_BYTES_SWITCH(node->lhs_type()->AsIntegral()->bitwide(), DEFINE_CASE)
+        #undef DEFINE_CASE
+            PushValue(result);
+        } break;
+
+        case OP_BIT_AND: {
+            DCHECK_EQ(node->lhs_type(), node->rhs_type());
+            DCHECK(node->lhs_type()->IsIntegral());
+
+            auto lhs = Emit(node->lhs());
+            DCHECK_EQ(BC_LOCAL_PRIMITIVE_SEGMENT, lhs.segment);
+            auto rhs = Emit(node->rhs());
+            DCHECK_EQ(BC_LOCAL_PRIMITIVE_SEGMENT, rhs.segment);
+
+            auto result = current_->MakeLocalValue(node->lhs_type());
+        #define DEFINE_CASE(byte, bit) case bit: \
+            builder(node->position())->and_i##bit(result.offset, lhs.offset, rhs.offset);
+            MIO_INT_BYTES_SWITCH(node->lhs_type()->AsIntegral()->bitwide(), DEFINE_CASE)
+        #undef DEFINE_CASE
+            PushValue(result);
+        } break;
+
+        case OP_BIT_XOR: {
+            DCHECK_EQ(node->lhs_type(), node->rhs_type());
+            DCHECK(node->lhs_type()->IsIntegral());
+
+            auto lhs = Emit(node->lhs());
+            DCHECK_EQ(BC_LOCAL_PRIMITIVE_SEGMENT, lhs.segment);
+            auto rhs = Emit(node->rhs());
+            DCHECK_EQ(BC_LOCAL_PRIMITIVE_SEGMENT, rhs.segment);
+
+            auto result = current_->MakeLocalValue(node->lhs_type());
+        #define DEFINE_CASE(byte, bit) case bit: \
+            builder(node->position())->xor_i##bit(result.offset, lhs.offset, rhs.offset);
+            MIO_INT_BYTES_SWITCH(node->lhs_type()->AsIntegral()->bitwide(), DEFINE_CASE)
+        #undef DEFINE_CASE
+            PushValue(result);
+        } break;
+
+        case OP_LSHIFT:
+            PushValue(EmitBitShift(node,
+                                   [](BitCodeBuilder *builder, int bitwide,
+                                      uint16_t result, uint16_t lhs,
+                                      int32_t imm) {
+            #define DEFINE_CASE(byte, bit) \
+                case bit: builder->shl_i##bit##_imm(result, lhs, imm);
+                                       MIO_INT_BYTES_SWITCH(bitwide, DEFINE_CASE)
+            #undef DEFINE_CASE
+                                   },
+                                   [](BitCodeBuilder *builder, int bitwide,
+                                      uint16_t result, uint16_t lhs,
+                                      int32_t rhs) {
+            #define DEFINE_CASE(byte, bit) \
+                case bit: builder->shl_i##bit(result, lhs, rhs);
+                                       MIO_INT_BYTES_SWITCH(bitwide, DEFINE_CASE)
+            #undef DEFINE_CASE
+                                   }));
+            break;
+
+        case OP_RSHIFT_A:
+            PushValue(EmitBitShift(node,
+                                   [](BitCodeBuilder *builder, int bitwide,
+                                      uint16_t result, uint16_t lhs,
+                                      int32_t imm) {
+            #define DEFINE_CASE(byte, bit) \
+                case bit: builder->shr_i##bit##_imm(result, lhs, imm);
+                                       MIO_INT_BYTES_SWITCH(bitwide, DEFINE_CASE)
+            #undef DEFINE_CASE
+                                   },
+                                   [](BitCodeBuilder *builder, int bitwide,
+                                      uint16_t result, uint16_t lhs,
+                                      int32_t rhs) {
+            #define DEFINE_CASE(byte, bit) \
+                case bit: builder->shr_i##bit(result, lhs, rhs);
+                                       MIO_INT_BYTES_SWITCH(bitwide, DEFINE_CASE)
+            #undef DEFINE_CASE
+                                   }));
+            break;
+
+        case OP_RSHIFT_L:
+            PushValue(EmitBitShift(node,
+                                   [](BitCodeBuilder *builder, int bitwide,
+                                      uint16_t result, uint16_t lhs,
+                                      int32_t imm) {
+            #define DEFINE_CASE(byte, bit) \
+                case bit: builder->ushr_i##bit##_imm(result, lhs, imm);
+                                       MIO_INT_BYTES_SWITCH(bitwide, DEFINE_CASE)
+            #undef DEFINE_CASE
+                                   },
+                                   [](BitCodeBuilder *builder, int bitwide,
+                                      uint16_t result, uint16_t lhs,
+                                      int32_t rhs) {
+            #define DEFINE_CASE(byte, bit) \
+                case bit: builder->ushr_i##bit(result, lhs, rhs);
+                                       MIO_INT_BYTES_SWITCH(bitwide, DEFINE_CASE)
+            #undef DEFINE_CASE
+                                   }));
             break;
 
             // TODO: other operator
@@ -1538,6 +1717,42 @@ void EmittingAstVisitor::VisitTypeMatch(TypeMatch *node) {
     }
 }
 
+VMValue EmittingAstVisitor::EmitBitShift(BinaryOperation *node,
+    std::function<void(BitCodeBuilder *, int, uint16_t, uint16_t, int32_t)> build_imm,
+    std::function<void(BitCodeBuilder *, int, uint16_t, uint16_t, int32_t)> build_reg) {
+    DCHECK(node->lhs_type()->IsIntegral());
+    DCHECK(node->rhs_type()->IsIntegral());
+
+    auto lhs = Emit(node->lhs());
+    DCHECK_EQ(BC_LOCAL_PRIMITIVE_SEGMENT, lhs.segment);
+
+    auto result = current_->MakeLocalValue(node->lhs_type());
+    if (node->rhs()->IsSmiLiteral()) {
+        auto smi = node->rhs()->AsSmiLiteral();
+
+        int32_t imm32 = 0;
+        #define DEFINE_CASE(byte, bit) case bit: \
+            imm32 = static_cast<int32_t>(smi->i##bit());
+        MIO_INT_BYTES_SWITCH(smi->bitwide(), DEFINE_CASE)
+        #undef DEFINE_CASE
+
+        build_imm(builder(node->position()),
+                  node->lhs_type()->AsIntegral()->bitwide(),
+                  result.offset, lhs.offset, imm32);
+    } else {
+        auto rhs = Emit(node->rhs());
+        DCHECK_EQ(BC_LOCAL_PRIMITIVE_SEGMENT, lhs.segment);
+        rhs = EmitNumericCastMakeRoomIfNeeded(rhs,
+                                              node->rhs_type()->AsNumeric(),
+                                              types()->GetInt(),
+                                              node->rhs()->position());
+        build_reg(builder(node->position()),
+                  node->lhs_type()->AsIntegral()->bitwide(),
+                  result.offset, lhs.offset, rhs.offset);
+    }
+    return result;
+}
+
 VMValue EmittingAstVisitor::EmitIntegralAdd(Type *type, Expression *lhs,
                                             Expression *rhs) {
     SmiLiteral *smi = nullptr;
@@ -1630,6 +1845,78 @@ VMValue EmittingAstVisitor::EmitFloatingSub(Type *type, Expression *lhs, Express
 
 #undef DEFINE_CASE
 
+    return result;
+}
+
+VMValue EmittingAstVisitor::EmitIntegralMul(Type *type, Expression *lhs, Expression *rhs) {
+    auto val1 = Emit(lhs);
+    auto val2 = Emit(rhs);
+    DCHECK_EQ(val1.size, val2.size);
+    auto result = current_->MakePrimitiveValue(val1.size);
+
+#define DEFINE_CASE(byte, bit) \
+    case byte: \
+        builder(lhs->position())->mul_i##bit (result.offset, val1.offset, val2.offset); \
+        break;
+
+    MIO_INT_BYTES_SWITCH(result.size, DEFINE_CASE)
+
+#undef DEFINE_CASE
+
+    return result;
+}
+
+VMValue EmittingAstVisitor::EmitFloatingMul(Type *type, Expression *lhs, Expression *rhs) {
+    auto val1 = Emit(lhs);
+    auto val2 = Emit(rhs);
+    DCHECK_EQ(val1.size, val2.size);
+    auto result = current_->MakePrimitiveValue(val1.size);
+
+#define DEFINE_CASE(byte, bit) \
+    case byte: \
+        builder(lhs->position())->mul_f##bit (result.offset, val1.offset, val2.offset); \
+        break;
+
+    MIO_FLOAT_BYTES_SWITCH(result.size, DEFINE_CASE)
+    
+#undef DEFINE_CASE
+    
+    return result;
+}
+
+VMValue EmittingAstVisitor::EmitIntegralDiv(Type *type, Expression *lhs, Expression *rhs) {
+    auto val1 = Emit(lhs);
+    auto val2 = Emit(rhs);
+    DCHECK_EQ(val1.size, val2.size);
+    auto result = current_->MakePrimitiveValue(val1.size);
+
+#define DEFINE_CASE(byte, bit) \
+    case byte: \
+        builder(lhs->position())->div_i##bit (result.offset, val1.offset, val2.offset); \
+        break;
+
+    MIO_INT_BYTES_SWITCH(result.size, DEFINE_CASE)
+
+#undef DEFINE_CASE
+
+    return result;
+}
+
+VMValue EmittingAstVisitor::EmitFloatingDiv(Type *type, Expression *lhs, Expression *rhs) {
+    auto val1 = Emit(lhs);
+    auto val2 = Emit(rhs);
+    DCHECK_EQ(val1.size, val2.size);
+    auto result = current_->MakePrimitiveValue(val1.size);
+
+#define DEFINE_CASE(byte, bit) \
+    case byte: \
+        builder(lhs->position())->div_f##bit (result.offset, val1.offset, val2.offset); \
+        break;
+
+    MIO_FLOAT_BYTES_SWITCH(result.size, DEFINE_CASE)
+    
+#undef DEFINE_CASE
+    
     return result;
 }
 
@@ -2186,6 +2473,7 @@ bool BitCodeEmitter::Run(RawStringRef module_name, RawStringRef unit_name,
 bool BitCodeEmitter::Run(ParsedModuleMap *all_modules, CompiledInfo *info) {
     DCHECK_NOTNULL(all_modules);
     DLOG(INFO) << "max number of instructions: " << MAX_BC_INSTRUCTIONS;
+    printf("max number of instructions: %d\n", MAX_BC_INSTRUCTIONS);
 
     auto pair = DCHECK_NOTNULL(all_modules->Get(kMainValue)); // "main"
     auto ok = EmitModule(pair->key(), pair->value(), all_modules);
