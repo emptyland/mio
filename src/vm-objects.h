@@ -4,6 +4,7 @@
 #include "handles.h"
 #include "base.h"
 #include "glog/logging.h"
+#include <atomic>
 
 namespace mio {
 
@@ -143,6 +144,7 @@ public:
     DEFINE_HEAP_OBJ_RW(HeapObject *, Next)
     DEFINE_HEAP_OBJ_RW(HeapObject *, Prev)
 
+#if 0
     bool IsGrabbed() const { return GetHandleCount() > 0; }
 
     int GetHandleCount() const { return (GetHeaderFlags() & GC_HANDLE_COUNT_MASK); }
@@ -172,6 +174,55 @@ public:
     void SetColor(int c) {
         SetHeaderFlags((GetHeaderFlags() & ~GC_COLOR_MASK) | ((c << 16) & GC_COLOR_MASK));
     }
+#else
+    bool IsGrabbed() const { return GetHandleCount() > 0; }
+
+    int GetHandleCount() const {
+        return (ahf()->load(std::memory_order_release) & GC_HANDLE_COUNT_MASK);
+    }
+
+    inline void Grab() {
+        uint32_t flags, nval;
+        do {
+            flags = ahf()->load(std::memory_order_release);
+            nval = (flags & ~GC_HANDLE_COUNT_MASK) |
+                   (((flags & GC_HANDLE_COUNT_MASK) + 1) & GC_HANDLE_COUNT_MASK);
+        } while (!ahf()->compare_exchange_strong(flags, nval));
+    }
+
+    inline void Drop() {
+        uint32_t flags, nval;
+        do {
+            flags = ahf()->load(std::memory_order_release);
+            nval = (flags & ~GC_HANDLE_COUNT_MASK) |
+                   (((flags & GC_HANDLE_COUNT_MASK) - 1) & GC_HANDLE_COUNT_MASK);
+        } while (!ahf()->compare_exchange_strong(flags, nval));
+    }
+
+    int GetGeneration() const {
+        return static_cast<int>((ahf()->load(std::memory_order_release) >> 20) & 0xf);
+    }
+
+    inline void SetGeneration(int g) {
+        uint32_t flags, nval;
+        do {
+            flags = ahf()->load(std::memory_order_release);
+            nval  = (flags & ~GC_GENERATION_MASK) | ((g << 20) & GC_GENERATION_MASK);
+        } while (!ahf()->compare_exchange_strong(flags, nval));
+    }
+
+    int GetColor() const {
+        return static_cast<int>((ahf()->load(std::memory_order_release) >> 16) & 0xf);
+    }
+
+    inline void SetColor(int c) {
+        uint32_t flags, nval;
+        do {
+            flags = ahf()->load(std::memory_order_release);
+            nval  = (flags & ~GC_COLOR_MASK) | ((c << 16) & GC_COLOR_MASK);
+        } while (!ahf()->compare_exchange_strong(flags, nval));
+    }
+#endif
 
     Kind GetKind() const {
         return static_cast<Kind>((GetHeaderFlags() >> 24) & 0xff);
@@ -226,6 +277,14 @@ public:
 
 private:
     DEFINE_HEAP_OBJ_RW(uint32_t, HeaderFlags)
+
+    std::atomic<uint32_t> *ahf() { // atomic-header-flags
+        return reinterpret_cast<std::atomic<uint32_t> *>(reinterpret_cast<uint8_t *>(this) + kHeaderFlagsOffset);
+    }
+
+    const std::atomic<uint32_t> *ahf() const { // atomic-header-flags
+        return reinterpret_cast<const std::atomic<uint32_t> *>(reinterpret_cast<const uint8_t *>(this) + kHeaderFlagsOffset);
+    }
 
     void SetKind(Kind kind) {
         SetHeaderFlags((GetHeaderFlags() & ~KIND_MASK) | ((static_cast<int>(kind) << 24) & KIND_MASK));

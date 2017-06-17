@@ -35,6 +35,8 @@ private:
     Kind kind_;
 };
 
+extern const char * const kNTypeShortNames[];
+
 } // namespace mio
 
 #endif // MIO_NYAA_TYPES_H_

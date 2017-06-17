@@ -112,8 +112,8 @@ bool VM::CompileProject(const char *project_dir, ParsingError *error) {
                << "og: " << info.global_object_segment_bytes;
 
     type_info_base_  = info.all_type_base;
-    type_void_index  = info.void_type_index;
-    type_error_index = info.error_type_index;
+    type_void_index_  = info.void_type_index;
+    type_error_index_ = info.error_type_index;
     all_var_         = DCHECK_NOTNULL(info.all_var);
     all_var_->Grab();
 

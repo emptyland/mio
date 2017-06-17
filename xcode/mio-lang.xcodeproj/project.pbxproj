@@ -86,6 +86,9 @@
 		236202611E48221700B6B949 /* text-input-stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2362025F1E48221700B6B949 /* text-input-stream.cc */; };
 		23658AF71E8A3FD700F7F72A /* do-nothing-garbage-collector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23658AF61E8A3FD700F7F72A /* do-nothing-garbage-collector.cc */; };
 		23658AF81E8A3FD700F7F72A /* do-nothing-garbage-collector.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23658AF61E8A3FD700F7F72A /* do-nothing-garbage-collector.cc */; };
+		238DFC171EF577C900A65769 /* vm-profiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 238DFC161EF577C900A65769 /* vm-profiler.cc */; };
+		238DFC181EF577C900A65769 /* vm-profiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 238DFC161EF577C900A65769 /* vm-profiler.cc */; };
+		238DFC1A1EF5856B00A65769 /* handles-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 238DFC191EF5856B00A65769 /* handles-test.cc */; };
 		23C5D6261ECBDF77005FE7C2 /* vm-code-cache-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C5D6251ECBDF77005FE7C2 /* vm-code-cache-test.cc */; };
 		23E3D59A1E5C1A7900C51DDE /* ast-printer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5991E5C1A7900C51DDE /* ast-printer.cc */; };
 		23E3D59B1E5C1A7900C51DDE /* ast-printer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5991E5C1A7900C51DDE /* ast-printer.cc */; };
@@ -245,6 +248,9 @@
 		236202621E486C9300B6B949 /* token-inl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "token-inl.h"; sourceTree = "<group>"; };
 		23658AF51E8A3F3100F7F72A /* do-nothing-garbage-collector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "do-nothing-garbage-collector.h"; sourceTree = "<group>"; };
 		23658AF61E8A3FD700F7F72A /* do-nothing-garbage-collector.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "do-nothing-garbage-collector.cc"; sourceTree = "<group>"; };
+		238DFC151EF5775800A65769 /* vm-profiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-profiler.h"; sourceTree = "<group>"; };
+		238DFC161EF577C900A65769 /* vm-profiler.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-profiler.cc"; sourceTree = "<group>"; };
+		238DFC191EF5856B00A65769 /* handles-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "handles-test.cc"; sourceTree = "<group>"; };
 		23C5D6241ECBDEEC005FE7C2 /* bit-operations.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "bit-operations.h"; sourceTree = "<group>"; };
 		23C5D6251ECBDF77005FE7C2 /* vm-code-cache-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-code-cache-test.cc"; sourceTree = "<group>"; };
 		23E3D5991E5C1A7900C51DDE /* ast-printer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "ast-printer.cc"; sourceTree = "<group>"; };
@@ -386,6 +392,7 @@
 				23F311F11EDBFFDD00B02687 /* managed-allocator.cc */,
 				23F311F51EDC010700B02687 /* fallback-managed-allocator.cc */,
 				23F311FA1EE8F6B700B02687 /* ring-buffer.cc */,
+				238DFC161EF577C900A65769 /* vm-profiler.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -460,6 +467,7 @@
 				23F311F41EDC00A400B02687 /* fallback-managed-allocator.h */,
 				23E6BA101EB332FC00FC1A55 /* source-file-position-dict.h */,
 				23F311F91EE8F62000B02687 /* ring-buffer.h */,
+				238DFC151EF5775800A65769 /* vm-profiler.h */,
 			);
 			name = Include;
 			path = ../src;
@@ -490,6 +498,7 @@
 				23E6BA161EB345D000FC1A55 /* source-file-position-dict-test.cc */,
 				234D81A21ECA90FB006CA3BA /* all-tests.cc */,
 				23F312041EF0DB6200B02687 /* nyaa-value-factory-test.cc */,
+				238DFC191EF5856B00A65769 /* handles-test.cc */,
 			);
 			name = Tests;
 			path = ../src;
@@ -614,6 +623,7 @@
 				23658AF71E8A3FD700F7F72A /* do-nothing-garbage-collector.cc in Sources */,
 				23E6BA111EB332FC00FC1A55 /* source-file-position-dict.h in Sources */,
 				2311E3851EA8AD58007B5305 /* vm-runtime.cc in Sources */,
+				238DFC171EF577C900A65769 /* vm-profiler.cc in Sources */,
 				23E3D5C01E77C51800C51DDE /* memory-output-stream.cc in Sources */,
 				236202551E45BE2900B6B949 /* lexer.cc in Sources */,
 				23E3D59A1E5C1A7900C51DDE /* ast-printer.cc in Sources */,
@@ -701,6 +711,7 @@
 				232434711E7929DD0054C385 /* vm-bitcode-builder.cc in Sources */,
 				236199211E84CCB900682485 /* vm-object-factory.cc in Sources */,
 				23E3D5BD1E767F8600C51DDE /* text-output-stream.cc in Sources */,
+				238DFC1A1EF5856B00A65769 /* handles-test.cc in Sources */,
 				23E3D5A01E600DCE00C51DDE /* types.cc in Sources */,
 				2349E58E1E56FCC9002883BC /* ast.cc in Sources */,
 				23F312011EEFCEAA00B02687 /* nyaa-instructions.cc in Sources */,
@@ -728,6 +739,7 @@
 				236202491E45BC0E00B6B949 /* base.cc in Sources */,
 				232434841E7AA13F0054C385 /* vm-stack.cc in Sources */,
 				23E3D5B91E700A7000C51DDE /* simple-file-system.cc in Sources */,
+				238DFC181EF577C900A65769 /* vm-profiler.cc in Sources */,
 				23ECD4501EA4B4C700A0091D /* msg-garbage-collector.cc in Sources */,
 				2349E5801E56A71E002883BC /* zone-vector-test.cc in Sources */,
 			);

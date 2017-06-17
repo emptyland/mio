@@ -1503,7 +1503,7 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                                                         ob->GetKey()->GetTypePlacementSize(),
                                                         make_handle(ob->GetValue()));
             } else {
-                auto void_type = GetTypeInfo(vm_->type_void_index, ok);
+                auto void_type = GetTypeInfo(vm_->type_void_index_, ok);
                 if (!*ok) {
                     return;
                 }
@@ -1667,7 +1667,7 @@ void Thread::CreateEmptyValue(int result, Handle<MIOReflectionType> reflection,
 
         case HeapObject::kReflectionUnion: {
             auto ob = vm_->gc_->CreateUnion(
-                    nullptr, 0, GetTypeInfo(vm_->type_void_index, ok));
+                    nullptr, 0, GetTypeInfo(vm_->type_void_index_, ok));
             if (!*ok) {
                 return;
             }

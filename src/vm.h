@@ -52,9 +52,10 @@ public:
 
     DEF_GETTER(int, max_call_deep)
     DEF_PROP_RW(int, native_code_size)
-    DEF_GETTER(int, tick);
-    DEF_PROP_RW(std::string, gc_name);
-    DEF_GETTER(std::vector<BacktraceLayout>, backtrace);
+    DEF_GETTER(int, tick)
+    DEF_PROP_RW(std::string, gc_name)
+    DEF_GETTER(std::vector<BacktraceLayout>, backtrace)
+    DEF_PROP_RW(int, jit_optimize)
 
     MIOHashMap *all_var() const { return DCHECK_NOTNULL(all_var_); }
 
@@ -113,8 +114,9 @@ private:
     Zone *ast_zone_;
     int type_info_base_ = 0;
     int type_info_size_ = 0;
-    int type_void_index = 0;
-    int type_error_index = 0;
+    int type_void_index_ = 0;
+    int type_error_index_ = 0;
+    int jit_optimize_ = 0;
     MIOHashMap *all_var_ = nullptr;
     ManagedAllocator *allocator_ = nullptr;
     CodeCache *code_cache_ = nullptr;
