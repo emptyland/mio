@@ -126,6 +126,13 @@
 		23F311F71EDC010700B02687 /* fallback-managed-allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F311F51EDC010700B02687 /* fallback-managed-allocator.cc */; };
 		23F311FB1EE8F6B700B02687 /* ring-buffer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F311FA1EE8F6B700B02687 /* ring-buffer.cc */; };
 		23F311FC1EE8F6B700B02687 /* ring-buffer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F311FA1EE8F6B700B02687 /* ring-buffer.cc */; };
+		23F312001EEFCEAA00B02687 /* nyaa-instructions.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F311FF1EEFCEAA00B02687 /* nyaa-instructions.cc */; };
+		23F312011EEFCEAA00B02687 /* nyaa-instructions.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F311FF1EEFCEAA00B02687 /* nyaa-instructions.cc */; };
+		23F312051EF0DB6200B02687 /* nyaa-value-factory-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F312041EF0DB6200B02687 /* nyaa-value-factory-test.cc */; };
+		23F312081EF0E77900B02687 /* nyaa.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F312071EF0E77900B02687 /* nyaa.cc */; };
+		23F312091EF0E77900B02687 /* nyaa.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F312071EF0E77900B02687 /* nyaa.cc */; };
+		23F3120B1EF123B200B02687 /* nyaa-types.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F3120A1EF123B200B02687 /* nyaa-types.cc */; };
+		23F3120C1EF123B200B02687 /* nyaa-types.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23F3120A1EF123B200B02687 /* nyaa-types.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -279,6 +286,14 @@
 		23F311F81EDFAD9500B02687 /* object-traits.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "object-traits.h"; sourceTree = "<group>"; };
 		23F311F91EE8F62000B02687 /* ring-buffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ring-buffer.h"; sourceTree = "<group>"; };
 		23F311FA1EE8F6B700B02687 /* ring-buffer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "ring-buffer.cc"; sourceTree = "<group>"; };
+		23F311FE1EEFCE6500B02687 /* nyaa-instructions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "nyaa-instructions.h"; sourceTree = "<group>"; };
+		23F311FF1EEFCEAA00B02687 /* nyaa-instructions.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "nyaa-instructions.cc"; sourceTree = "<group>"; };
+		23F312021EF0C60B00B02687 /* nyaa-types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "nyaa-types.h"; sourceTree = "<group>"; };
+		23F312031EF0DAA100B02687 /* nyaa-value-factory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "nyaa-value-factory.h"; sourceTree = "<group>"; };
+		23F312041EF0DB6200B02687 /* nyaa-value-factory-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "nyaa-value-factory-test.cc"; path = "nyaa/nyaa-value-factory-test.cc"; sourceTree = "<group>"; };
+		23F312061EF0E76C00B02687 /* nyaa.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nyaa.h; sourceTree = "<group>"; };
+		23F312071EF0E77900B02687 /* nyaa.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = nyaa.cc; sourceTree = "<group>"; };
+		23F3120A1EF123B200B02687 /* nyaa-types.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "nyaa-types.cc"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -304,6 +319,7 @@
 		231B099A1E45B86D00BC6D18 = {
 			isa = PBXGroup;
 			children = (
+				23F311FD1EEFCDF900B02687 /* Nyaa */,
 				234D818F1ECA8416006CA3BA /* Yui */,
 				2362023A1E45B91800B6B949 /* Include */,
 				231B09A51E45B86D00BC6D18 /* Source */,
@@ -473,6 +489,7 @@
 				2311E38B1EAAED57007B5305 /* vm-object-surface-test.cc */,
 				23E6BA161EB345D000FC1A55 /* source-file-position-dict-test.cc */,
 				234D81A21ECA90FB006CA3BA /* all-tests.cc */,
+				23F312041EF0DB6200B02687 /* nyaa-value-factory-test.cc */,
 			);
 			name = Tests;
 			path = ../src;
@@ -486,6 +503,21 @@
 				2362024D1E45BC2F00B6B949 /* libgtest.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		23F311FD1EEFCDF900B02687 /* Nyaa */ = {
+			isa = PBXGroup;
+			children = (
+				23F311FE1EEFCE6500B02687 /* nyaa-instructions.h */,
+				23F311FF1EEFCEAA00B02687 /* nyaa-instructions.cc */,
+				23F312021EF0C60B00B02687 /* nyaa-types.h */,
+				23F3120A1EF123B200B02687 /* nyaa-types.cc */,
+				23F312031EF0DAA100B02687 /* nyaa-value-factory.h */,
+				23F312061EF0E76C00B02687 /* nyaa.h */,
+				23F312071EF0E77900B02687 /* nyaa.cc */,
+			);
+			name = Nyaa;
+			path = ../src/nyaa;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -587,6 +619,7 @@
 				23E3D59A1E5C1A7900C51DDE /* ast-printer.cc in Sources */,
 				235808131E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
 				23F311F21EDBFFDD00B02687 /* managed-allocator.cc in Sources */,
+				23F312081EF0E77900B02687 /* nyaa.cc in Sources */,
 				2362023D1E45B9EB00B6B949 /* base.cc in Sources */,
 				23F311FB1EE8F6B700B02687 /* ring-buffer.cc in Sources */,
 				2349E58A1E56F3DB002883BC /* raw-string.cc in Sources */,
@@ -609,7 +642,9 @@
 				231378E81E8B563D009384DF /* bitcode-emitter-test.cc in Sources */,
 				236202601E48221700B6B949 /* text-input-stream.cc in Sources */,
 				23ECD44F1EA4B4C700A0091D /* msg-garbage-collector.cc in Sources */,
+				23F312001EEFCEAA00B02687 /* nyaa-instructions.cc in Sources */,
 				2349E5911E56FF02002883BC /* parser.cc in Sources */,
+				23F3120B1EF123B200B02687 /* nyaa-types.cc in Sources */,
 				23E3D5B41E6FFF5900C51DDE /* compiler.cc in Sources */,
 				232434831E7AA13F0054C385 /* vm-stack.cc in Sources */,
 				23E6BA171EB345D000FC1A55 /* source-file-position-dict-test.cc in Sources */,
@@ -644,6 +679,7 @@
 				23E3D5B21E6FA55600C51DDE /* file-input-stream.cc in Sources */,
 				23ECD4541EA5C1A000A0091D /* vm-object-scanner.cc in Sources */,
 				23E3D5AE1E6D004C00C51DDE /* scopes-test.cc in Sources */,
+				23F312051EF0DB6200B02687 /* nyaa-value-factory-test.cc in Sources */,
 				2349E5831E56E378002883BC /* ast-test.cc in Sources */,
 				235808141E487DFB00C8C567 /* fixed-memory-input-stream.cc in Sources */,
 				23E3D59B1E5C1A7900C51DDE /* ast-printer.cc in Sources */,
@@ -656,6 +692,7 @@
 				23E3D5A41E63C6DD00C51DDE /* scopes.cc in Sources */,
 				2311E38C1EAAED57007B5305 /* vm-object-surface-test.cc in Sources */,
 				231378E91E8B563D009384DF /* bitcode-emitter-test.cc in Sources */,
+				23F3120C1EF123B200B02687 /* nyaa-types.cc in Sources */,
 				2349E5941E56FF12002883BC /* parser-test.cc in Sources */,
 				23E3D5C91E77CBCC00C51DDE /* file-output-stream.cc in Sources */,
 				23E3D5B51E6FFF5900C51DDE /* compiler.cc in Sources */,
@@ -666,6 +703,7 @@
 				23E3D5BD1E767F8600C51DDE /* text-output-stream.cc in Sources */,
 				23E3D5A01E600DCE00C51DDE /* types.cc in Sources */,
 				2349E58E1E56FCC9002883BC /* ast.cc in Sources */,
+				23F312011EEFCEAA00B02687 /* nyaa-instructions.cc in Sources */,
 				23E3D5A91E65075C00C51DDE /* checker.cc in Sources */,
 				23F311FC1EE8F6B700B02687 /* ring-buffer.cc in Sources */,
 				2349E57A1E554426002883BC /* zone-test.cc in Sources */,
@@ -676,6 +714,7 @@
 				2349E5731E4B1800002883BC /* keywords.c in Sources */,
 				232434801E7A8A850054C385 /* vm-bitcode.cc in Sources */,
 				232434731E7A203D0054C385 /* vm-memory-segment-test.cc in Sources */,
+				23F312091EF0E77900B02687 /* nyaa.cc in Sources */,
 				236202611E48221700B6B949 /* text-input-stream.cc in Sources */,
 				23E6BA181EB345D000FC1A55 /* source-file-position-dict-test.cc in Sources */,
 				232434651E78EEC70054C385 /* vm.cc in Sources */,

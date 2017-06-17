@@ -43,6 +43,30 @@ private:
 
 }; // class ZoneVector<T>
 
+#define DEF_ZONE_VECTOR_PROP_RO(type, name) \
+    DEF_ZONE_VECTOR_GETTER(type, name) \
+    DEF_ZONE_VECTOR_SIZE(name)
+
+#define DEF_ZONE_VECTOR_PROP_RW(type, name) \
+    DEF_ZONE_VECTOR_PROP_RO(type, name) \
+    DEF_ZONE_VECTOR_SETTER(type, name)
+
+#define DEF_ZONE_VECTOR_PROP_RWA(type, name) \
+    DEF_ZONE_VECTOR_PROP_RW(type, name) \
+    DEF_ZONE_VECTOR_ADD(type, name)
+
+#define DEF_ZONE_VECTOR_GETTER(type, name) \
+    type name(int i) const { return name##s_.At(i); }
+
+#define DEF_ZONE_VECTOR_SETTER(type, name) \
+    void set_##name(int i, type value) { name##s_.Set(i, value); }
+
+#define DEF_ZONE_VECTOR_SIZE(name) \
+    int name##_size() const { return name##s_.size(); }
+
+#define DEF_ZONE_VECTOR_ADD(type, name) \
+    void add_##name(type value) { name##s_.Add(value); }
+
 template<class T>
 ZoneVector<T>::~ZoneVector() {
     zone_->Free(element_);

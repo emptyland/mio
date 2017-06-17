@@ -123,6 +123,10 @@ char (&ArraySizeHelper(const T (&array)[N]))[N];
     DEF_GETTER(type, name) \
     DEF_SETTER(type, name)
 
+#define DEF_PTR_PROP_RW(type, name) \
+    DEF_PTR_GETTER(type, name) \
+    DEF_PTR_SETTER(type, name)
+
 #define DEF_GETTER(type, name) \
     inline const type &name() const { return name##_; }
 
@@ -131,6 +135,12 @@ char (&ArraySizeHelper(const T (&array)[N]))[N];
 
 #define DEF_SETTER(type, name) \
     inline void set_##name(const type &value) { name##_ = value; }
+
+#define DEF_PTR_GETTER(type, name) \
+    inline type *name() const { return name##_; }
+
+#define DEF_PTR_SETTER(type, name) \
+    inline void set_##name(type *value) { name##_ = value; }
 
 template<class T, class F>
 inline T *down_cast(F *from) {
