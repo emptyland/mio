@@ -13,10 +13,13 @@ namespace mio {
 #define DEFINE_STATEMENT_NODES(M)  \
     M(PackageImporter) \
     M(Return) \
+    M(Break) \
+    M(Continue) \
     M(ValDeclaration) \
     M(VarDeclaration) \
     M(FunctionDefine) \
     M(ForeachLoop) \
+    M(WhileLoop) \
     M(TypeMatch)
 
 #define DEFINE_EXPRESSION_NODES(M) \
@@ -94,6 +97,8 @@ class AstNode;
             class FunctionDefine;
         class PackageImporter;
         class Return;
+        class Break;
+        class Continue;
         class ForeachLoop;
         class WhileLoop;
 
@@ -337,6 +342,7 @@ private:
 class Return : public Statement {
 public:
     Expression *expression() const { return expression_; }
+
     void set_expression(Expression *expression) {
         expression_ = DCHECK_NOTNULL(expression);
     }
@@ -347,11 +353,31 @@ public:
     DISALLOW_IMPLICIT_CONSTRUCTORS(Return);
 private:
     Return(Expression *expression, int position)
-    : Statement(position)
-    , expression_(expression) {}
+        : Statement(position)
+        , expression_(expression) {}
     
     Expression *expression_;
 }; // class Return
+
+
+class Break : public Statement {
+public:
+
+    DECLARE_AST_NODE(Break)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Break);
+private:
+    Break(int position) : Statement(position) {}
+}; // class Break
+
+
+class Continue : public Statement {
+public:
+
+    DECLARE_AST_NODE(Continue)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Continue);
+private:
+    Continue(int position) : Statement(position) {}
+}; // class Break
 
 
 class ForeachLoop : public Statement {
@@ -392,6 +418,27 @@ private:
     Expression *body_;
     Scope *scope_;
 }; // class ForeachLoop
+
+
+class WhileLoop : public Statement {
+public:
+    DEF_PTR_GETTER(Expression, condition)
+    void set_condition(Expression *condition) { condition_ = DCHECK_NOTNULL(condition); }
+
+    DEF_PTR_GETTER(Expression, body)
+    void set_body(Expression *body) { body_ = DCHECK_NOTNULL(body); }
+
+    DECLARE_AST_NODE(WhileLoop)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(WhileLoop);
+private:
+    WhileLoop(Expression *condition, Expression *body, int position)
+        : Statement(position)
+        , condition_(DCHECK_NOTNULL(condition))
+        , body_(DCHECK_NOTNULL(body)) {}
+
+    Expression *condition_;
+    Expression *body_;
+}; // class WhileLoop
 
 
 class Expression : public Statement {
@@ -1186,11 +1233,20 @@ public:
         return new (zone_) Return(expression, position);
     }
 
+    Break *CreateBreak(int position) { return new (zone_) Break(position); }
+
+    Continue *CreateContinue(int position) { return new (zone_) Continue(position); }
+
     ForeachLoop *CreateForeachLoop(ValDeclaration *key, ValDeclaration *value,
                                    Expression *container, Expression *body,
                                    Scope *scope, int position) {
         return new (zone_) ForeachLoop(key, value, container, body, scope,
                                        position);
+    }
+
+    WhileLoop *CreateWhileLoop(Expression *condition, Expression *body,
+                               int position) {
+        return new (zone_) WhileLoop(condition, body, position);
     }
 
     PackageImporter *CreatePackageImporter(const std::string &package_name,

@@ -33,11 +33,14 @@ public:
 
     DEF_GETTER(ExitCode, exit_code)
     DEF_PROP_RW(bool, should_exit)
+    DEF_PROP_RW(int, syscall)
 
     Stack *p_stack() const { return p_stack_; }
     Stack *o_stack() const { return o_stack_; }
 
     VM *vm() const { return vm_; }
+
+    MIOFunction *callee() const { return callee_.get(); }
 
     void Execute(MIONormalFunction *callee, bool *ok);
 
@@ -97,12 +100,13 @@ private:
     inline FunctionDebugInfo *debug_info();
 
     VM *vm_;
+    int syscall_ = 0;
     Stack *p_stack_;
     Stack *o_stack_;
     CallStack *call_stack_;
     int pc_ = 0;
     uint64_t *bc_ = nullptr;
-    Handle<MIOFunction> callee_;
+    AtomicHandle<MIOFunction> callee_;
     bool should_exit_ = false;
     ExitCode exit_code_ = SUCCESS;
 }; // class Thread

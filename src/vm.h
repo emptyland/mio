@@ -20,6 +20,7 @@ class TextOutputStream;
 class MIOString;
 class SourceFilePositionDict;
 class CodeCache;
+class Profiler;
 struct ParsingError;
 
 typedef int (*MIOFunctionPrototype)(VM *, Thread *);
@@ -60,6 +61,10 @@ public:
     MIOHashMap *all_var() const { return DCHECK_NOTNULL(all_var_); }
 
     Thread *main_thread() const {
+        return DCHECK_NOTNULL(main_thread_);
+    }
+
+    Thread *current() const {
         return DCHECK_NOTNULL(main_thread_);
     }
 
@@ -123,6 +128,7 @@ private:
     GarbageCollector *gc_ = nullptr;
     FunctionRegister *function_register_ = nullptr;
     ParsedModuleMap *all_modules_ = nullptr;
+    Profiler *profiler_ = nullptr;
     SourceFilePositionDict *source_position_dict_;
     std::vector<BacktraceLayout> backtrace_;
 };

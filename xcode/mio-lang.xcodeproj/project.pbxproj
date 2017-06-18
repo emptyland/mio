@@ -384,6 +384,7 @@
 				2361991F1E84CCB900682485 /* vm-object-factory.cc */,
 				23E6BA0D1EB1DD3600FC1A55 /* vm-object-extra-factory.cc */,
 				2311E3841EA8AD58007B5305 /* vm-runtime.cc */,
+				238DFC161EF577C900A65769 /* vm-profiler.cc */,
 				2361991B1E83FE1100682485 /* vm-function-register.cc */,
 				231378E41E8A5514009384DF /* simple-function-register.cc */,
 				23ECD44E1EA4B4C700A0091D /* msg-garbage-collector.cc */,
@@ -392,7 +393,6 @@
 				23F311F11EDBFFDD00B02687 /* managed-allocator.cc */,
 				23F311F51EDC010700B02687 /* fallback-managed-allocator.cc */,
 				23F311FA1EE8F6B700B02687 /* ring-buffer.cc */,
-				238DFC161EF577C900A65769 /* vm-profiler.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -458,6 +458,7 @@
 				2361991E1E84CC6500682485 /* vm-object-factory.h */,
 				23E6BA0C1EB1D4B400FC1A55 /* vm-object-extra-factory.h */,
 				2311E3831EA8A95F007B5305 /* vm-runtime.h */,
+				238DFC151EF5775800A65769 /* vm-profiler.h */,
 				2324348C1E7BCCAA0054C385 /* handles.h */,
 				23F311F81EDFAD9500B02687 /* object-traits.h */,
 				231378E31E8A54CA009384DF /* simple-function-register.h */,
@@ -467,7 +468,6 @@
 				23F311F41EDC00A400B02687 /* fallback-managed-allocator.h */,
 				23E6BA101EB332FC00FC1A55 /* source-file-position-dict.h */,
 				23F311F91EE8F62000B02687 /* ring-buffer.h */,
-				238DFC151EF5775800A65769 /* vm-profiler.h */,
 			);
 			name = Include;
 			path = ../src;

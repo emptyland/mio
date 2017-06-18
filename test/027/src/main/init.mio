@@ -1,0 +1,5 @@
+package main
+
+function main: void {
+    base::sleep(1000)
+}

@@ -19,6 +19,7 @@ public:
     virtual void SetUp() override {
         vm_ = new VM();
         vm_->AddSerachPath("libs");
+        vm_->set_jit_optimize(1);
         ASSERT_TRUE(vm_->Init());
     }
 
@@ -263,6 +264,18 @@ TEST_F(ThreadTest, P026_NaNAndInf) {
     ParsingError error;
 
     ASSERT_TRUE(vm_->CompileProject("test/026", &error)) << error.ToString();
+    std::string buf;
+    if (vm_->Run() != 0) {
+        buf.clear();
+        vm_->PrintBackstrace(&buf);
+        FAIL() << buf;
+    }
+}
+
+TEST_F(ThreadTest, P027_SleepProfile) {
+    ParsingError error;
+
+    ASSERT_TRUE(vm_->CompileProject("test/027", &error)) << error.ToString();
     std::string buf;
     if (vm_->Run() != 0) {
         buf.clear();

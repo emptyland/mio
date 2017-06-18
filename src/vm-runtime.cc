@@ -1,6 +1,7 @@
 #include "vm-runtime.h"
 #include "text-output-stream.h"
 #include "source-file-position-dict.h"
+#include <thread>
 
 namespace mio {
 
@@ -14,6 +15,7 @@ const RtNativeFunctionEntry kRtNaFn[] = {
     { "::base::newError",  &NativeBaseLibrary::NewError,  },
     { "::base::newErrorWith",  &NativeBaseLibrary::NewErrorWith,  },
     { "::base::allGlobalVariables", &NativeBaseLibrary::AllGlobalVariables, },
+    { "::base::sleep", &NativeBaseLibrary::Sleep, },
 
     { .name = nullptr, .pointer = nullptr, } // end of functions
 };
@@ -128,6 +130,14 @@ int NativeBaseLibrary::ToString(Thread *thread, TextOutputStream *stream,
             *ok = false;
             break;
     }
+    return 0;
+}
+
+/*static*/ int NativeBaseLibrary::Sleep(VM *vm, Thread *thread) {
+    auto mils = thread->GetInt(0);
+    thread->set_syscall(static_cast<int>(mils));
+    std::this_thread::sleep_for(std::chrono::milliseconds(mils));
+    thread->set_syscall(0);
     return 0;
 }
 

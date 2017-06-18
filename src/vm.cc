@@ -6,6 +6,7 @@
 #include "vm-objects.h"
 #include "vm-bitcode-disassembler.h"
 #include "vm-runtime.h"
+#include "vm-profiler.h"
 #include "fallback-managed-allocator.h"
 #include "zone.h"
 #include "simple-file-system.h"
@@ -32,6 +33,7 @@ VM::~VM() {
     delete source_position_dict_;
     delete p_global_;
     delete o_global_;
+    delete profiler_;
     delete main_thread_;
 
     if (all_var_) {
@@ -73,6 +75,11 @@ bool VM::Init() {
     }
 
     function_register_ = new SimpleFunctionRegister(code_cache_, o_global_);
+
+    if (jit_optimize_ > 0) {
+        profiler_ = new Profiler(this, 17);
+        profiler_->set_sample_rate(10);
+    }
 
     // TODO:
     return true;
@@ -140,7 +147,14 @@ int VM::Run() {
     }
 
     bool ok = true;
+    if (profiler_) {
+        profiler_->Start();
+    }
     main_thread_->Execute(main_fn, &ok);
+    if (profiler_) {
+        profiler_->Stop();
+        profiler_->TEST_PrintSamples();
+    }
     return main_thread_->exit_code();
 }
 

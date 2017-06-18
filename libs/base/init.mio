@@ -23,3 +23,5 @@ native function panic(message: string): void
 native function newError(message: string): error
 
 native function newErrorWith(message: string, e: error): error
+
+native function sleep(mils: int): void

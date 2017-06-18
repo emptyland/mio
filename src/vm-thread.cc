@@ -968,7 +968,7 @@ void Thread::PanicV(ExitCode exit_code, bool *ok, const char *fmt, va_list ap) {
 
     vm_->backtrace_.clear(); {
         BacktraceLayout layout;
-        layout.function_object = callee_;
+        layout.function_object = callee_.ToHandle();
         if (!callee_->IsNativeFunction()) {
             auto info = debug_info();
             if (info) {

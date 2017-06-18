@@ -62,6 +62,8 @@ public:
         return 0;
     }
 
+    static int Sleep(VM *vm, Thread *thread);
+
     static int PrimitiveHash(const void *z, int n) {
         auto p = static_cast<const uint8_t *>(z);
         uint32_t h = 1315423911;
