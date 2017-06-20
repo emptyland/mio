@@ -91,11 +91,22 @@ Statement *Parser::ParseStatement(bool *ok) {
             return ParseVarDeclaration(false, ok);
 
         case TOKEN_WHILE:
-            // TODO:
-            break;
+            return ParseWhileLoop(ok);
 
         case TOKEN_FOR:
             return ParseForeachLoop(ok);
+
+        case TOKEN_BREAK: {
+            auto position = ahead_.position();
+            lexer_->Next(&ahead_);
+            return factory_->CreateBreak(position);
+        }
+
+        case TOKEN_CONTINUE: {
+            auto position = ahead_.position();
+            lexer_->Next(&ahead_);
+            return factory_->CreateContinue(position);
+        }
 
         case TOKEN_EXPORT:
             return ParseDeclaration(ok);
@@ -195,6 +206,18 @@ FunctionDefine *Parser::ParseFunctionDefine(bool is_export, bool is_native,
     return function;
 }
 
+WhileLoop *Parser::ParseWhileLoop(bool *ok) {
+    auto position = ahead_.position();
+    Match(TOKEN_WHILE, CHECK_OK);
+
+    Match(TOKEN_LPAREN, CHECK_OK);
+    auto condition = ParseExpression(false, CHECK_OK);
+    Match(TOKEN_RPAREN, CHECK_OK);
+
+    auto body = ParseExpression(false, CHECK_OK);
+    return factory_->CreateWhileLoop(condition, body, position, ahead_.position());
+}
+
 ForeachLoop *Parser::ParseForeachLoop(bool *ok) {
     auto position = ahead_.position();
     Match(TOKEN_FOR, CHECK_OK);
@@ -241,7 +264,8 @@ ForeachLoop *Parser::ParseForeachLoop(bool *ok) {
     DCHECK_NOTNULL(scope->Declare(value->name(), value));
 
     LeaveScope();
-    return factory_->CreateForeachLoop(key, value, container, body, scope, position);
+    return factory_->CreateForeachLoop(key, value, container, body, scope,
+                                       position, ahead_.position());
 }
 
 Return *Parser::ParserReturn(bool *ok) {

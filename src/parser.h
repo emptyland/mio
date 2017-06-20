@@ -17,6 +17,7 @@ class Return;
 class Expression;
 class Block;
 class IfOperation;
+class WhileLoop;
 class ForeachLoop;
 class TypeMatch;
 class BuiltinCall;
@@ -66,6 +67,7 @@ public:
     VarDeclaration *ParseVarDeclaration(bool is_export, bool *ok);
     FunctionDefine *ParseFunctionDefine(bool is_export, bool is_native,
                                         bool *ok);
+    WhileLoop *ParseWhileLoop(bool *ok);
     ForeachLoop *ParseForeachLoop(bool *ok);
     Return *ParserReturn(bool *ok);
     PackageImporter *ParsePackageImporter(bool *ok);

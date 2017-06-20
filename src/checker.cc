@@ -119,7 +119,7 @@ private:
     } (void)0
 
 #define ACCEPT_REPLACE_EXPRESSION_I(node, field, idx) \
-    node->field()->At(idx)->Accept(this); \
+    node->field(idx)->Accept(this); \
     if (has_error()) { \
         return; \
     } \
@@ -135,7 +135,7 @@ private:
                 return; \
             } \
         } \
-        node->field()->Set(idx, AnalysisExpression()); \
+        node->set_##field(idx, AnalysisExpression()); \
         PopAnalysisExpression(); \
     } (void)0
 
@@ -692,15 +692,15 @@ void CheckingAstVisitor::VisitFloatLiteral(FloatLiteral *node) {
 }
 
 /*virtual*/ void CheckingAstVisitor::VisitBlock(Block *node) {
-    if (node->mutable_body()->is_empty()) {
+    if (node->statements()->is_empty()) {
         PushEvalType(types_->GetVoid());
         return;
     }
 
     ScopeHolder holder(node->scope(), &scope_);
-    for (int i = 0; i < node->mutable_body()->size(); ++i) {
-        ACCEPT_REPLACE_EXPRESSION_I(node, mutable_body, i);
-        if (i < node->mutable_body()->size() - 1) {
+    for (int i = 0; i < node->statement_size(); ++i) {
+        ACCEPT_REPLACE_EXPRESSION_I(node, statement, i);
+        if (i < node->statement_size() - 1) {
             PopEvalType();
         }
     }
@@ -858,7 +858,7 @@ void CheckingAstVisitor::VisitArrayInitializer(ArrayInitializer *node) {
 void CheckingAstVisitor::VisitMapInitializer(MapInitializer *node) {
     auto map_type = node->map_type();
     if (map_type->key()->IsUnknown() || map_type->value()->IsUnknown()) {
-        if (node->mutable_pairs()->is_empty()) {
+        if (node->pairs()->is_empty()) {
             ThrowError(node, "map initializer has unknwon key and value's type");
             return;
         }
@@ -869,8 +869,8 @@ void CheckingAstVisitor::VisitMapInitializer(MapInitializer *node) {
     }
 
     auto value_types = new (types_->zone()) ZoneHashMap<int64_t, Type *>(types_->zone());
-    for (int i = 0; i < node->mutable_pairs()->size(); ++i) {
-        auto pair = node->mutable_pairs()->At(i);
+    for (int i = 0; i < node->pairs()->size(); ++i) {
+        auto pair = node->pairs()->At(i);
         ACCEPT_REPLACE_EXPRESSION(pair, key);
         auto key = AnalysisType();
         PopEvalType();
@@ -1048,14 +1048,14 @@ void CheckingAstVisitor::VisitReference(Reference *node) {
 
 void CheckingAstVisitor::CheckFunctionCall(FunctionPrototype *proto, Call *node) {
     if (proto->mutable_paramters()->size() !=
-        node->mutable_arguments()->size()) {
+        node->argument_size()) {
         ThrowError(node, "call argument number is not be accept (%d vs %d).",
-                   node->mutable_arguments()->size(),
+                   node->argument_size(),
                    proto->mutable_paramters()->size());
         return;
     }
-    for (int i = 0; i < node->mutable_arguments()->size(); ++i) {
-        auto arg   = node->mutable_arguments()->At(i);
+    for (int i = 0; i < node->argument_size(); ++i) {
+        auto arg   = node->argument(i);
         auto param = proto->mutable_paramters()->At(i);
 
         if (arg->value()->IsFunctionLiteral() &&
@@ -1086,7 +1086,7 @@ void CheckingAstVisitor::CheckFunctionCall(FunctionPrototype *proto, Call *node)
 }
 
 void CheckingAstVisitor::CheckMapAccessor(Map *map, Call *node) {
-    if (node->mutable_arguments()->size() != 1) {
+    if (node->argument_size() != 1) {
         ThrowError(node, "incorrect arguments number of map calling.");
         return;
     }
@@ -1099,7 +1099,7 @@ void CheckingAstVisitor::CheckMapAccessor(Map *map, Call *node) {
     PopEvalType();
 
     if (!map->key()->CanAcceptFrom(key_ty)) {
-        ThrowError(node->mutable_arguments()->At(0),
+        ThrowError(node->argument(0),
                    "map key can not accept input type, (%s vs %s)",
                    map->key()->ToString().c_str(),
                    key_ty->ToString().c_str());

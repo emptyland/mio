@@ -18,6 +18,7 @@ namespace mio {
     M(ValDeclaration) \
     M(VarDeclaration) \
     M(FunctionDefine) \
+    M(ForLoop) \
     M(ForeachLoop) \
     M(WhileLoop) \
     M(TypeMatch)
@@ -99,6 +100,7 @@ class AstNode;
         class Return;
         class Break;
         class Continue;
+        class ForLoop;
         class ForeachLoop;
         class WhileLoop;
 
@@ -153,7 +155,6 @@ private:
 
 class Statement : public AstNode {
 public:
-    // TODO:
     DISALLOW_IMPLICIT_CONSTRUCTORS(Statement)
 
 protected:
@@ -186,14 +187,10 @@ private:
 
 class Declaration : public Statement {
 public:
-    Scope *scope() const { return scope_; }
-    void set_scope(Scope *scope) { scope_ = DCHECK_NOTNULL(scope); }
-
-    Variable *instance() const { return instance_; }
-    void set_instance(Variable *instance) { instance_ = DCHECK_NOTNULL(instance); }
+    DEF_PTR_PROP_RW_NOTNULL1(Scope, scope)
+    DEF_PTR_PROP_RW_NOTNULL1(Variable, instance)
 
     virtual Type *type() const = 0;
-
     virtual RawStringRef name() const = 0;
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Declaration)
@@ -212,19 +209,9 @@ public:
     virtual RawStringRef name() const override { return name_; }
     virtual Type *type() const override { return type_; }
 
-    void set_type(Type *type) { type_ = DCHECK_NOTNULL(type); }
-
-    Expression *initializer() const { return initializer_; }
-
-    void set_initializer(Expression *initializer) {
-        initializer_ = DCHECK_NOTNULL(initializer);
-    }
-
-    Type *initializer_type() const { return DCHECK_NOTNULL(initializer_type_); }
-
-    void set_initializer_type(Type *type) {
-        initializer_type_ = DCHECK_NOTNULL(type);
-    }
+    DEF_PTR_SETTER_NOTNULL(Type, type)
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, initializer)
+    DEF_PTR_PROP_RW_NOTNULL2(Type, initializer_type)
 
     DEF_GETTER(bool, is_argument)
     DEF_GETTER(bool, is_export)
@@ -263,19 +250,9 @@ public:
     virtual RawStringRef name() const override { return name_; }
     virtual Type *type() const override { return type_; }
 
-    void set_type(Type *type) { type_ = DCHECK_NOTNULL(type); }
-
-    Expression *initializer() const { return initializer_; }
-
-    void set_initializer(Expression *initializer) {
-        initializer_ = DCHECK_NOTNULL(initializer);
-    }
-
-    Type *initializer_type() const { return DCHECK_NOTNULL(initializer_type_); }
-
-    void set_initializer_type(Type *type) {
-        initializer_type_ = DCHECK_NOTNULL(type);
-    }
+    DEF_PTR_SETTER_NOTNULL(Type, type)
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, initializer)
+    DEF_PTR_PROP_RW_NOTNULL2(Type, initializer_type)
 
     DEF_GETTER(bool, is_export)
 
@@ -307,7 +284,7 @@ private:
 
 class FunctionDefine : public Declaration {
 public:
-    FunctionLiteral *function_literal() const { return function_literal_; }
+    DEF_PTR_GETTER(FunctionLiteral, function_literal)
 
     virtual RawStringRef name() const override { return name_; }
     virtual Type *type() const override;
@@ -341,11 +318,7 @@ private:
 
 class Return : public Statement {
 public:
-    Expression *expression() const { return expression_; }
-
-    void set_expression(Expression *expression) {
-        expression_ = DCHECK_NOTNULL(expression);
-    }
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, expression)
 
     bool has_return_value() const { return expression_ != nullptr; }
 
@@ -380,64 +353,100 @@ private:
 }; // class Break
 
 
-class ForeachLoop : public Statement {
+class Loop : public Statement {
 public:
-    ValDeclaration *key() const { return key_; }
+    DEF_PTR_PROP_RW(Expression, body)
+    DEF_GETTER(int, end_position)
+
+    int begin_position() const { return position(); }
+
+    DISALLOW_IMPLICIT_CONSTRUCTORS(Loop);
+protected:
+    Loop(Expression *body, int begin_position, int end_position)
+        : Statement(begin_position)
+        , body_(DCHECK_NOTNULL(body))
+        , end_position_(end_position) {}
+
+    Expression *body_;
+    int end_position_;
+}; // class Loop
+
+
+class ForLoop : public Loop {
+public:
+    DEF_PTR_GETTER(ValDeclaration, iterator)
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, begin)
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, end)
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, step)
+    DEF_PTR_GETTER(Scope, scope)
+
+    DECLARE_AST_NODE(ForLoop)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(ForLoop);
+private:
+    ForLoop(ValDeclaration *iterator, Expression *begin, Expression *end,
+            Expression *step, Expression *body, Scope *scope, int begin_position,
+            int end_position)
+        : Loop(body, begin_position, end_position)
+        , iterator_(DCHECK_NOTNULL(iterator))
+        , begin_(DCHECK_NOTNULL(begin))
+        , end_(DCHECK_NOTNULL(end))
+        , step_(step) {}
+
+    ValDeclaration *iterator_;
+    Expression *begin_;
+    Expression *end_;
+    Expression *step_;
+    Scope *scope_;
+}; // class ForLoop
+
+
+class ForeachLoop : public Loop {
+public:
+    DEF_PTR_PROP_RW(ValDeclaration, key)
     bool has_key() const { return key_ != nullptr; }
 
-    ValDeclaration *value() const { return value_; }
+    DEF_PTR_PROP_RW(ValDeclaration, value)
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, container)
 
-    Expression *container() const { return container_; }
-    void set_container(Expression *container) { container_ = DCHECK_NOTNULL(container); }
+    DEF_PTR_PROP_RW_NOTNULL2(Type, container_type)
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, body)
+    DEF_PTR_GETTER(Scope, scope)
 
-    Type *container_type() const { return DCHECK_NOTNULL(container_type_); }
-    void set_container_type(Type *type) { container_type_ = DCHECK_NOTNULL(type); }
-
-    Expression *body() const { return body_; }
-    void set_body(Expression *body) { body_ = DCHECK_NOTNULL(body); }
-
-    Scope *scope() const { return scope_; }
+    int begin_position() const { return position(); }
 
     DECLARE_AST_NODE(ForeachLoop)
     DISALLOW_IMPLICIT_CONSTRUCTORS(ForeachLoop);
 private:
     ForeachLoop(ValDeclaration *key, ValDeclaration *value,
                 Expression *container, Expression *body, Scope *scope,
-                int position)
-        : Statement(position)
+                int begin_position, int end_position)
+        : Loop(body, begin_position, end_position)
         , key_(key)
         , value_(DCHECK_NOTNULL(value))
         , container_(DCHECK_NOTNULL(container))
-        , body_(DCHECK_NOTNULL(body))
         , scope_(DCHECK_NOTNULL(scope)) {}
 
     ValDeclaration *key_;
     ValDeclaration *value_;
     Expression *container_;
     Type *container_type_ = nullptr;
-    Expression *body_;
     Scope *scope_;
 }; // class ForeachLoop
 
 
-class WhileLoop : public Statement {
+class WhileLoop : public Loop {
 public:
-    DEF_PTR_GETTER(Expression, condition)
-    void set_condition(Expression *condition) { condition_ = DCHECK_NOTNULL(condition); }
-
-    DEF_PTR_GETTER(Expression, body)
-    void set_body(Expression *body) { body_ = DCHECK_NOTNULL(body); }
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, condition)
 
     DECLARE_AST_NODE(WhileLoop)
     DISALLOW_IMPLICIT_CONSTRUCTORS(WhileLoop);
 private:
-    WhileLoop(Expression *condition, Expression *body, int position)
-        : Statement(position)
-        , condition_(DCHECK_NOTNULL(condition))
-        , body_(DCHECK_NOTNULL(body)) {}
+    WhileLoop(Expression *condition, Expression *body, int begin_position,
+              int end_position)
+        : Loop(body, begin_position, end_position)
+        , condition_(DCHECK_NOTNULL(condition)) {}
 
     Expression *condition_;
-    Expression *body_;
 }; // class WhileLoop
 
 
@@ -525,17 +534,11 @@ private:
 
 class FunctionLiteral : public Literal {
 public:
-    FunctionPrototype *prototype() const { return prototype_; }
-    Expression *body() const { return body_; }
-    void set_body(Expression *body) { body_ = DCHECK_NOTNULL(body); }
-
-    Scope *scope() const { return scope_; }
-
-    ZoneVector<Variable *> *mutable_up_values() { return up_values_; }
-
-    int up_values_size() const { return up_values_->size(); }
-
-    Variable *up_value(int index) const { return up_values_->At(index); }
+    DEF_PTR_GETTER(FunctionPrototype, prototype)
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, body)
+    DEF_PTR_GETTER(Scope, scope)
+    DEF_PTR_ZONE_VECTOR_PROP_RO(Variable *, up_value)
+    DEF_PTR_ZONE_VECTOR_MUTABLE_GETTER(Variable *, up_value)
 
     int start_position() const { return position(); }
 
@@ -572,17 +575,10 @@ private:
 
 class ArrayInitializer : public Literal {
 public:
-    Array *array_type() const { return array_type_; }
-
-    ZoneVector<Element *> *mutable_elements() { return elements_; }
-
-    int element_size() const { return elements_->size(); }
-
-    Element *element(int index) const { return elements_->At(index); }
-
-    RawStringRef annotation() const { return annotation_; }
-
-    int end_position() const { return end_position_; }
+    DEF_PTR_GETTER(Array, array_type)
+    DEF_GETTER(RawStringRef, annotation)
+    DEF_GETTER(int, end_position)
+    DEF_PTR_ZONE_VECTOR_PROP_RO(Element *, element)
 
     DECLARE_AST_NODE(ArrayInitializer)
     DISALLOW_IMPLICIT_CONSTRUCTORS(ArrayInitializer)
@@ -607,15 +603,10 @@ private:
 
 class MapInitializer : public Literal {
 public:
-    Map *map_type() const { return map_type_; }
-
-    RawStringRef annotation() const { return annotation_; }
-
-    ZoneVector<Pair *> *mutable_pairs() { return pairs_; }
-
-    int pair_size() const { return pairs_->size(); }
-
-    Pair *pair(int index) const { return pairs_->At(index); }
+    DEF_PTR_GETTER(Map, map_type)
+    DEF_GETTER(RawStringRef, annotation)
+    DEF_GETTER(int, end_position)
+    DEF_PTR_ZONE_VECTOR_PROP_RO(Pair *, pair)
 
     DECLARE_AST_NODE(MapInitializer)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MapInitializer)
@@ -639,11 +630,8 @@ private:
 
 class Element : public Literal {
 public:
-    Expression *value() const { return value_; }
-    void set_value(Expression *value) { value_ = DCHECK_NOTNULL(value); }
-
-    Type *value_type() const { return DCHECK_NOTNULL(value_type_); }
-    void set_value_type(Type *type) { value_type_ = DCHECK_NOTNULL(type); }
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, value)
+    DEF_PTR_PROP_RW_NOTNULL2(Type, value_type)
 
     DECLARE_AST_NODE(Element)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Element)
@@ -658,8 +646,7 @@ protected:
 
 class Pair : public Element {
 public:
-    Expression *key() const { return key_; }
-    void set_key(Expression *key) { key_ = DCHECK_NOTNULL(key); }
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, key)
 
     DECLARE_AST_NODE(Pair)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Pair)
@@ -746,12 +733,8 @@ const char *GetOperatorText(Operator op);
 class UnaryOperation : public Expression {
 public:
     DEF_GETTER(Operator, op)
-
-    Expression *operand() const { return operand_; }
-    void set_operand(Expression *node) { operand_ = DCHECK_NOTNULL(node); }
-
-    Type *operand_type() const { return DCHECK_NOTNULL(operand_type_); }
-    void set_operand_type(Type *type) { operand_type_ = DCHECK_NOTNULL(type); }
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, operand)
+    DEF_PTR_PROP_RW_NOTNULL2(Type, operand_type)
 
     DECLARE_AST_NODE(UnaryOperation)
     DISALLOW_IMPLICIT_CONSTRUCTORS(UnaryOperation)
@@ -770,17 +753,11 @@ private:
 class BinaryOperation : public Expression {
 public:
     DEF_GETTER(Operator, op)
-    Expression *lhs() const { return lhs_; }
-    void set_lhs(Expression *node) { lhs_ = DCHECK_NOTNULL(node); }
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, lhs)
+    DEF_PTR_PROP_RW_NOTNULL2(Type, lhs_type)
 
-    Expression *rhs() const { return rhs_; }
-    void set_rhs(Expression *node) { rhs_ = DCHECK_NOTNULL(node); }
-
-    Type *lhs_type() const { return DCHECK_NOTNULL(lhs_type_); }
-    void set_lhs_type(Type *type) { lhs_type_ = DCHECK_NOTNULL(type); }
-
-    Type *rhs_type() const { return DCHECK_NOTNULL(rhs_type_); }
-    void set_rhs_type(Type *type) { rhs_type_ = DCHECK_NOTNULL(type); }
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, rhs)
+    DEF_PTR_PROP_RW_NOTNULL2(Type, rhs_type)
 
     DECLARE_AST_NODE(BinaryOperation)
     DISALLOW_IMPLICIT_CONSTRUCTORS(BinaryOperation)
@@ -802,10 +779,8 @@ private:
 // expr is int
 class TypeTest : public Expression {
 public:
-    Expression *expression() const { return expression_; }
-    void set_expression(Expression *expr) { expression_ = DCHECK_NOTNULL(expr); }
-
-    Type *type() const { return type_; }
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, expression)
+    DEF_PTR_GETTER(Type, type)
 
     DECLARE_AST_NODE(TypeTest)
     DISALLOW_IMPLICIT_CONSTRUCTORS(TypeTest)
@@ -822,13 +797,9 @@ private:
 
 class TypeCast : public Expression {
 public:
-    Expression *expression() const { return expression_; }
-    void set_expression(Expression *expr) { expression_ = DCHECK_NOTNULL(expr); }
-
-    Type *original() const { return DCHECK_NOTNULL(original_); }
-    void set_original(Type *type) { original_ = DCHECK_NOTNULL(type); }
-
-    Type *type() const { return type_; }
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, expression)
+    DEF_PTR_PROP_RW_NOTNULL2(Type, original)
+    DEF_PTR_GETTER(Type, type)
 
     DECLARE_AST_NODE(TypeCast)
     DISALLOW_IMPLICIT_CONSTRUCTORS(TypeCast)
@@ -846,18 +817,8 @@ private:
 
 class TypeMatch : public Expression {
 public:
-    Expression *target() const { return target_; }
-    void set_target(Expression *target) { target_ = DCHECK_NOTNULL(target); }
-
-    ZoneVector<TypeMatchCase *> *mutable_match_cases() { return match_cases_; }
-
-    int match_case_size() const { return match_cases_->size(); }
-
-    TypeMatchCase *match_case(int index) {
-        DCHECK_GE(index, 0);
-        DCHECK_LT(index, match_case_size());
-        return match_cases_->At(index);
-    }
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, target)
+    DEF_PTR_ZONE_VECTOR_PROP_RO(TypeMatchCase *, match_case)
 
     DECLARE_AST_NODE(TypeMatch)
     DISALLOW_IMPLICIT_CONSTRUCTORS(TypeMatch)
@@ -884,12 +845,9 @@ public:
         , scope_(DCHECK_NOTNULL(scope)) {
     }
 
-    ValDeclaration *cast_pattern() const { return cast_pattern_; }
-
-    Expression *body() const { return body_; }
-    void set_body(Expression *body) { body_ = DCHECK_NOTNULL(body); }
-
-    Scope *scope() const { return scope_; }
+    DEF_PTR_GETTER(ValDeclaration, cast_pattern)
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, body)
+    DEF_PTR_GETTER(Scope, scope)
 
     bool is_else_case() const { return cast_pattern_ == nullptr; }
 
@@ -965,7 +923,7 @@ private:
 
 class Reference : public Expression {
 public:
-    Variable *variable() const { return variable_; }
+    DEF_PTR_GETTER(Variable, variable)
 
     DECLARE_AST_NODE(Reference)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Reference)
@@ -980,8 +938,8 @@ private:
 
 class Symbol : public Expression {
 public:
-    RawStringRef name() const { return name_; }
-    RawStringRef name_space() const { return name_space_; }
+    DEF_GETTER(RawStringRef, name)
+    DEF_GETTER(RawStringRef, name_space)
 
     bool has_name_space() const { return name_space_ != RawString::kEmpty; }
 
@@ -1000,23 +958,9 @@ private:
 
 class Call : public Expression {
 public:
-    Expression *expression() const { return expression_; }
-    void set_expression(Expression *expression) {
-        expression_ = DCHECK_NOTNULL(expression);
-    }
-
-    Type *callee_type() const { return DCHECK_NOTNULL(callee_type_); }
-    void set_callee_type(Type *type) { callee_type_ = DCHECK_NOTNULL(type); }
-
-    ZoneVector<Element *> *mutable_arguments() { return arguments_; }
-
-    int argument_size() const { return arguments_->size(); }
-
-    Element *argument(int index) const { return arguments_->At(index); }
-
-    void set_argument(int index, Element *expr) {
-        arguments_->Set(index, DCHECK_NOTNULL(expr));
-    }
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, expression)
+    DEF_PTR_PROP_RW_NOTNULL2(Type, callee_type)
+    DEF_PTR_ZONE_VECTOR_PROP_RW(Element *, argument)
 
     DECLARE_AST_NODE(Call)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Call)
@@ -1047,16 +991,7 @@ public:
     };
 
     DEF_GETTER(Function, code)
-
-    ZoneVector<Element *> *mutable_arguments() { return arguments_; }
-
-    int argument_size() const { return arguments_->size(); }
-
-    Element *argument(int index) const { return arguments_->At(index); }
-
-    void set_argument(int index, Element *expr) {
-        arguments_->Set(index, DCHECK_NOTNULL(expr));
-    }
+    DEF_PTR_ZONE_VECTOR_PROP_RW(Element *, argument)
 
     DECLARE_AST_NODE(BuiltinCall)
     DISALLOW_IMPLICIT_CONSTRUCTORS(BuiltinCall)
@@ -1073,12 +1008,9 @@ private:
 
 class FieldAccessing : public Expression {
 public:
-    RawStringRef field_name() const { return field_name_; }
-    Expression *expression() const { return expression_; }
-    void set_expression(Expression *expr) { expression_ = DCHECK_NOTNULL(expr); }
-
-    Type *callee_type() const { return DCHECK_NOTNULL(callee_type_); }
-    void set_callee_type(Type *type) { callee_type_ = DCHECK_NOTNULL(type); }
+    DEF_GETTER(RawStringRef, field_name)
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, expression)
+    DEF_PTR_PROP_RW_NOTNULL2(Type, callee_type)
 
     DECLARE_AST_NODE(FieldAccessing)
     DISALLOW_IMPLICIT_CONSTRUCTORS(FieldAccessing)
@@ -1098,27 +1030,13 @@ private:
 
 class IfOperation : public Expression {
 public:
-    Expression *condition() const { return condition_; }
-    void set_condition(Expression *condition) {
-        condition_ = DCHECK_NOTNULL(condition);
-    }
-
-    Statement *then_statement() const { return then_statement_; }
-    void set_then_statement(Statement *stmt) {
-        then_statement_ = DCHECK_NOTNULL(stmt);
-    }
-    Statement *else_statement() const { return else_statement_; }
-    void set_else_statement(Statement *stmt) {
-        else_statement_ = DCHECK_NOTNULL(stmt);
-    }
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, condition)
+    DEF_PTR_PROP_RW_NOTNULL1(Statement, then_statement)
+    DEF_PTR_PROP_RW_NOTNULL1(Statement, else_statement)
+    DEF_PTR_PROP_RW_NOTNULL2(Type, then_type)
+    DEF_PTR_PROP_RW_NOTNULL2(Type, else_type)
 
     bool has_else() const { return else_statement_ != nullptr; }
-
-    Type *then_type() const { return DCHECK_NOTNULL(then_type_); }
-    void set_then_type(Type *type) { then_type_ = DCHECK_NOTNULL(type); }
-
-    Type *else_type() const { return DCHECK_NOTNULL(else_type_); }
-    void set_else_type(Type *type) { else_type_ = DCHECK_NOTNULL(type); }
 
     DECLARE_AST_NODE(IfOperation)
     DISALLOW_IMPLICIT_CONSTRUCTORS(IfOperation)
@@ -1141,14 +1059,9 @@ private:
 
 class Assignment : public Expression {
 public:
-    Expression *target() const { return target_; }
-    void set_target(Expression *target) { target_ = DCHECK_NOTNULL(target); }
-
-    Expression *rval() const { return rval_; }
-    void set_rval(Expression *rval) { rval_ = DCHECK_NOTNULL(rval); }
-
-    Type *rval_type() const { return DCHECK_NOTNULL(rval_type_); }
-    void set_rval_type(Type *type) { rval_type_ = DCHECK_NOTNULL(type); }
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, target)
+    DEF_PTR_PROP_RW_NOTNULL1(Expression, rval)
+    DEF_PTR_PROP_RW_NOTNULL1(Type, rval_type)
 
     DECLARE_AST_NODE(Assignment)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Assignment)
@@ -1166,14 +1079,11 @@ private:
 
 class Block : public Expression {
 public:
-    ZoneVector<Statement *> *mutable_body() { return body_; }
-
-    Scope *scope() const { return scope_; }
-
-    int number_of_statements() const { return body_->size(); }
-    int start_position() const { return position(); }
-
+    DEF_PTR_ZONE_VECTOR_PROP_RW(Statement *, statement)
+    DEF_PTR_GETTER(Scope, scope)
     DEF_GETTER(int, end_position)
+
+    int start_position() const { return position(); }
 
     DECLARE_AST_NODE(Block)
     DISALLOW_IMPLICIT_CONSTRUCTORS(Block)
@@ -1181,11 +1091,11 @@ private:
     Block(ZoneVector<Statement *> *body, Scope *scope, int start_position,
           int end_position)
         : Expression(start_position)
-        , body_(DCHECK_NOTNULL(body))
+        , statements_(DCHECK_NOTNULL(body))
         , scope_(DCHECK_NOTNULL(scope))
         , end_position_(end_position) {}
 
-    ZoneVector<Statement *> *body_;
+    ZoneVector<Statement *> *statements_;
     Scope *scope_;
     int end_position_;
 }; // class Block
@@ -1237,16 +1147,25 @@ public:
 
     Continue *CreateContinue(int position) { return new (zone_) Continue(position); }
 
+    ForLoop *CreateForLoop(ValDeclaration *iterator, Expression *init,
+                           Expression *end, Expression *step, Expression *body,
+                           Scope *scope, int begin_position, int end_position) {
+        return new (zone_) ForLoop(iterator, init, end, step, body, scope,
+                                   begin_position, end_position);
+    }
+
     ForeachLoop *CreateForeachLoop(ValDeclaration *key, ValDeclaration *value,
                                    Expression *container, Expression *body,
-                                   Scope *scope, int position) {
+                                   Scope *scope, int begin_position,
+                                   int end_position) {
         return new (zone_) ForeachLoop(key, value, container, body, scope,
-                                       position);
+                                       begin_position, end_position);
     }
 
     WhileLoop *CreateWhileLoop(Expression *condition, Expression *body,
-                               int position) {
-        return new (zone_) WhileLoop(condition, body, position);
+                               int begin_position, int end_position) {
+        return new (zone_) WhileLoop(condition, body, begin_position,
+                                     end_position);
     }
 
     PackageImporter *CreatePackageImporter(const std::string &package_name,

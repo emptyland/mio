@@ -107,7 +107,7 @@ public:
 
     virtual void VisitArrayInitializer(ArrayInitializer *node) override {
         WriteMapPair("type", node->array_type()->Type::ToString().c_str());
-        Indent(); WriteMapPair("elements", node->mutable_elements());
+        Indent(); WriteMapPair("elements", node->elements());
     }
 
     virtual void VisitElement(Element *node) override {
@@ -116,7 +116,7 @@ public:
 
     virtual void VisitMapInitializer(MapInitializer *node) override {
         WriteMapPair("type", node->map_type()->Type::ToString().c_str());
-        Indent(); WriteMapPair("pairs", node->mutable_pairs());
+        Indent(); WriteMapPair("pairs", node->pairs());
     }
 
     virtual void VisitPair(Pair *node) override {
@@ -146,7 +146,7 @@ public:
     //   - i8: -127
     virtual void VisitCall(Call *node) override {
         WriteMapPair("expression", node->expression());
-        Indent(); WriteMapPair("arguments", node->mutable_arguments());
+        Indent(); WriteMapPair("arguments", node->arguments());
     }
 
     // expression:
@@ -185,7 +185,7 @@ public:
 
     virtual void VisitTypeMatch(TypeMatch *node) override {
         WriteMapPair("target", node->target());
-        Indent(); WriteMapPair("cases", node->mutable_match_cases());
+        Indent(); WriteMapPair("cases", node->match_cases());
     }
 
     virtual void VisitTypeMatchCase(TypeMatchCase *node) override {
@@ -237,7 +237,7 @@ public:
 
     virtual void VisitBuiltinCall(BuiltinCall *node) override {
         WriteMapPair("code", "%d", node->code());
-        WriteMapPair("arguments", node->mutable_arguments());
+        WriteMapPair("arguments", node->arguments());
     }
 
     // block:
@@ -245,18 +245,18 @@ public:
     //   - node 2
     //   - node 3
     virtual void VisitBlock(Block *node) override {
-        if (node->mutable_body()->size() == 0) {
+        if (node->statement_size() == 0) {
             WriteMapPair("block", "-EMPTY-");
         } else {
-            WriteMapPair("block", node->mutable_body());
+            WriteMapPair("block", node->statements());
         }
     }
 
     virtual void VisitFunctionLiteral(FunctionLiteral *node) override {
         WriteMapPair("prototype", node->prototype()->Type::ToString().c_str());
         Indent(); WriteMapPair("assignment", node->is_assignment() ? "yes" : "no");
-        if (node->up_values_size() > 0) {
-            Indent(); WriteMapPair("up_values", node->mutable_up_values());
+        if (node->up_value_size() > 0) {
+            Indent(); WriteMapPair("up_values", node->up_values());
         }
         if (node->has_body()) {
             Indent(); WriteMapPair("body", node->body());
@@ -270,8 +270,13 @@ public:
         Indent(); WriteMapPair("literal", node->function_literal());
     }
 
+    virtual void VisitBreak(Break *node) override {}
+    virtual void VisitContinue(Continue *node) override {}
+    virtual void VisitWhileLoop(WhileLoop *node) override {}
+    virtual void VisitForLoop(ForLoop *node) override {}
+
     template<class T>
-    void WriteMapPair(const char *key, ZoneVector<T*> *array) {
+    void WriteMapPair(const char *key, const ZoneVector<T*> *array) {
         WriteMapPair(key, "");
         ++indent_;
         for (int i = 0; i < array->size(); i++) {

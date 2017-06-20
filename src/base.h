@@ -127,6 +127,14 @@ char (&ArraySizeHelper(const T (&array)[N]))[N];
     DEF_PTR_GETTER(type, name) \
     DEF_PTR_SETTER(type, name)
 
+#define DEF_PTR_PROP_RW_NOTNULL1(type, name) \
+    DEF_PTR_GETTER(type, name) \
+    DEF_PTR_SETTER_NOTNULL(type, name)
+
+#define DEF_PTR_PROP_RW_NOTNULL2(type, name) \
+    DEF_PTR_GETTER_NOTNULL(type, name) \
+    DEF_PTR_SETTER_NOTNULL(type, name)
+
 #define DEF_GETTER(type, name) \
     inline const type &name() const { return name##_; }
 
@@ -141,6 +149,12 @@ char (&ArraySizeHelper(const T (&array)[N]))[N];
 
 #define DEF_PTR_SETTER(type, name) \
     inline void set_##name(type *value) { name##_ = value; }
+
+#define DEF_PTR_GETTER_NOTNULL(type, name) \
+    inline type *name() const { return DCHECK_NOTNULL(name##_); }
+
+#define DEF_PTR_SETTER_NOTNULL(type, name) \
+    inline void set_##name(type *value) { name##_ = DCHECK_NOTNULL(value); }
 
 template<class T, class F>
 inline T *down_cast(F *from) {

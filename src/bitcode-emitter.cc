@@ -594,7 +594,7 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
     auto scope = node->scope();
 
     // bind all of upval first.
-    for (int i = 0; i < node->up_values_size(); ++i) {
+    for (int i = 0; i < node->up_value_size(); ++i) {
         auto upval = node->up_value(i);
         upval->set_bind_kind(Variable::UP_VALUE);
         upval->set_offset(i * kObjectReferenceSize);
@@ -655,9 +655,9 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
             ->CreateFunctionDebugInfo(unit_name_, info.pc_to_position());
     ob->AsNormalFunction()->SetDebugInfo(debug_info);
 
-    if (node->up_values_size() > 0) {
-        auto closure = emitter_->object_factory_->CreateClosure(ob, node->up_values_size());
-        for (int i = 0; i < node->up_values_size(); ++i) {
+    if (node->up_value_size() > 0) {
+        auto closure = emitter_->object_factory_->CreateClosure(ob, node->up_value_size());
+        for (int i = 0; i < node->up_value_size(); ++i) {
             auto upval = node->up_value(i);
             auto offset = GetVariableOffset(upval->link(), info.scope());
             auto desc = closure->GetUpValue(i);
@@ -677,11 +677,11 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
 }
 
 void EmittingAstVisitor::VisitBlock(Block *node) {
-    for (int i = 0; i < node->mutable_body()->size() - 1; ++i) {
-        Emit(node->mutable_body()->At(i));
+    for (int i = 0; i < node->statement_size() - 1; ++i) {
+        Emit(node->statement(i));
     }
-    if (node->mutable_body()->is_not_empty()) {
-        node->mutable_body()->last()->Accept(this);
+    if (node->statements()->is_not_empty()) {
+        node->statements()->last()->Accept(this);
     } else {
         PushValue(VMValue::Void());
     }
@@ -1156,7 +1156,7 @@ void EmittingAstVisitor::VisitAssignment(Assignment *node) {
             DCHECK_EQ(1, target->argument_size());
 
             auto map = Emit(target->expression());
-            auto key = Emit(target->mutable_arguments()->first()->value());
+            auto key = Emit(target->arguments()->first()->value());
 
             EmitMapPut(map, key, rval, target->callee_type()->AsMap(),
                        node->rval_type(), node->position());
@@ -1986,8 +1986,8 @@ void EmittingAstVisitor::EmitFunctionCall(const VMValue &callee, Call *node) {
     auto proto = DCHECK_NOTNULL(node->callee_type()->AsFunctionPrototype());
 
     std::vector<VMValue> args;
-    for (int i = 0; i < node->mutable_arguments()->size(); ++i) {
-        auto arg = node->mutable_arguments()->At(i);
+    for (int i = 0; i < node->argument_size(); ++i) {
+        auto arg = node->argument(i);
         if (proto->paramter(i)->param_type()->IsUnion() &&
             !arg->value_type()->IsUnion()) {
             auto uni = current_->MakeObjectValue();
@@ -2039,7 +2039,7 @@ void EmittingAstVisitor::EmitFunctionCall(const VMValue &callee, Call *node) {
 void EmittingAstVisitor::EmitMapAccessor(const VMValue &callee, Call *node) {
     auto map = Emit(node->expression());
 
-    DCHECK_EQ(node->mutable_arguments()->size(), 1);
+    DCHECK_EQ(node->argument_size(), 1);
     auto key = Emit(node->argument(0)->value());
     auto result = current_->MakeObjectValue();
 

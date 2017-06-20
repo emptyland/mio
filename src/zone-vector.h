@@ -55,17 +55,52 @@ private:
     DEF_ZONE_VECTOR_PROP_RW(type, name) \
     DEF_ZONE_VECTOR_ADD(type, name)
 
+#define DEF_ZONE_VECTOR_PROP_RMW(type, name) \
+    DEF_ZONE_VECTOR_PROP_RO(type, name) \
+    DEF_ZONE_VECTOR_SETTER(type, name) \
+    DEF_ZONE_VECTOR_MUTABLE_GETTER(type, name)
+
+#define DEF_PTR_ZONE_VECTOR_PROP_RO(type, name) \
+    DEF_PTR_ZONE_VECTOR_GETTER(type, name) \
+    DEF_PTR_ZONE_VECTOR_CONST_GETTER(type, name) \
+    DEF_PTR_ZONE_VECTOR_SIZE(name)
+
+#define DEF_PTR_ZONE_VECTOR_PROP_RW(type, name) \
+    DEF_PTR_ZONE_VECTOR_PROP_RO(type, name) \
+    DEF_PTR_ZONE_VECTOR_SETTER(type, name)
+
 #define DEF_ZONE_VECTOR_GETTER(type, name) \
-    type name(int i) const { return name##s_.At(i); }
+    inline type name(int i) const { return name##s_.At(i); }
 
 #define DEF_ZONE_VECTOR_SETTER(type, name) \
-    void set_##name(int i, type value) { name##s_.Set(i, value); }
+    inline void set_##name(int i, type value) { name##s_.Set(i, value); }
 
 #define DEF_ZONE_VECTOR_SIZE(name) \
-    int name##_size() const { return name##s_.size(); }
+    inline int name##_size() const { return name##s_.size(); }
 
 #define DEF_ZONE_VECTOR_ADD(type, name) \
-    void add_##name(type value) { name##s_.Add(value); }
+    inline void add_##name(type value) { name##s_.Add(value); }
+
+#define DEF_ZONE_VECTOR_MUTABLE_GETTER(type, name) \
+    inline ZoneVector<type> *mutable_##name##s() { return &name##s_; }
+
+#define DEF_PTR_ZONE_VECTOR_GETTER(type, name) \
+    inline type name(int i) const { return name##s_->At(i); }
+
+#define DEF_PTR_ZONE_VECTOR_SETTER(type, name) \
+    inline void set_##name(int i, type value) { name##s_->Set(i, value); }
+
+#define DEF_PTR_ZONE_VECTOR_SIZE(name) \
+    inline int name##_size() const { return name##s_->size(); }
+
+#define DEF_PTR_ZONE_VECTOR_ADD(type, name) \
+    inline void add_##name(type value) { name##s_->Add(value); }
+
+#define DEF_PTR_ZONE_VECTOR_MUTABLE_GETTER(type, name) \
+    inline ZoneVector<type> *mutable_##name##s() { return name##s_; }
+
+#define DEF_PTR_ZONE_VECTOR_CONST_GETTER(type, name) \
+    inline const ZoneVector<type> *name##s() const { return name##s_; }
 
 template<class T>
 ZoneVector<T>::~ZoneVector() {
