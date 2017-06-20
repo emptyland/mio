@@ -234,10 +234,8 @@ private:
 
 class Paramter : public ManagedObject {
 public:
-    Type *param_type() const { return param_type_; }
-    void set_param_type(Type *type) { param_type_ = DCHECK_NOTNULL(type); }
-
-    RawStringRef param_name() const { return param_name_; }
+    DEF_PTR_PROP_RW_NOTNULL1(Type, param_type)
+    DEF_GETTER(RawStringRef, param_name)
 
     bool has_name() const { return param_name_ != RawString::kEmpty; }
 
@@ -255,8 +253,7 @@ private:
 
 class Array : public Type {
 public:
-    Type *element() const { return element_; }
-    void set_element(Type *element) { element_ = DCHECK_NOTNULL(element); }
+    DEF_PTR_PROP_RW_NOTNULL1(Type, element)
 
     virtual bool MustBeInitialized() const override { return false; }
 
@@ -290,11 +287,8 @@ private:
 
 class Map : public Type {
 public:
-    Type *key() const   { return key_; }
-    void set_key(Type *key) { key_ = DCHECK_NOTNULL(key); }
-
-    Type *value() const { return value_; }
-    void set_value(Type *value) { value_ = DCHECK_NOTNULL(value); }
+    DEF_PTR_PROP_RW_NOTNULL1(Type, key)
+    DEF_PTR_PROP_RW_NOTNULL1(Type, value)
 
     virtual bool MustBeInitialized() const override { return false; }
 
@@ -315,14 +309,8 @@ private:
 
 class FunctionPrototype : public Type {
 public:
-    ZoneVector<Paramter *> *mutable_paramters() { return paramters_; }
-
-    Paramter *paramter(int index) const { return paramters_->At(index); }
-
-    int paramter_size() const { return paramters_->size(); }
-
-    Type *return_type() const { return return_type_; }
-    void set_return_type(Type *type) { return_type_ = type; }
+    DEF_PTR_ZONE_VECTOR_PROP_RWA(Paramter *, paramter)
+    DEF_PTR_PROP_RW_NOTNULL1(Type, return_type)
 
     std::string GetSignature() const;
 

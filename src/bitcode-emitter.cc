@@ -536,8 +536,8 @@ void EmittingAstVisitor::EmitGlobalFunction(FunctionDefine *node) {
     if (node->is_native()) {
         auto proto = node->function_literal()->prototype();
         int p_size = 0, o_size = 0;
-        for (int i = 0; i < proto->mutable_paramters()->size(); ++i) {
-            auto param = proto->mutable_paramters()->At(i);
+        for (int i = 0; i < proto->paramter_size(); ++i) {
+            auto param = proto->paramter(i);
 
             if (param->param_type()->is_primitive()) {
                 p_size += param->param_type()->placement_size();
@@ -603,8 +603,8 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
     // placement frame instruction
     auto frame_placement = builder(node->position())->debug();
 
-    for (int i = 0; i < prototype->mutable_paramters()->size(); ++i) {
-        auto paramter = prototype->mutable_paramters()->At(i);
+    for (int i = 0; i < prototype->paramter_size(); ++i) {
+        auto paramter = prototype->paramter(i);
 
         auto var = scope->FindOrNullLocal(paramter->param_name());
         var->set_bind_kind(Variable::LOCAL);
@@ -2415,12 +2415,12 @@ TypeToReflection(Type *type, ObjectFactory *factory,
             auto return_type = TypeToReflection(func->return_type(), factory, all);
 
             std::vector<Handle<MIOReflectionType>> params;
-            for (int i = 0; i < func->mutable_paramters()->size(); ++i) {
-                auto ty = func->mutable_paramters()->At(i)->param_type();
+            for (int i = 0; i < func->paramter_size(); ++i) {
+                auto ty = func->paramter(i)->param_type();
                 params.emplace_back(TypeToReflection(ty, factory, all));
             }
             reft = factory->CreateReflectionFunction(tid, return_type,
-                                                     func->mutable_paramters()->size(), params);
+                                                     func->paramter_size(), params);
         } break;
             
         default:

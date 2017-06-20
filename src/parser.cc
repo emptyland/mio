@@ -162,8 +162,8 @@ FunctionDefine *Parser::ParseFunctionDefine(bool is_export, bool is_native,
     Expression *body = nullptr;
     bool is_assignment = false;
     if (!is_native) {
-        for (int i = 0; i < prototype->mutable_paramters()->size(); ++i) {
-            auto param = prototype->mutable_paramters()->At(i);
+        for (int i = 0; i < prototype->paramter_size(); ++i) {
+            auto param = prototype->paramter(i);
 
             if (scope->FindOrNullLocal(param->param_name())) {
                 *ok = false;

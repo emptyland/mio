@@ -1047,16 +1047,15 @@ void CheckingAstVisitor::VisitReference(Reference *node) {
 }
 
 void CheckingAstVisitor::CheckFunctionCall(FunctionPrototype *proto, Call *node) {
-    if (proto->mutable_paramters()->size() !=
-        node->argument_size()) {
+    if (proto->paramter_size() != node->argument_size()) {
         ThrowError(node, "call argument number is not be accept (%d vs %d).",
                    node->argument_size(),
-                   proto->mutable_paramters()->size());
+                   proto->paramter_size());
         return;
     }
     for (int i = 0; i < node->argument_size(); ++i) {
         auto arg   = node->argument(i);
-        auto param = proto->mutable_paramters()->At(i);
+        auto param = proto->paramter(i);
 
         if (arg->value()->IsFunctionLiteral() &&
             !AcceptOrReduceFunctionLiteral(node, param->param_type(),
@@ -1190,9 +1189,9 @@ bool CheckingAstVisitor::AcceptOrReduceFunctionLiteral(AstNode *node,
     }
     auto lproto = target_ty->AsFunctionPrototype();
     auto scope = func->scope();
-    if (rproto->mutable_paramters()->is_empty()) {
-        for (int i = 0; i < lproto->mutable_paramters()->size(); ++i) {
-            auto lparam = lproto->mutable_paramters()->At(i);
+    if (rproto->paramters()->is_empty()) {
+        for (int i = 0; i < lproto->paramter_size(); ++i) {
+            auto lparam = lproto->paramter(i);
             auto rparam = types_->CreateParamter(TextOutputStream::sprintf("_%d", i + 1),
                                                  lparam->param_type());
 
@@ -1202,22 +1201,21 @@ bool CheckingAstVisitor::AcceptOrReduceFunctionLiteral(AstNode *node,
                     node->position());
             scope->Declare(declaration->name(), declaration);
 
-            rproto->mutable_paramters()->Add(rparam);
+            rproto->add_paramter(rparam);
         }
         return true;
     }
 
-    if (lproto->mutable_paramters()->size() !=
-        rproto->mutable_paramters()->size()) {
+    if (lproto->paramter_size() != rproto->paramter_size()) {
         ThrowError(node, "target type can not accept rval, %s vs %s",
                    lproto->Type::ToString().c_str(),
                    rproto->Type::ToString().c_str());
         return false;
     }
 
-    for (int i = 0; i < lproto->mutable_paramters()->size(); ++i) {
-        auto lparam = lproto->mutable_paramters()->At(i);
-        auto rparam = rproto->mutable_paramters()->At(i);
+    for (int i = 0; i < lproto->paramter_size(); ++i) {
+        auto lparam = lproto->paramter(i);
+        auto rparam = rproto->paramter(i);
 
         if (lparam->param_type()->IsUnknown()) {
             ThrowError(node, "target type has unknown type");
@@ -1225,7 +1223,7 @@ bool CheckingAstVisitor::AcceptOrReduceFunctionLiteral(AstNode *node,
         }
 
         if (rparam->param_type()->IsUnknown()) {
-            rproto->mutable_paramters()->At(i)->set_param_type(lparam->param_type());
+            rproto->paramter(i)->set_param_type(lparam->param_type());
             auto param_val = DCHECK_NOTNULL(
                     scope->FindOrNullLocal(rparam->param_name()));
             DCHECK_NOTNULL(param_val->declaration()->AsValDeclaration())

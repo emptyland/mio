@@ -69,6 +69,10 @@ private:
     DEF_PTR_ZONE_VECTOR_PROP_RO(type, name) \
     DEF_PTR_ZONE_VECTOR_SETTER(type, name)
 
+#define DEF_PTR_ZONE_VECTOR_PROP_RWA(type, name) \
+    DEF_PTR_ZONE_VECTOR_PROP_RW(type, name) \
+    DEF_PTR_ZONE_VECTOR_ADD(type, name)
+
 #define DEF_ZONE_VECTOR_GETTER(type, name) \
     inline type name(int i) const { return name##s_.At(i); }
 
