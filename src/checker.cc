@@ -8,6 +8,9 @@
 
 namespace mio {
 
+class FunctionInfoScope;
+class LoopInfoScope;
+
 #define CHECK_OK &ok); if (!ok) { return; } ((void)0
 
 class ScopeHolder {
@@ -55,6 +58,9 @@ public:
         }
     }
 
+    DEF_PTR_GETTER(Scope, fn_scope)
+    DEF_PTR_PROP_RW(LoopInfoScope, loop_info_scope)
+
     void Apply(Type *type) { types_->Put(type->GenerateId(), type); }
 
     Union::TypeMap *ReleaseTypes() {
@@ -77,8 +83,6 @@ public:
         return factory->GetUnion(ReleaseTypes());
     }
 
-    Scope *fn_scope() const { return fn_scope_; }
-
     Variable *CreateUpValue(RawStringRef name, Variable *for_link, int position) {
         auto upval = fn_scope_->Declare(name, for_link, position);
         if (!upval) {
@@ -95,7 +99,38 @@ private:
     Scope *fn_scope_;
     Zone *zone_;
     ZoneVector<Variable *> *up_values_;
+    LoopInfoScope *loop_info_scope_ = nullptr;
 }; // class FunctionInfoScope
+
+
+class LoopInfoScope {
+public:
+    LoopInfoScope(LoopInfoScope **current, FunctionInfoScope *fn, Loop *loop)
+        : saved_(*DCHECK_NOTNULL(current))
+        , current_(current)
+        , fn_(fn)
+        , loop_(DCHECK_NOTNULL(loop)) {
+        *current_ = this;
+        if (fn_) {
+            fn_->set_loop_info_scope(this);
+        }
+    }
+
+    ~LoopInfoScope() {
+        *current_ = saved_;
+        if (fn_) {
+            fn_->set_loop_info_scope(saved_);
+        }
+    }
+
+    DEF_PTR_GETTER(Loop, loop)
+
+private:
+    LoopInfoScope *saved_;
+    LoopInfoScope **current_;
+    FunctionInfoScope *fn_;
+    Loop *loop_;
+}; // class LoopInfoScope
 
 #define ACCEPT_REPLACE_EXPRESSION(node, field) \
     (node)->field()->Accept(this); \
@@ -173,8 +208,11 @@ public:
     virtual void VisitStringLiteral(StringLiteral *node) override;
     virtual void VisitIfOperation(IfOperation *node) override;
     virtual void VisitBlock(Block *node) override;
+    virtual void VisitWhileLoop(WhileLoop *node) override;
     virtual void VisitForeachLoop(ForeachLoop *node) override;
     virtual void VisitReturn(Return *node) override;
+    virtual void VisitBreak(Break *node) override;
+    virtual void VisitContinue(Continue *node) override;
     virtual void VisitFunctionDefine(FunctionDefine *node) override;
     virtual void VisitFunctionLiteral(FunctionLiteral *node) override;
     virtual void VisitArrayInitializer(ArrayInitializer *node) override;
@@ -246,6 +284,7 @@ private:
     std::stack<Type *> type_stack_;
     std::stack<Expression *> expr_stack_;
     FunctionInfoScope *fn_info_scope_ = nullptr;
+    LoopInfoScope *loop_info_scope_ = nullptr;
     std::unique_ptr<AstNodeFactory> factory_;
     Zone *zone_;
 };
@@ -434,7 +473,7 @@ private:
                 ThrowError(node, "`not' operator only accept bool type.");
             }
             PopEvalType();
-            PushEvalType(types_->GetI8());
+            PushEvalType(types_->GetI1());
             break;
 
         default:
@@ -707,7 +746,26 @@ void CheckingAstVisitor::VisitFloatLiteral(FloatLiteral *node) {
     // keep the last expression type for assignment type.
 }
 
+/*virtual*/ void CheckingAstVisitor::VisitWhileLoop(WhileLoop *node) {
+    LoopInfoScope loop_holder(&loop_info_scope_, fn_info_scope_, node);
+
+    ACCEPT_REPLACE_EXPRESSION(node, condition);
+    auto cond_type = AnalysisType();
+    PopEvalType();
+
+    if (cond_type != types_->GetI1()) {
+        ThrowError(node, "this type: %s is not bool for while condition",
+                   AnalysisType()->ToString().c_str());
+        return;
+    }
+    ACCEPT_REPLACE_EXPRESSION(node, body);
+    PopEvalType();
+    PushEvalType(types_->GetVoid());
+}
+
 /*virtual*/ void CheckingAstVisitor::VisitForeachLoop(ForeachLoop *node) {
+    LoopInfoScope loop_holder(&loop_info_scope_, fn_info_scope_, node);
+
     ACCEPT_REPLACE_EXPRESSION(node, container);
     auto container_type = AnalysisType();
     if (container_type->CanNotIteratable()) {
@@ -734,12 +792,19 @@ void CheckingAstVisitor::VisitFloatLiteral(FloatLiteral *node) {
     }
     node->set_container_type(container_type);
     ACCEPT_REPLACE_EXPRESSION(node, body);
+    PopEvalType();
+    PushEvalType(types_->GetVoid());
 }
 
 /*virtual*/ void CheckingAstVisitor::VisitReturn(Return *node) {
     auto func_scope = DCHECK_NOTNULL(scope_->FindOuterScopeOrNull(FUNCTION_SCOPE));
     if (func_scope->function()->function_literal()->is_assignment()) {
         ThrowError(node, "assignment function don not need return.");
+        return;
+    }
+
+    if (!fn_info_scope_) {
+        ThrowError(node, "return out of function scope.");
         return;
     }
 
@@ -753,6 +818,27 @@ void CheckingAstVisitor::VisitFloatLiteral(FloatLiteral *node) {
         PopEvalType();
     } else {
         DCHECK_NOTNULL(fn_info_scope_)->Apply(types_->GetVoid());
+    }
+    PushEvalType(types_->GetVoid());
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitBreak(Break *node) {
+    auto current_loop = fn_info_scope_ ? fn_info_scope_->loop_info_scope() :
+                        loop_info_scope_;
+    if (!current_loop) {
+        ThrowError(node, "break out of loop block.");
+        return;
+    }
+    PushEvalType(types_->GetVoid());
+}
+
+/*virtual*/ void CheckingAstVisitor::VisitContinue(mio::Continue *node) {
+    auto current_loop = fn_info_scope_
+                      ? fn_info_scope_->loop_info_scope()
+                      : loop_info_scope_;
+    if (!current_loop) {
+        ThrowError(node, "continue out of loop block.");
+        return;
     }
     PushEvalType(types_->GetVoid());
 }

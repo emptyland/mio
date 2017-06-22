@@ -158,6 +158,8 @@ struct VMValue {
     static VMValue Void() { return { MAX_BC_SEGMENTS, -1, -1, }; }
 };
 
+class LoopScope;
+
 class EmittedScope {
 public:
     EmittedScope(EmittedScope **current, FunctionPrototype *prototype,
@@ -180,6 +182,7 @@ public:
 
     DEF_GETTER(int, p_stack_size)
     DEF_GETTER(int, o_stack_size)
+    DEF_PTR_PROP_RW(LoopScope, loop_scope)
 
     const std::vector<int> &pc_to_position() const {
         DCHECK_EQ(builder_.pc(), pc_to_position_.size());
@@ -291,6 +294,7 @@ private:
     MemorySegment *constant_primitive_;
     EmittedScope **current_;
     EmittedScope *saved_;
+    LoopScope *loop_scope_ = nullptr;
     int p_stack_size_ = 0;
     int o_stack_size_ = 0;
     FunctionPrototype *prototype_;
@@ -300,7 +304,44 @@ private:
     std::vector<Handle<HeapObject>> constant_objects_;
     std::vector<int> pc_to_position_; // pc to position mapping, for debuginfo
     PrimitiveMap constant_primitive_map_;
-};
+}; // class EmittedScope
+
+
+class LoopScope {
+public:
+    LoopScope(EmittedScope *fn_scope)
+        : fn_scope_(DCHECK_NOTNULL(fn_scope))
+        , saved_(fn_scope->loop_scope()) {
+        fn_scope_->set_loop_scope(this);
+    }
+
+    ~LoopScope() { fn_scope_->set_loop_scope(saved_); }
+
+    DEF_PROP_RW(int, entry_pc);
+
+    void AddBreak(int position) {
+        auto pc = fn_scope_->builder(position)->jmp(fn_scope_->naked_builder()->pc());
+        break_pcs_.push_back(pc);
+    }
+
+    void EmitContinue(int position) {
+        fn_scope_->builder(position)->jmp(fn_scope_->naked_builder()->pc() - entry_pc_);
+    }
+
+    void EmitAllBreak(int outter) {
+        for (auto pc : break_pcs_) {
+            DCHECK_GT(outter, pc);
+            fn_scope_->naked_builder()->jmp_fill(pc, outter - pc);
+        }
+    }
+
+private:
+    EmittedScope *fn_scope_;
+    LoopScope *saved_;
+    int entry_pc_ = -1;
+    std::vector<int> break_pcs_;
+}; // class LoopScope
+
 
 class EmittingAstVisitor : public DoNothingAstVisitor {
 public:
@@ -311,7 +352,10 @@ public:
 
     virtual void VisitFunctionDefine(FunctionDefine *node) override;
     virtual void VisitFunctionLiteral(FunctionLiteral *node) override;
+    virtual void VisitWhileLoop(WhileLoop *node) override;
     virtual void VisitForeachLoop(ForeachLoop *node) override;
+    virtual void VisitBreak(Break *node) override;
+    virtual void VisitContinue(Continue *node) override;
     virtual void VisitReturn(Return *node) override;
     virtual void VisitBlock(Block *node) override;
     virtual void VisitCall(Call *node) override;
@@ -687,6 +731,21 @@ void EmittingAstVisitor::VisitBlock(Block *node) {
     }
 }
 
+void EmittingAstVisitor::VisitWhileLoop(WhileLoop *node) {
+    auto entry = naked_builder()->pc();
+    auto cond = Emit(node->condition());
+    auto outter = builder(node->condition()->position())->jz(cond.offset,
+                                                             naked_builder()->pc());
+    LoopScope loop_holder(current_);
+
+    Emit(node->body());
+    builder(node->end_position())->jmp(entry - naked_builder()->pc());
+    naked_builder()->jz_fill(outter, cond.offset, naked_builder()->pc() - outter);
+
+    loop_holder.EmitAllBreak(naked_builder()->pc());
+    PushValue(VMValue::Void());
+}
+
 void EmittingAstVisitor::VisitForeachLoop(ForeachLoop *node) {
     Type *key_type = nullptr;
     if (node->has_key()) {
@@ -710,12 +769,14 @@ void EmittingAstVisitor::VisitForeachLoop(ForeachLoop *node) {
     node->value()->instance()->set_bind_kind(Variable::LOCAL);
     node->value()->instance()->set_offset(value.offset);
 
+    LoopScope loop_holder(current_);
     auto container = Emit(node->container());
 
     if (node->container_type()->IsMap()) {
         builder(node->position())->oop(OO_MapFirstKey, container.offset,
                                        key.offset, value.offset);
         auto outter = builder(node->position())->jmp(naked_builder()->pc());
+        loop_holder.set_entry_pc(outter);
         Emit(node->body());
         builder(node->position())->oop(OO_MapNextKey, container.offset,
                                        key.offset, value.offset);
@@ -736,6 +797,7 @@ void EmittingAstVisitor::VisitForeachLoop(ForeachLoop *node) {
                                                         size.offset);
         auto outter = builder(node->value()->position())->jz(cond.offset,
                                                              naked_builder()->pc());
+        loop_holder.set_entry_pc(outter);
         builder(node->value()->position())->oop(OO_ArrayGet, container.offset,
                                                 key.offset, value.offset);
 
@@ -746,6 +808,18 @@ void EmittingAstVisitor::VisitForeachLoop(ForeachLoop *node) {
         builder(node->position())->jmp(retry - naked_builder()->pc());
         naked_builder()->jz_fill(outter, cond.offset, naked_builder()->pc() - outter);
     }
+    loop_holder.EmitAllBreak(naked_builder()->pc());
+
+    PushValue(VMValue::Void());
+}
+
+void EmittingAstVisitor::VisitBreak(Break *node) {
+    DCHECK_NOTNULL(current_->loop_scope())->AddBreak(node->position());
+    PushValue(VMValue::Void());
+}
+
+void EmittingAstVisitor::VisitContinue(Continue *node) {
+    DCHECK_NOTNULL(current_->loop_scope())->EmitContinue(node->position());
     PushValue(VMValue::Void());
 }
 
@@ -1007,22 +1081,25 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
         naked_builder()->jmp_fill(leave, naked_builder()->pc() - leave);
         PushValue(val);
     } else {
-        VMValue val;
+
+        VMValue val = node->then_type()->IsVoid()
+                    ? VMValue::Void() : current_->MakeObjectValue();
         // then
         auto then_val = Emit(node->then_statement());
 
-        val.segment = BC_LOCAL_OBJECT_SEGMENT;
-        val.offset  = current_->MakeObjectRoom();
-        val.size    = kObjectReferenceSize;
-        EmitCreateUnion(val, then_val, node->then_type(),
-                        GetLastPosition(node->then_statement()));
+        if (!node->then_type()->IsVoid()) {
+            EmitCreateUnion(val, then_val, node->then_type(),
+                            GetLastPosition(node->then_statement()));
+        }
         auto leave = builder(GetLastPosition(node->then_statement()))->jmp(naked_builder()->pc());
 
         // else
         // fill back outter
         naked_builder()->jz_fill(outter, cond.offset, naked_builder()->pc() - outter);
-        EmitCreateUnion(val, {}, types()->GetVoid(),
-                        GetLastPosition(node->then_statement()));
+        if (!node->then_type()->IsVoid()) {
+            EmitCreateUnion(val, {}, types()->GetVoid(),
+                            GetLastPosition(node->then_statement()));
+        }
 
         // fill back leave
         naked_builder()->jmp_fill(leave, naked_builder()->pc() - leave);
@@ -1955,7 +2032,7 @@ VMValue EmittingAstVisitor::EmitIntegralCmp(Type *type, Expression *lhs,
         builder(lhs->position())->cmp_i##bit (comparator, result.offset, val1.offset, val2.offset); \
         break;
 
-    MIO_INT_BYTES_SWITCH(result.size, DEFINE_CASE)
+    MIO_INT_BYTES_SWITCH(val1.size, DEFINE_CASE)
 
 #undef DEFINE_CASE
 

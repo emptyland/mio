@@ -490,7 +490,7 @@ private:
         mio_i8_t   as_i8;
         mio_i16_t  as_i16;
         mio_i32_t  as_i32;
-        mio_i16_t  as_i64;
+        mio_i64_t  as_i64;
     } data_;
 
 }; // class SmiLiteral

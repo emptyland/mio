@@ -284,4 +284,18 @@ TEST_F(ThreadTest, P027_SleepProfile) {
     }
 }
 
+TEST_F(ThreadTest, P028_WhileLoopProfile) {
+    ParsingError error;
+
+    ASSERT_TRUE(vm_->CompileProject("test/028", &error)) << error.ToString();
+    std::string buf;
+    vm_->DisassembleAll(&buf);
+    printf("%s\n", buf.c_str());
+    if (vm_->Run() != 0) {
+        buf.clear();
+        vm_->PrintBackstrace(&buf);
+        FAIL() << buf;
+    }
+}
+
 } // namespace mio

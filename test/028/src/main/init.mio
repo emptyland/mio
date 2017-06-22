@@ -1,0 +1,18 @@
+package main
+
+function doom(a: int, b: int) = a + b
+
+function fool(a: int, b: int) = a * b
+
+function main: void {
+    var i = 0
+    var r = 0
+    while (true) {
+        if (i > 999999) {
+            break
+        }
+        i = i + 1
+        r = doom(i, 4725) + fool(i, 9981)
+    }
+    #base::println('i = '..i)
+}
