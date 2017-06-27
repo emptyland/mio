@@ -149,7 +149,8 @@ MSGGarbageCollector::CreateNormalFunction(const std::vector<Handle<HeapObject>> 
                                           const void *constant_primitive_data,
                                           int constant_primitive_size,
                                           const void *code,
-                                          int code_size) {
+                                          int code_size,
+                                          int id) {
     DCHECK_EQ(0, code_size % sizeof(uint64_t));
 
     auto placement_size = static_cast<int>(MIONormalFunction::kHeaderOffset +
@@ -158,6 +159,7 @@ MSGGarbageCollector::CreateNormalFunction(const std::vector<Handle<HeapObject>> 
     NEW_OBJECT(ob, MIONormalFunction, placement_size, 0);
 
     ob->SetName(nullptr);
+    ob->SetId(id);
     ob->SetDebugInfo(nullptr);
 
     ob->SetConstantPrimitiveSize(constant_primitive_size);

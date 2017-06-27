@@ -339,7 +339,7 @@ static_assert(sizeof(MIOString) == sizeof(HeapObject),
 class MIOFunction : public HeapObject {
 public:
     static const int kNameOffset = kHeapObjectOffset;
-    static const int kMIOFunctionOffset = kHeapObjectOffset + kObjectReferenceSize;
+    static const int kMIOFunctionOffset = kNameOffset + kObjectReferenceSize;
 
     DEFINE_HEAP_OBJ_RW(MIOString *, Name)
 
@@ -383,12 +383,14 @@ class MIONormalFunction final: public MIOFunction {
 public:
     typedef FunctionDebugInfo DebugInfo;
 
-    static const int kConstantPrimitiveSizeOffset = kMIOFunctionOffset;
+    static const int kIdOffset = kMIOFunctionOffset;
+    static const int kConstantPrimitiveSizeOffset = kIdOffset + sizeof(int);
     static const int kConstantObjectSizeOffset = kConstantPrimitiveSizeOffset + sizeof(int);
     static const int kCodeSizeOffset = kConstantObjectSizeOffset + sizeof(int);
     static const int kDebugInfoOffset = kCodeSizeOffset + sizeof(int);
     static const int kHeaderOffset = kDebugInfoOffset + sizeof(DebugInfo *);
 
+    DEFINE_HEAP_OBJ_RW(int, Id)
     DEFINE_HEAP_OBJ_RW(int, ConstantPrimitiveSize)
     DEFINE_HEAP_OBJ_RW(int, ConstantObjectSize)
     DEFINE_HEAP_OBJ_RW(int, CodeSize)
@@ -934,6 +936,7 @@ public:
  * +--------------+---------+--+
  */
 struct FunctionDebugInfo {
+    int         trace_node_size;
     const char *file_name;
     int         pc_size;   // size of pc_to_position;
     int         pc_to_position[1]; // pc to position;

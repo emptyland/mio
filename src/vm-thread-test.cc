@@ -19,6 +19,7 @@ public:
     virtual void SetUp() override {
         vm_ = new VM();
         vm_->AddSerachPath("libs");
+        vm_->set_jit(true);
         vm_->set_jit_optimize(1);
         ASSERT_TRUE(vm_->Init());
     }

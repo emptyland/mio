@@ -123,11 +123,12 @@ namespace mio {
     M(sitofp_i32) \
     M(sitofp_i64)
 
-#define VM_TEST_BC(M) \
+#define VM_CONTROL_BC(M) \
     M(test) \
     M(jz) \
     M(jnz) \
-    M(jmp)
+    M(jmp) \
+    M(loop_entry) \
 
 #define VM_CALL_BC(M) \
     M(call) \
@@ -144,7 +145,7 @@ namespace mio {
     VM_BIT_BC(M)          \
     VM_ARITH_BC(M)        \
     VM_TYPE_CAST(M)       \
-    VM_TEST_BC(M)         \
+    VM_CONTROL_BC(M)      \
     VM_CALL_BC(M)
 
 

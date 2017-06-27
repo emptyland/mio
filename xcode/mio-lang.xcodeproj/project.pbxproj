@@ -89,6 +89,8 @@
 		238DFC171EF577C900A65769 /* vm-profiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 238DFC161EF577C900A65769 /* vm-profiler.cc */; };
 		238DFC181EF577C900A65769 /* vm-profiler.cc in Sources */ = {isa = PBXBuildFile; fileRef = 238DFC161EF577C900A65769 /* vm-profiler.cc */; };
 		238DFC1A1EF5856B00A65769 /* handles-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 238DFC191EF5856B00A65769 /* handles-test.cc */; };
+		238DFC5D1EFD539B00A65769 /* tracing.cc in Sources */ = {isa = PBXBuildFile; fileRef = 238DFC5C1EFD539B00A65769 /* tracing.cc */; };
+		238DFC5E1EFD539B00A65769 /* tracing.cc in Sources */ = {isa = PBXBuildFile; fileRef = 238DFC5C1EFD539B00A65769 /* tracing.cc */; };
 		23C5D6261ECBDF77005FE7C2 /* vm-code-cache-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23C5D6251ECBDF77005FE7C2 /* vm-code-cache-test.cc */; };
 		23E3D59A1E5C1A7900C51DDE /* ast-printer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5991E5C1A7900C51DDE /* ast-printer.cc */; };
 		23E3D59B1E5C1A7900C51DDE /* ast-printer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 23E3D5991E5C1A7900C51DDE /* ast-printer.cc */; };
@@ -251,6 +253,8 @@
 		238DFC151EF5775800A65769 /* vm-profiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-profiler.h"; sourceTree = "<group>"; };
 		238DFC161EF577C900A65769 /* vm-profiler.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-profiler.cc"; sourceTree = "<group>"; };
 		238DFC191EF5856B00A65769 /* handles-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "handles-test.cc"; sourceTree = "<group>"; };
+		238DFC5B1EFD535D00A65769 /* tracing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tracing.h; sourceTree = "<group>"; };
+		238DFC5C1EFD539B00A65769 /* tracing.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tracing.cc; sourceTree = "<group>"; };
 		23C5D6241ECBDEEC005FE7C2 /* bit-operations.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "bit-operations.h"; sourceTree = "<group>"; };
 		23C5D6251ECBDF77005FE7C2 /* vm-code-cache-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-code-cache-test.cc"; sourceTree = "<group>"; };
 		23E3D5991E5C1A7900C51DDE /* ast-printer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "ast-printer.cc"; sourceTree = "<group>"; };
@@ -393,6 +397,7 @@
 				23F311F11EDBFFDD00B02687 /* managed-allocator.cc */,
 				23F311F51EDC010700B02687 /* fallback-managed-allocator.cc */,
 				23F311FA1EE8F6B700B02687 /* ring-buffer.cc */,
+				238DFC5C1EFD539B00A65769 /* tracing.cc */,
 			);
 			name = Source;
 			path = ../src;
@@ -468,6 +473,7 @@
 				23F311F41EDC00A400B02687 /* fallback-managed-allocator.h */,
 				23E6BA101EB332FC00FC1A55 /* source-file-position-dict.h */,
 				23F311F91EE8F62000B02687 /* ring-buffer.h */,
+				238DFC5B1EFD535D00A65769 /* tracing.h */,
 			);
 			name = Include;
 			path = ../src;
@@ -660,6 +666,7 @@
 				23E6BA171EB345D000FC1A55 /* source-file-position-dict-test.cc in Sources */,
 				23F311F61EDC010700B02687 /* fallback-managed-allocator.cc in Sources */,
 				234D819E1ECA8999006CA3BA /* asm-amd64.c in Sources */,
+				238DFC5D1EFD539B00A65769 /* tracing.cc in Sources */,
 				23E3D5B11E6FA55600C51DDE /* file-input-stream.cc in Sources */,
 				2349E5761E4C5310002883BC /* zone.cc in Sources */,
 			);
@@ -695,6 +702,7 @@
 				23E3D59B1E5C1A7900C51DDE /* ast-printer.cc in Sources */,
 				23E6BA151EB335A100FC1A55 /* source-file-position-dict.cc in Sources */,
 				23E6BA0F1EB1DD3600FC1A55 /* vm-object-extra-factory.cc in Sources */,
+				238DFC5E1EFD539B00A65769 /* tracing.cc in Sources */,
 				2311E3861EA8AD58007B5305 /* vm-runtime.cc in Sources */,
 				236202561E45BE2900B6B949 /* lexer.cc in Sources */,
 				2311E38A1EA9F0BC007B5305 /* vm-object-surface.cc in Sources */,

@@ -78,7 +78,8 @@ DoNothingGarbageCollector::CreateNormalFunction(const std::vector<Handle<HeapObj
                                             const void *constant_primitive_data,
                                             int constant_primitive_size,
                                             const void *code,
-                                            int code_size) {
+                                            int code_size,
+                                            int id) {
     DCHECK_EQ(0, code_size % sizeof(uint64_t));
 
     auto placement_size = static_cast<int>(MIONormalFunction::kHeaderOffset +
@@ -87,6 +88,7 @@ DoNothingGarbageCollector::CreateNormalFunction(const std::vector<Handle<HeapObj
 
     auto ob = NewObject<MIONormalFunction>(placement_size);
     ob->SetName(nullptr);
+    ob->SetId(id);
     ob->SetDebugInfo(nullptr);
 
     ob->SetConstantPrimitiveSize(constant_primitive_size);

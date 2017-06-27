@@ -4,6 +4,7 @@ namespace mio {
 
 FunctionDebugInfo *
 ObjectExtraFactory::CreateFunctionDebugInfo(RawStringRef unit_name,
+                                            int trace_node_size,
                                             const std::vector<int> &p2p) {
     auto placement_size = static_cast<int>(sizeof(FunctionDebugInfo)
                                            + unit_name->size() + 1
@@ -14,6 +15,7 @@ ObjectExtraFactory::CreateFunctionDebugInfo(RawStringRef unit_name,
 
     auto p = static_cast<char *>(allocator_->Allocate(placement_size));
     auto info = reinterpret_cast<FunctionDebugInfo *>(p);
+    info->trace_node_size = trace_node_size;
     info->pc_size = static_cast<int>(p2p.size());
 
     p += p2p_offset;

@@ -182,15 +182,15 @@ public:
 
     DEF_GETTER(int, p_stack_size)
     DEF_GETTER(int, o_stack_size)
+    DEF_GETTER(int, next_trace_id)
     DEF_PTR_PROP_RW(LoopScope, loop_scope)
+    DEF_PTR_GETTER(FunctionPrototype, prototype)
+    DEF_PTR_GETTER(Scope, scope)
 
     const std::vector<int> &pc_to_position() const {
         DCHECK_EQ(builder_.pc(), pc_to_position_.size());
         return pc_to_position_;
     }
-
-    FunctionPrototype *prototype() const { return prototype_; }
-    Scope *scope() const { return scope_; }
 
     int MakePrimitiveRoom(int size) {
         auto base = p_stack_size_;
@@ -203,6 +203,8 @@ public:
         o_stack_size_ += AlignDownBounds(kAlignmentSize, sizeof(HeapObject *));
         return base;
     }
+
+    int GenerateTraceId() { return next_trace_id_++; }
 
     VMValue MakeObjectValue() {
         return {
@@ -297,6 +299,7 @@ private:
     LoopScope *loop_scope_ = nullptr;
     int p_stack_size_ = 0;
     int o_stack_size_ = 0;
+    int next_trace_id_ = 0;
     FunctionPrototype *prototype_;
     BitCodeBuilder builder_;
     Scope *scope_;
@@ -318,6 +321,7 @@ public:
     ~LoopScope() { fn_scope_->set_loop_scope(saved_); }
 
     DEF_PROP_RW(int, entry_pc);
+    DEF_PROP_RW(int, id)
 
     void AddBreak(int position) {
         auto pc = fn_scope_->builder(position)->jmp(fn_scope_->naked_builder()->pc());
@@ -339,6 +343,7 @@ private:
     EmittedScope *fn_scope_;
     LoopScope *saved_;
     int entry_pc_ = -1;
+    int id_ = 0;
     std::vector<int> break_pcs_;
 }; // class LoopScope
 
@@ -633,6 +638,7 @@ void EmittingAstVisitor::EmitLocalFunction(FunctionDefine *node) {
 
 void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
     EmittedScope info(&current_, node->prototype(), node->scope());
+    info.GenerateTraceId(); // for func-entry trace
 
     auto prototype = node->prototype();
     auto scope = node->scope();
@@ -694,9 +700,11 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
                                    info.constant_primitive_data(),
                                    info.constant_primitive_size(),
                                    naked_builder()->code()->offset(0),
-                                   naked_builder()->code()->size());
+                                   naked_builder()->code()->size(),
+                                   emitter_->GenerateFunctionId());
     auto debug_info = emitter_->extra_factory_
-            ->CreateFunctionDebugInfo(unit_name_, info.pc_to_position());
+            ->CreateFunctionDebugInfo(unit_name_, current_->next_trace_id(),
+                                      info.pc_to_position());
     ob->AsNormalFunction()->SetDebugInfo(debug_info);
 
     if (node->up_value_size() > 0) {
@@ -732,15 +740,20 @@ void EmittingAstVisitor::VisitBlock(Block *node) {
 }
 
 void EmittingAstVisitor::VisitWhileLoop(WhileLoop *node) {
-    auto entry = naked_builder()->pc();
+    auto loop_id = current_->GenerateTraceId();
+    auto retry = builder(node->position())->loop_entry(loop_id, 0);
     auto cond = Emit(node->condition());
-    auto outter = builder(node->condition()->position())->jz(cond.offset,
+    auto guard_false_id = current_->GenerateTraceId();
+    auto outter = builder(node->condition()->position())->jz(0, cond.offset,
                                                              naked_builder()->pc());
     LoopScope loop_holder(current_);
+    loop_holder.set_id(loop_id);
 
     Emit(node->body());
-    builder(node->end_position())->jmp(entry - naked_builder()->pc());
-    naked_builder()->jz_fill(outter, cond.offset, naked_builder()->pc() - outter);
+    builder(node->end_position())->tail_jmp(loop_id, current_->GenerateTraceId(),
+                                            retry - naked_builder()->pc());
+    naked_builder()->jz_fill(outter, guard_false_id, cond.offset,
+                             naked_builder()->pc() - outter);
 
     loop_holder.EmitAllBreak(naked_builder()->pc());
     PushValue(VMValue::Void());
@@ -770,17 +783,22 @@ void EmittingAstVisitor::VisitForeachLoop(ForeachLoop *node) {
     node->value()->instance()->set_offset(value.offset);
 
     LoopScope loop_holder(current_);
+    loop_holder.set_id(current_->GenerateTraceId());
     auto container = Emit(node->container());
 
     if (node->container_type()->IsMap()) {
+
         builder(node->position())->oop(OO_MapFirstKey, container.offset,
                                        key.offset, value.offset);
         auto outter = builder(node->position())->jmp(naked_builder()->pc());
         loop_holder.set_entry_pc(outter);
+        builder(node->position())->loop_entry(loop_holder.id(), 0);
         Emit(node->body());
         builder(node->position())->oop(OO_MapNextKey, container.offset,
                                        key.offset, value.offset);
-        builder(node->position())->jmp(outter - naked_builder()->pc() + 1);
+        builder(node->position())->tail_jmp(loop_holder.id(),
+                                            current_->GenerateTraceId(),
+                                            outter - naked_builder()->pc() + 1);
         naked_builder()->jmp_fill(outter, naked_builder()->pc() - outter);
     } else if (node->container_type()->IsArray() ||
                node->container_type()->IsSlice()) {
@@ -792,10 +810,11 @@ void EmittingAstVisitor::VisitForeachLoop(ForeachLoop *node) {
                                        size.offset, 0);
 
         auto cond = current_->MakeLocalValue(key_type);
-        auto retry = builder(node->position())->cmp_i64(CC_LT, cond.offset,
-                                                        key.offset,
-                                                        size.offset);
-        auto outter = builder(node->value()->position())->jz(cond.offset,
+        auto retry = builder(node->position())->loop_entry(loop_holder.id(), 0);
+        builder(node->position())->cmp_i64(CC_LT, cond.offset, key.offset,
+                                           size.offset);
+        auto guard_false_id = current_->GenerateTraceId();
+        auto outter = builder(node->value()->position())->jz(0, cond.offset,
                                                              naked_builder()->pc());
         loop_holder.set_entry_pc(outter);
         builder(node->value()->position())->oop(OO_ArrayGet, container.offset,
@@ -805,8 +824,11 @@ void EmittingAstVisitor::VisitForeachLoop(ForeachLoop *node) {
         auto one = current_->MakeConstantPrimitiveValue(static_cast<mio_int_t>(1));
         one = EmitLoadMakeRoom(one, node->position());
         builder(node->position())->add_i64(key.offset, key.offset, one.offset);
-        builder(node->position())->jmp(retry - naked_builder()->pc());
-        naked_builder()->jz_fill(outter, cond.offset, naked_builder()->pc() - outter);
+        builder(node->position())->tail_jmp(loop_holder.id(),
+                                            current_->GenerateTraceId(),
+                                            retry - naked_builder()->pc());
+        naked_builder()->jz_fill(outter, guard_false_id, cond.offset,
+                                 naked_builder()->pc() - outter);
     }
     loop_holder.EmitAllBreak(naked_builder()->pc());
 
@@ -1046,7 +1068,9 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
     auto cond = Emit(node->condition());
     DCHECK(cond.segment == BC_LOCAL_PRIMITIVE_SEGMENT);
 
-    auto outter = builder(node->position())->jz(cond.offset, naked_builder()->pc());
+    auto guard_false_id = current_->GenerateTraceId();
+    auto outter = builder(node->position())->jz(0, cond.offset,
+                                                naked_builder()->pc());
     if (node->has_else()) {
         bool need_union = node->then_type()->GenerateId() !=
                           node->else_type()->GenerateId();
@@ -1062,7 +1086,8 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
         }
         auto leave = builder(node->then_statement()->position())->jmp(naked_builder()->pc());
         // fill back outter
-        naked_builder()->jz_fill(outter, cond.offset, naked_builder()->pc() - outter);
+        naked_builder()->jz_fill(outter, guard_false_id, cond.offset,
+                                 naked_builder()->pc() - outter);
 
         auto position = GetLastPosition(node->else_statement());
         auto else_val = Emit(node->else_statement());
@@ -1095,7 +1120,8 @@ void EmittingAstVisitor::VisitIfOperation(IfOperation *node) {
 
         // else
         // fill back outter
-        naked_builder()->jz_fill(outter, cond.offset, naked_builder()->pc() - outter);
+        naked_builder()->jz_fill(outter, guard_false_id, cond.offset,
+                                 naked_builder()->pc() - outter);
         if (!node->then_type()->IsVoid()) {
             EmitCreateUnion(val, {}, types()->GetVoid(),
                             GetLastPosition(node->then_statement()));
@@ -1774,22 +1800,23 @@ void EmittingAstVisitor::VisitTypeMatch(TypeMatch *node) {
     auto cond = current_->MakeLocalValue(types()->GetI1());
 
     std::vector<int> block_outter;
-    int else_outter = -1;
+    int else_outter = -1, else_outter_id = 0;
     for (int i = 0; i < node->match_case_size(); ++i) {
         auto match_case = node->match_case(i);
         if (match_case == else_case) {
             continue;
         }
         if (else_outter >= 0) {
-            naked_builder()->jz_fill(else_outter, cond.offset,
+            naked_builder()->jz_fill(else_outter, else_outter_id, cond.offset,
                                      naked_builder()->pc() - else_outter);
         }
 
         auto type_index = TypeInfoIndex(match_case->cast_pattern()->type());
         builder(match_case->cast_pattern()->position())
                 ->oop(OO_UnionTest, cond.offset, target.offset, type_index);
+        else_outter_id = current_->GenerateTraceId();
         else_outter = builder(match_case->position())
-                ->jz(cond.offset, naked_builder()->pc());
+                ->jz(0, cond.offset, naked_builder()->pc());
 
         auto value = current_->MakeLocalValue(match_case->cast_pattern()->type());
         
@@ -1804,7 +1831,7 @@ void EmittingAstVisitor::VisitTypeMatch(TypeMatch *node) {
     }
 
     if (else_outter >= 0) {
-        naked_builder()->jz_fill(else_outter, cond.offset,
+        naked_builder()->jz_fill(else_outter, else_outter_id, cond.offset,
                                  naked_builder()->pc() - else_outter);
     }
     if (else_case) {
@@ -2514,13 +2541,15 @@ BitCodeEmitter::BitCodeEmitter(MemorySegment *p_global,
                                TypeFactory *types,
                                ObjectFactory *object_factory,
                                ObjectExtraFactory *extra_factory,
-                               FunctionRegister *function_register)
+                               FunctionRegister *function_register,
+                               int next_function_id)
     : p_global_(DCHECK_NOTNULL(p_global))
     , o_global_(DCHECK_NOTNULL(o_global))
     , types_(DCHECK_NOTNULL(types))
     , object_factory_(DCHECK_NOTNULL(object_factory))
     , extra_factory_(DCHECK_NOTNULL(extra_factory))
-    , function_register_(DCHECK_NOTNULL(function_register)) {
+    , function_register_(DCHECK_NOTNULL(function_register))
+    , next_function_id_(next_function_id) {
 }
 
 BitCodeEmitter::~BitCodeEmitter() {
@@ -2583,6 +2612,7 @@ bool BitCodeEmitter::Run(ParsedModuleMap *all_modules, CompiledInfo *info) {
         info->error_type_index = type_id2index_[types_->GetError()->GenerateId()];
         info->global_primitive_segment_bytes = p_global_->size();
         info->global_object_segment_bytes    = o_global_->size();
+        info->next_function_id = next_function_id_;
         info->all_var = all_var_->core().get();
     }
     return ok;
@@ -2637,7 +2667,8 @@ bool BitCodeEmitter::EmitModule(RawStringRef module_name,
                                                     info.constant_primitive_data(),
                                                     info.constant_primitive_size(),
                                                     info.naked_builder()->code()->offset(0),
-                                                    info.naked_builder()->code()->size());
+                                                    info.naked_builder()->code()->size(),
+                                                    GenerateFunctionId());
     Handle<MIOString> inner_name;
     visitor.GetOrNewString(boot_name, &inner_name);
     ob->SetName(inner_name.get());

@@ -21,6 +21,7 @@ class MIOString;
 class SourceFilePositionDict;
 class CodeCache;
 class Profiler;
+class TraceRecord;
 struct ParsingError;
 
 typedef int (*MIOFunctionPrototype)(VM *, Thread *);
@@ -56,39 +57,22 @@ public:
     DEF_GETTER(int, tick)
     DEF_PROP_RW(std::string, gc_name)
     DEF_GETTER(std::vector<BacktraceLayout>, backtrace)
+    DEF_PROP_RW(bool, jit)
     DEF_PROP_RW(int, jit_optimize)
+    DEF_PTR_GETTER_NOTNULL(MIOHashMap, all_var)
+    DEF_PTR_GETTER_NOTNULL(Thread, main_thread)
+    DEF_PTR_GETTER_NOTNULL(FunctionRegister, function_register)
+    DEF_PTR_GETTER_NOTNULL(GarbageCollector, gc)
+    DEF_PTR_GETTER(ManagedAllocator, allocator)
+    DEF_PTR_GETTER(SourceFilePositionDict, source_position_dict)
 
-    MIOHashMap *all_var() const { return DCHECK_NOTNULL(all_var_); }
-
-    Thread *main_thread() const {
-        return DCHECK_NOTNULL(main_thread_);
-    }
-
-    Thread *current() const {
-        return DCHECK_NOTNULL(main_thread_);
-    }
-
-    FunctionRegister *function_register() const {
-        return DCHECK_NOTNULL(function_register_);
-    }
+    Thread *current() const { return DCHECK_NOTNULL(main_thread_); }
 
     ObjectFactory *object_factory() const {
         return reinterpret_cast<ObjectFactory *>(gc_);
     }
 
-    GarbageCollector *gc() const {
-        return DCHECK_NOTNULL(gc_);
-    }
-
-    ManagedAllocator *allocator() const { return allocator_; }
-
-    SourceFilePositionDict *source_position_dict() const {
-        return source_position_dict_;
-    }
-
-    void AddSerachPath(const std::string &path) {
-        search_path_.push_back(path);
-    }
+    void AddSerachPath(const std::string &path) { search_path_.push_back(path); }
 
     void DisassembleAll(TextOutputStream *stream);
     void DisassembleAll(std::string *buf);
@@ -111,6 +95,7 @@ private:
 
     /** VM execution tick */
     int tick_ = 0;
+    int next_function_id_ = 0;
     int max_call_deep_ = kDefaultMaxCallDeep;
     int native_code_size_ = kDefaultNativeCodeSize;
     Thread *main_thread_;
@@ -121,6 +106,7 @@ private:
     int type_info_size_ = 0;
     int type_void_index_ = 0;
     int type_error_index_ = 0;
+    bool jit_ = false;
     int jit_optimize_ = 0;
     MIOHashMap *all_var_ = nullptr;
     ManagedAllocator *allocator_ = nullptr;
@@ -129,6 +115,7 @@ private:
     FunctionRegister *function_register_ = nullptr;
     ParsedModuleMap *all_modules_ = nullptr;
     Profiler *profiler_ = nullptr;
+    TraceRecord *record_ = nullptr;
     SourceFilePositionDict *source_position_dict_;
     std::vector<BacktraceLayout> backtrace_;
 };

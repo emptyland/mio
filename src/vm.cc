@@ -17,6 +17,7 @@
 #include "do-nothing-garbage-collector.h"
 #include "msg-garbage-collector.h"
 #include "source-file-position-dict.h"
+#include "tracing.h"
 
 namespace mio {
 
@@ -43,6 +44,7 @@ VM::~VM() {
     if (allocator_) {
         allocator_->Finialize();
     }
+    delete record_;
     delete allocator_;
     delete code_cache_;
 }
@@ -76,9 +78,13 @@ bool VM::Init() {
 
     function_register_ = new SimpleFunctionRegister(code_cache_, o_global_);
 
+    if (jit_) {
+        record_ = new TraceRecord(allocator_);
+    }
+
     if (jit_optimize_ > 0) {
-        profiler_ = new Profiler(this, 17);
-        profiler_->set_sample_rate(10);
+//        profiler_ = new Profiler(this, 17);
+//        profiler_->set_sample_rate(10);
     }
 
     // TODO:
@@ -114,15 +120,21 @@ bool VM::CompileProject(const char *project_dir, ParsingError *error) {
     CompiledInfo info;
     ObjectExtraFactory extra_factory(allocator_);
     Compiler::AstEmitToBitCode(all_modules_, p_global_, o_global_, types.get(),
-                               gc_, &extra_factory, function_register_, &info);
+                               gc_, &extra_factory, function_register_, &info,
+                               next_function_id_);
     DLOG(INFO) << "pg: " << info.global_primitive_segment_bytes << "\n"
                << "og: " << info.global_object_segment_bytes;
 
-    type_info_base_  = info.all_type_base;
+    type_info_base_   = info.all_type_base;
     type_void_index_  = info.void_type_index;
     type_error_index_ = info.error_type_index;
-    all_var_         = DCHECK_NOTNULL(info.all_var);
+    all_var_          = DCHECK_NOTNULL(info.all_var);
+    next_function_id_ = info.next_function_id;
     all_var_->Grab();
+
+    if (jit_) {
+        DCHECK_NOTNULL(record_)->ResizeRecord(next_function_id_);
+    }
 
     auto nafn = &kRtNaFn[0];
     while (nafn->name != nullptr) {

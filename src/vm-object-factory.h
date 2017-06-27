@@ -62,7 +62,8 @@ public:
                          const void *constant_primitive,
                          int constant_primitive_size,
                          const void *code,
-                         int code_size) = 0;
+                         int code_size,
+                         int id) = 0;
 
     virtual Handle<MIOClosure> CreateClosure(Handle<MIOFunction> function,
                                              int up_values_size) = 0;

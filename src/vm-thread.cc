@@ -7,6 +7,7 @@
 #include "vm-bitcode-disassembler.h"
 #include "vm-bitcode.h"
 #include "vm.h"
+#include "tracing.h"
 #include "memory-output-stream.h"
 #include "handles.h"
 #include "glog/logging.h"
@@ -102,6 +103,11 @@ private:
 }; // class CallStack
 
 #define RunGC() (vm_->gc_->Step(vm_->tick_))
+
+#define TRACE(body) if (!(body)) { \
+    Panic(OUT_OF_MEMORY, ok, "trace fail: out of memory."); \
+    return; \
+} (void)0
 
 Thread::Thread(VM *vm)
     : vm_(DCHECK_NOTNULL(vm))
@@ -758,26 +764,54 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 }
             } break;
 
+            case BC_loop_entry: {
+                auto id = BitCodeDisassembler::GetOp2(bc);
+                auto native = BitCodeDisassembler::GetImm32(bc);
+                if (vm_->jit_) {
+                    TRACE(vm_->record_->TraceLoopEntry(normal_function(), id, pc_ - 1));
+                    if (native > 0) {
+                        // TODO:
+                    }
+                }
+            } break;
+
             case BC_jz: {
-                auto cond = BitCodeDisassembler::GetOp2(bc);
+                auto id    = BitCodeDisassembler::GetOp1(bc);
+                auto cond  = BitCodeDisassembler::GetOp2(bc);
                 auto delta = BitCodeDisassembler::GetImm32(bc);
 
-                if (p_stack_->Get<mio_i8_t>(cond) == 0) {
+                auto value = p_stack_->Get<mio_bool_t>(cond);
+                if (vm_->jit_ && id > 0) {
+                    TRACE(vm_->record_->TraceGuardFalse(normal_function(), value, id, pc_ - 1));
+                }
+
+                if (value == 0) {
                     pc_ += delta - 1;
                 }
             } break;
 
             case BC_jnz: {
-                auto cond = BitCodeDisassembler::GetOp2(bc);
+                auto id    = BitCodeDisassembler::GetOp1(bc);
+                auto cond  = BitCodeDisassembler::GetOp2(bc);
                 auto delta = BitCodeDisassembler::GetImm32(bc);
 
-                if (p_stack_->Get<mio_i8_t>(cond) != 0) {
+                auto value = p_stack_->Get<mio_bool_t>(cond);
+                if (vm_->jit_ && id > 0) {
+                    TRACE(vm_->record_->TraceGuardTrue(normal_function(), value, id, pc_ - 1));
+                }
+                if (value != 0) {
                     pc_ += delta - 1;
                 }
             } break;
 
             case BC_jmp: {
+                auto linked_id = BitCodeDisassembler::GetOp1(bc);
+                auto id = BitCodeDisassembler::GetOp2(bc);
                 auto delta = BitCodeDisassembler::GetImm32(bc);
+                if (vm_->jit_ && id > 0 && linked_id > 0) {
+                    TRACE(vm_->record_->TraceLoopEdge(normal_function(), linked_id, id, pc_ - 1));
+                }
+
                 pc_ += delta - 1;
             } break;
 
@@ -850,6 +884,10 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
 
                     DCHECK(fn->IsNormalFunction()) << fn->GetKind();
                     auto normal = DCHECK_NOTNULL(fn->AsNormalFunction());
+                    if (vm_->jit_) {
+                        TRACE(vm_->record_->TraceFuncEntry(normal, 0));
+                    }
+
                     auto base1 = BitCodeDisassembler::GetOp1(bc);
                     auto base2 = BitCodeDisassembler::GetOp2(bc);
                     p_stack_->AdjustFrame(base1, 0);

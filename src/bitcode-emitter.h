@@ -28,7 +28,8 @@ public:
                    TypeFactory *types,
                    ObjectFactory *object_factory,
                    ObjectExtraFactory *extra_factory,
-                   FunctionRegister *function_register);
+                   FunctionRegister *function_register,
+                   int next_function_id);
     ~BitCodeEmitter();
 
     void Init();
@@ -50,6 +51,8 @@ private:
                            EmittedScope *info,
                            ParsedModuleMap *all_modules);
 
+    inline int GenerateFunctionId() { return next_function_id_++; }
+
     MemorySegment *p_global_;
     MemorySegment *o_global_;
     TypeFactory *types_;
@@ -61,6 +64,7 @@ private:
     std::unordered_set<std::string> imported_;
     int all_type_base_ = 0;
     std::unordered_map<int64_t, int> type_id2index_;
+    int next_function_id_;
 };
 
 } // namespace mio

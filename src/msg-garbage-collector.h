@@ -83,7 +83,8 @@ public:
                          const void *constant_primitive,
                          int constant_primitive_size,
                          const void *code,
-                         int code_size) override;
+                         int code_size,
+                         int id) override;
 
     virtual Handle<MIOVector>
     CreateVector(int initial_size, Handle<MIOReflectionType> element) override;

@@ -13,6 +13,7 @@ public:
         : allocator_(DCHECK_NOTNULL(allocator)) {}
 
     FunctionDebugInfo * CreateFunctionDebugInfo(RawStringRef unit_name,
+                                                int trace_node_size,
                                                 const std::vector<int> &p2p);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(ObjectExtraFactory)

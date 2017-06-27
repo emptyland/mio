@@ -231,11 +231,23 @@ void BitCodeDisassembler::Disassemble(uint64_t bc) {
 
         case BC_jz:
         case BC_jnz:
-            stream_->Printf("[%u] %d", GetOp2(bc), GetImm32(bc));
+            if (GetOp1(bc) > 0) {
+                stream_->Printf("[%u] %d #%d", GetOp2(bc), GetImm32(bc), GetOp1(bc));
+            } else {
+                stream_->Printf("[%u] %d", GetOp2(bc), GetImm32(bc));
+            }
             break;
 
         case BC_jmp:
-            stream_->Printf("%d", GetImm32(bc));
+            if (GetOp1(bc) > 0 && GetOp2(bc) > 0) {
+                stream_->Printf("%d #%d #%d", GetImm32(bc), GetOp1(bc), GetOp2(bc));
+            } else {
+                stream_->Printf("%d", GetImm32(bc));
+            }
+            break;
+
+        case BC_loop_entry:
+            stream_->Printf("%d@native #%d", GetImm32(bc), GetOp2(bc));
             break;
 
         default:

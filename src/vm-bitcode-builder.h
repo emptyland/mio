@@ -355,24 +355,32 @@ public:
         return Emit3Addr(BC_jmp, 0, 0, delta);
     }
 
+    int tail_jmp(uint16_t linked_id, uint16_t id, int32_t delta) {
+        return Emit3Addr(BC_jmp, linked_id, id, delta);
+    }
+
     void jmp_fill(int pc, int32_t delta) {
         FillPlacement(pc, Make3AddrBC(BC_jmp, 0, 0, delta));
     }
 
-    int jnz(uint16_t cond, int32_t delta) {
-        return Emit3Addr(BC_jnz, 0, cond, delta);
+    int jnz(uint16_t id, uint16_t cond, int32_t delta) {
+        return Emit3Addr(BC_jnz, id, cond, delta);
     }
 
-    void jnz_fill(int pc, uint16_t cond, int32_t delta) {
-        FillPlacement(pc, Make3AddrBC(BC_jnz, 0, cond, delta));
+    void jnz_fill(int pc, uint16_t id, uint16_t cond, int32_t delta) {
+        FillPlacement(pc, Make3AddrBC(BC_jnz, id, cond, delta));
     }
 
-    int jz(uint16_t cond, int32_t delta) {
-        return Emit3Addr(BC_jz, 0, cond, delta);
+    int jz(uint16_t id, uint16_t cond, int32_t delta) {
+        return Emit3Addr(BC_jz, id, cond, delta);
     }
 
-    void jz_fill(int pc, uint16_t cond, int32_t delta) {
-        FillPlacement(pc, Make3AddrBC(BC_jz, 0, cond, delta));
+    void jz_fill(int pc, uint16_t id, uint16_t cond, int32_t delta) {
+        FillPlacement(pc, Make3AddrBC(BC_jz, id, cond, delta));
+    }
+
+    int loop_entry(uint16_t id, int32_t native) {
+        return Emit3Addr(BC_loop_entry, 0, id, native);
     }
 
     ////////////////////////////////////////////////////////////////////////////
