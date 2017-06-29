@@ -14,7 +14,6 @@ const RtNativeFunctionEntry kRtNaFn[] = {
     { "::base::panic",  &NativeBaseLibrary::Panic,  },
     { "::base::newError",  &NativeBaseLibrary::NewError,  },
     { "::base::newErrorWith",  &NativeBaseLibrary::NewErrorWith,  },
-    { "::base::allGlobalVariables", &NativeBaseLibrary::AllGlobalVariables, },
     { "::base::sleep", &NativeBaseLibrary::Sleep, },
 
     { .name = nullptr, .pointer = nullptr, } // end of functions
@@ -138,6 +137,11 @@ int NativeBaseLibrary::ToString(Thread *thread, TextOutputStream *stream,
     thread->set_syscall(static_cast<int>(mils));
     std::this_thread::sleep_for(std::chrono::milliseconds(mils));
     thread->set_syscall(0);
+    return 0;
+}
+
+/*static*/ int NativeBaseLibrary::TraceInfo(VM *vm, Thread *thread) {
+    
     return 0;
 }
 

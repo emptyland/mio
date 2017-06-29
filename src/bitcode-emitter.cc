@@ -484,8 +484,8 @@ private:
     int GetVariableOffset(Variable *var, Scope *scope);
 
     int TypeInfoIndex(Type *type) {
-        auto iter = emitter_->type_id2index_.find(type->GenerateId());
-        DCHECK(iter != emitter_->type_id2index_.end())
+        auto iter = emitter_->type_id2index_->find(type->GenerateId());
+        DCHECK(iter != emitter_->type_id2index_->end())
                 << "has call BitCodeEmitter::Init() ?";
         return iter->second;
     }
@@ -2542,6 +2542,9 @@ BitCodeEmitter::BitCodeEmitter(MemorySegment *p_global,
                                ObjectFactory *object_factory,
                                ObjectExtraFactory *extra_factory,
                                FunctionRegister *function_register,
+                               MIOHashMapStub<Handle<MIOString>, mio_i32_t> *all_var,
+                               MIOArrayStub<Handle<MIOReflectionType>> *all_type,
+                               std::unordered_map<int64_t, int> *type_id2index,
                                int next_function_id)
     : p_global_(DCHECK_NOTNULL(p_global))
     , o_global_(DCHECK_NOTNULL(o_global))
@@ -2549,16 +2552,16 @@ BitCodeEmitter::BitCodeEmitter(MemorySegment *p_global,
     , object_factory_(DCHECK_NOTNULL(object_factory))
     , extra_factory_(DCHECK_NOTNULL(extra_factory))
     , function_register_(DCHECK_NOTNULL(function_register))
+    , all_var_(DCHECK_NOTNULL(all_var))
+    , all_type_(DCHECK_NOTNULL(all_type))
+    , type_id2index_(DCHECK_NOTNULL(type_id2index))
     , next_function_id_(next_function_id) {
 }
 
 BitCodeEmitter::~BitCodeEmitter() {
-    delete all_var_;
 }
 
 void BitCodeEmitter::Init() {
-    DCHECK(type_id2index_.empty());
-
     std::map<int64_t, Type *> all_type;
     auto rv = types_->GetAllType(&all_type);
     DCHECK_LT(rv, 0x7fff);
@@ -2571,19 +2574,16 @@ void BitCodeEmitter::Init() {
         TypeToReflection(pair.second, object_factory_, &all_obj);
     }
 
-    all_type_base_ = o_global_->size();
-    int index = 0;
+    bool ok = true;
+    auto gc = static_cast<GarbageCollector *>(object_factory_);
     for (const auto &pair : all_obj) {
-        type_id2index_.emplace(pair.first, index++);
-        o_global_->Add(pair.second.get());
+        auto index = all_type_->size();
+        all_type_->Add(pair.second, &ok);
+        gc->WriteBarrier(all_type_->core().get(), pair.second.get());
+        type_id2index_->emplace(pair.first, index);
     }
 
-    auto idx = type_id2index_[types_->GetString()->GenerateId()];
-    auto key = o_global_->Get<MIOReflectionType *>(all_type_base_ + idx * kObjectReferenceSize);
-    idx = type_id2index_[types_->GetI32()->GenerateId()];
-    auto value = o_global_->Get<MIOReflectionType *>(all_type_base_ + idx * kObjectReferenceSize);
-    auto core = object_factory_->CreateHashMap(0, 17, make_handle(key), make_handle(value));
-    all_var_ = new MIOHashMapStub<Handle<MIOString>, mio_i32_t>(core.get(), object_factory_->allocator());
+    o_global_->Add(all_type_->core().get());
 }
 
 
@@ -2608,12 +2608,9 @@ bool BitCodeEmitter::Run(ParsedModuleMap *all_modules, CompiledInfo *info) {
 
     if (info) {
         info->all_type_base   = all_type_base_;
-        info->void_type_index  = type_id2index_[types_->GetVoid()->GenerateId()];
-        info->error_type_index = type_id2index_[types_->GetError()->GenerateId()];
         info->global_primitive_segment_bytes = p_global_->size();
         info->global_object_segment_bytes    = o_global_->size();
         info->next_function_id = next_function_id_;
-        info->all_var = all_var_->core().get();
     }
     return ok;
 }

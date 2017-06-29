@@ -286,6 +286,9 @@ ParsedUnitMap *Compiler::ParseProject(const char *project_dir,
                                            ObjectFactory *object_factory,
                                            ObjectExtraFactory *extra_factory,
                                            FunctionRegister *function_register,
+                                           MIOHashMapStub<Handle<MIOString>, mio_i32_t> *all_var,
+                                           MIOArrayStub<Handle<MIOReflectionType>> *all_type,
+                                           std::unordered_map<int64_t, int> *type_id2index,
                                            CompiledInfo *info,
                                            int next_function_id) {
     BitCodeEmitter emitter(p_global,
@@ -294,6 +297,9 @@ ParsedUnitMap *Compiler::ParseProject(const char *project_dir,
                            object_factory,
                            extra_factory,
                            function_register,
+                           all_var,
+                           all_type,
+                           type_id2index,
                            next_function_id);
     emitter.Init();
     emitter.Run(all_modules, info);

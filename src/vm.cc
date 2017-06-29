@@ -7,6 +7,7 @@
 #include "vm-bitcode-disassembler.h"
 #include "vm-runtime.h"
 #include "vm-profiler.h"
+#include "vm-object-surface.h"
 #include "fallback-managed-allocator.h"
 #include "zone.h"
 #include "simple-file-system.h"
@@ -18,6 +19,7 @@
 #include "msg-garbage-collector.h"
 #include "source-file-position-dict.h"
 #include "tracing.h"
+#include "token-inl.h"
 
 namespace mio {
 
@@ -37,9 +39,8 @@ VM::~VM() {
     delete profiler_;
     delete main_thread_;
 
-    if (all_var_) {
-        all_var_->Drop();
-    }
+    delete all_type_;
+    delete all_var_;
     delete gc_;
     if (allocator_) {
         allocator_->Finialize();
@@ -76,15 +77,28 @@ bool VM::Init() {
         return false;
     }
 
+    auto elem = gc_->CreateReflectionRef(0);
+    auto array = gc_->CreateVector(0, elem);
+    all_type_ = new MIOArrayStub<Handle<MIOReflectionType>>(array, gc_->allocator());
+    gc_->WriteBarrier(array.get(), elem.get());
+
+    bool ok = true;
+    auto key = gc_->CreateReflectionString(TOKEN_STRING);
+    all_type_->Add(key, &ok);
+    type_id2index_[key->GetTid()] = 0;
+    auto value = gc_->CreateReflectionIntegral(TOKEN_I32, 32);
+    all_type_->Add(value, &ok);
+    type_id2index_[value->GetTid()] = 1;
+
+    auto core = gc_->CreateHashMap(0, 17, key, value);
+    gc_->WriteBarrier(core.get(), key.get());
+    gc_->WriteBarrier(core.get(), value.get());
+    all_var_ = new MIOHashMapStub<Handle<MIOString>, mio_i32_t>(core.get(), gc_->allocator());
+
     function_register_ = new SimpleFunctionRegister(code_cache_, o_global_);
 
     if (jit_) {
         record_ = new TraceRecord(allocator_);
-    }
-
-    if (jit_optimize_ > 0) {
-//        profiler_ = new Profiler(this, 17);
-//        profiler_->set_sample_rate(10);
     }
 
     // TODO:
@@ -120,20 +134,23 @@ bool VM::CompileProject(const char *project_dir, ParsingError *error) {
     CompiledInfo info;
     ObjectExtraFactory extra_factory(allocator_);
     Compiler::AstEmitToBitCode(all_modules_, p_global_, o_global_, types.get(),
-                               gc_, &extra_factory, function_register_, &info,
+                               gc_, &extra_factory, function_register_,
+                               all_var_, all_type_, &type_id2index_, &info,
                                next_function_id_);
     DLOG(INFO) << "pg: " << info.global_primitive_segment_bytes << "\n"
                << "og: " << info.global_object_segment_bytes;
+    //printf("types: %d\n", all_type_->size());
 
-    type_info_base_   = info.all_type_base;
-    type_void_index_  = info.void_type_index;
-    type_error_index_ = info.error_type_index;
-    all_var_          = DCHECK_NOTNULL(info.all_var);
     next_function_id_ = info.next_function_id;
-    all_var_->Grab();
 
     if (jit_) {
         DCHECK_NOTNULL(record_)->ResizeRecord(next_function_id_);
+    }
+
+    auto key = gc_->GetOrNewString("::base::allGlobalVariables");
+    if (all_var_->Exist(key)) {
+        auto off = all_var_->Get(key) >> 2;
+        o_global_->Set(off, all_var_->core().get());
     }
 
     auto nafn = &kRtNaFn[0];
@@ -224,6 +241,20 @@ void VM::PrintBackstream(TextOutputStream *stream) {
         }
         stream->Write("\n", 1);
     }
+}
+
+Handle<MIOReflectionType> VM::GetVoidType() {
+    return EnsureGetType(TOKEN_VOID);
+}
+
+Handle<MIOReflectionType> VM::GetErrorType() {
+    return EnsureGetType(TOKEN_ERROR_TYPE);
+}
+
+Handle<MIOReflectionType> VM::EnsureGetType(int64_t tid) {
+    auto iter = type_id2index_.find(tid);
+    DCHECK(iter != type_id2index_.end());
+    return all_type_->Get(iter->second);
 }
 
 } // namespace mio

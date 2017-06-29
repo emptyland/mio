@@ -4,9 +4,13 @@
 #include "zone-hash-map.h"
 #include "zone-vector.h"
 #include "zone.h"
+#include "handles.h"
 #include <unordered_map>
 
 namespace mio {
+
+template<class K, class V> class MIOHashMapStub;
+template<class T> class MIOArrayStub;
 
 class Statement;
 class TypeFactory;
@@ -20,6 +24,8 @@ class FunctionRegister;
 
 class MIOHashMap;
 class MIOFunction;
+class MIOString;
+class MIOReflectionType;
 
 // [unitName, [statement]]
 typedef ZoneHashMap<RawStringRef, ZoneVector<Statement *> *> ParsedUnitMap;
@@ -100,6 +106,9 @@ public:
                                  ObjectFactory *object_factory,
                                  ObjectExtraFactory *extra_factory,
                                  FunctionRegister *function_register,
+                                 MIOHashMapStub<Handle<MIOString>, mio_i32_t> *all_var,
+                                 MIOArrayStub<Handle<MIOReflectionType>> *all_type,
+                                 std::unordered_map<int64_t, int> *type_id2index,
                                  CompiledInfo *info,
                                  int next_function_id);
 

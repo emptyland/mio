@@ -77,6 +77,9 @@ public:
                                object_factory_,
                                &extra_factory,
                                function_register_,
+                               nullptr,
+                               nullptr,
+                               nullptr,
                                0);
         emitter.Init();
         ASSERT_TRUE(emitter.Run(checker.all_modules(), nullptr));

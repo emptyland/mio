@@ -885,16 +885,18 @@ Expression *Parser::ParseMapInitializer(bool *ok) {
 
     auto pairs = new (zone_) ZoneVector<Pair *>(zone_);
     Match(TOKEN_LBRACE, CHECK_OK);
-    do {
-        auto pair_pos = ahead_.position();
+    if (!Test(TOKEN_RBRACE)) {
+        do {
+            auto pair_pos = ahead_.position();
 
-        auto key = ParseExpression(false, CHECK_OK);
-        Match(TOKEN_THIN_LARROW, CHECK_OK);
-        auto value = ParseExpression(false, CHECK_OK);
+            auto key = ParseExpression(false, CHECK_OK);
+            Match(TOKEN_THIN_LARROW, CHECK_OK);
+            auto value = ParseExpression(false, CHECK_OK);
 
-        pairs->Add(factory_->CreatePair(key, value, pair_pos));
-    } while (Test(TOKEN_COMMA));
-    Match(TOKEN_RBRACE, CHECK_OK);
+            pairs->Add(factory_->CreatePair(key, value, pair_pos));
+        } while (Test(TOKEN_COMMA));
+        Match(TOKEN_RBRACE, CHECK_OK);
+    }
 
     return factory_->CreateMapInitializer(map, pairs, annoation, position,
                                           ahead_.position());

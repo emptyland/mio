@@ -124,6 +124,8 @@ public:
     Handle<MIOReflectionFloating>
     CreateReflectionFloating(int64_t tid, int bitwide) override;
 
+    virtual Handle<MIOReflectionRef> CreateReflectionRef(int64_t tid) override;
+
     virtual Handle<MIOReflectionString>
     CreateReflectionString(int64_t tid) override;
 

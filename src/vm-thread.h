@@ -74,6 +74,8 @@ public:
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Thread)
 private:
+    Handle<MIOReflectionType> GetTypeInfo(int index, bool *ok);
+
     FunctionDebugInfo *GetDebugInfo(int layout, int *pc);
 
     void ProcessLoadPrimitive(int bytes, uint16_t dest, uint16_t segment,
@@ -91,7 +93,6 @@ private:
                                         bool *ok);
     void CreateEmptyValue(int result,
                           Handle<MIOReflectionType> reflection, bool *ok);
-    Handle<MIOReflectionType> GetTypeInfo(int index, bool *ok);
 
     inline MIONormalFunction *normal_function();
     inline mio_buf_t<uint8_t> const_primitive_buf();

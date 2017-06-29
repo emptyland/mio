@@ -16,26 +16,6 @@
 
 namespace mio {
 
-inline void FastMemoryMove(void *dest, const void *src, int size) {
-    switch (size) {
-        case 1:
-            static_cast<uint8_t *>(dest)[0] = static_cast<const uint8_t *>(src)[0];
-            break;
-        case 2:
-            static_cast<uint16_t *>(dest)[0] = static_cast<const uint16_t *>(src)[0];
-            break;
-        case 4:
-            static_cast<uint32_t *>(dest)[0] = static_cast<const uint32_t *>(src)[0];
-            break;
-        case 8:
-            static_cast<uint64_t *>(dest)[0] = static_cast<const uint64_t *>(src)[0];
-            break;
-        default:
-            DLOG(FATAL) << "not a regular size: " << size;
-            break;
-    }
-}
-
 struct CallContext {
     int p_stack_base;
     int p_stack_size;
@@ -1541,7 +1521,7 @@ void Thread::ProcessObjectOperation(int id, uint16_t result, int16_t val1,
                                                         ob->GetKey()->GetTypePlacementSize(),
                                                         make_handle(ob->GetValue()));
             } else {
-                auto void_type = GetTypeInfo(vm_->type_void_index_, ok);
+                auto void_type = vm_->GetVoidType();
                 if (!*ok) {
                     return;
                 }
@@ -1704,8 +1684,7 @@ void Thread::CreateEmptyValue(int result, Handle<MIOReflectionType> reflection,
         } break;
 
         case HeapObject::kReflectionUnion: {
-            auto ob = vm_->gc_->CreateUnion(
-                    nullptr, 0, GetTypeInfo(vm_->type_void_index_, ok));
+            auto ob = vm_->gc_->CreateUnion(nullptr, 0, vm_->GetVoidType());
             if (!*ok) {
                 return;
             }
@@ -1723,19 +1702,11 @@ void Thread::CreateEmptyValue(int result, Handle<MIOReflectionType> reflection,
 }
 
 Handle<MIOReflectionType> Thread::GetTypeInfo(int index, bool *ok) {
-    auto addr = vm_->type_info_base_ + index * sizeof(MIOReflectionType *);
-    auto obj = make_handle(vm_->o_global_->Get<HeapObject *>(static_cast<int>(addr)));
-
-    if (!obj->IsReflectionType()) {
-        Panic(PANIC, ok, "can not get reflection object! index: %d", index);
-        return make_handle<MIOReflectionType>(nullptr);
+    if (index < 0 || index >= vm_->all_type_->size()) {
+        Panic(PANIC, ok, "type info index out of range.");
+        return Handle<MIOReflectionType>();
     }
-
-    return make_handle(obj->AsReflectionType());
+    return vm_->all_type_->Get(index);
 }
-
-//void Thread::RunGC() {
-//     vm_->gc_->Step(vm_->tick_);
-//}
 
 } // namespace mio

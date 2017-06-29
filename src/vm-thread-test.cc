@@ -47,8 +47,14 @@ TEST_F(ThreadTest, P012_Sanity) {
     ParsingError error;
 
     ASSERT_TRUE(vm_->CompileProject("test/012", &error)) << error.ToString();
+
+    std::string buf;
     vm_->function_register()->RegisterNativeFunction("::main::print", PrintRountine);
-    ASSERT_EQ(0, vm_->Run());
+    if (vm_->Run() != 0) {
+        buf.clear();
+        vm_->PrintBackstrace(&buf);
+        printf("%s\n", buf.c_str());
+    }
 }
 
 TEST_F(ThreadTest, P013_UnionOperation) {
@@ -92,7 +98,12 @@ TEST_F(ThreadTest, P016_UnionTypeMatch) {
 
     ASSERT_TRUE(vm_->CompileProject("test/016", &error)) << error.ToString();
     vm_->function_register()->RegisterNativeFunction("::main::print", PrintRountine);
-    ASSERT_EQ(0, vm_->Run());
+    std::string buf;
+    if (vm_->Run() != 0) {
+        buf.clear();
+        vm_->PrintBackstrace(&buf);
+        printf("%s\n", buf.c_str());
+    }
 }
 
 TEST_F(ThreadTest, P017_PanicTest) {

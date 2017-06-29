@@ -166,11 +166,9 @@ MIOArraySurface::MIOArraySurface(Handle<HeapObject> ob,
         slice_ = ob->AsSlice();
         core_  = slice_->GetVector();
         begin_ = slice_->GetRangeBegin();
-        size_  = slice_->GetRangeSize();
     } else {
         core_  = ob->AsVector();
         begin_ = 0;
-        size_  = core_->GetSize();
     }
     element_size_ = core_->GetElement()->GetTypePlacementSize();
 }

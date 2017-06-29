@@ -109,6 +109,7 @@ void ObjectScanner::Scan(HeapObject *ob, Callback callback) {
         } break;
 
         case HeapObject::kReflectionVoid:
+        case HeapObject::kReflectionRef:
         case HeapObject::kReflectionString:
         case HeapObject::kReflectionError:
         case HeapObject::kReflectionFloating:

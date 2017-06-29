@@ -28,6 +28,7 @@ class MIOReflectionType;
     class MIOReflectionVoid;
     class MIOReflectionIntegral;
     class MIOReflectionFloating;
+    class MIOReflectionRef;
     class MIOReflectionString;
     class MIOReflectionError;
     class MIOReflectionUnion;
@@ -40,30 +41,31 @@ class MIOReflectionType;
 struct FunctionDebugInfo;
 
 #define MIO_REFLECTION_TYPES(M) \
-    M(ReflectionVoid) \
-    M(ReflectionIntegral) \
-    M(ReflectionFloating) \
-    M(ReflectionString) \
-    M(ReflectionError) \
-    M(ReflectionUnion) \
-    M(ReflectionExternal) \
-    M(ReflectionSlice) \
-    M(ReflectionArray) \
-    M(ReflectionMap) \
-    M(ReflectionFunction) \
+    M(ReflectionVoid)           \
+    M(ReflectionIntegral)       \
+    M(ReflectionFloating)       \
+    M(ReflectionRef)            \
+    M(ReflectionString)         \
+    M(ReflectionError)          \
+    M(ReflectionUnion)          \
+    M(ReflectionExternal)       \
+    M(ReflectionSlice)          \
+    M(ReflectionArray)          \
+    M(ReflectionMap)            \
+    M(ReflectionFunction)
 
-#define MIO_OBJECTS(M) \
-    M(String) \
-    M(UpValue) \
-    M(Closure) \
-    M(NativeFunction) \
-    M(NormalFunction) \
-    M(Slice) \
-    M(Vector) \
-    M(HashMap) \
-    M(Error) \
-    M(Union) \
-    M(External) \
+#define MIO_OBJECTS(M)         \
+    M(String)                  \
+    M(UpValue)                 \
+    M(Closure)                 \
+    M(NativeFunction)          \
+    M(NormalFunction)          \
+    M(Slice)                   \
+    M(Vector)                  \
+    M(HashMap)                 \
+    M(Error)                   \
+    M(Union)                   \
+    M(External)                \
     MIO_REFLECTION_TYPES(M)
 
 typedef int (*MIOFunctionPrototype)(VM *, Thread *);
@@ -144,7 +146,7 @@ public:
     DEFINE_HEAP_OBJ_RW(HeapObject *, Next)
     DEFINE_HEAP_OBJ_RW(HeapObject *, Prev)
 
-#if 0
+#if 1
     bool IsGrabbed() const { return GetHandleCount() > 0; }
 
     int GetHandleCount() const { return (GetHeaderFlags() & GC_HANDLE_COUNT_MASK); }
@@ -828,6 +830,14 @@ public:
     DECLARE_VM_OBJECT(ReflectionFloating)
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionFloating)
 }; // class MIOReflectionFloating
+
+class MIOReflectionRef final : public MIOReflectionType {
+public:
+    static const int kMIOReflectionRefOffset = kMIOReflectionTypeOffset;
+
+    DECLARE_VM_OBJECT(ReflectionRef)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOReflectionRef)
+}; // class MIOReflectionRef
 
 class MIOReflectionString final : public MIOReflectionType {
 public:

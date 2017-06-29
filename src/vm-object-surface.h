@@ -10,6 +10,7 @@
 namespace mio {
 
 template<class K, class V> class MIOHashMapStub;
+template<class T> class MIOArrayStub;
 
 class MIOHashMapSurface {
 public:
@@ -140,26 +141,14 @@ public:
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOHashMapStub)
 }; // class MIOHashMapStub
 
-template<class K, class V>
-inline MIOHashMapStub<K, V> *MIOHashMapSurface::ToStub() {
-    static_assert(sizeof(MIOHashMapStub<K, V>) == sizeof(*this), "do not allow to stub");
-
-    if (!NativeValue<K>().Allow(core_->GetKey())) {
-        return nullptr;
-    }
-    if (!NativeValue<V>().Allow(core_->GetValue())) {
-        return nullptr;
-    }
-    return static_cast<MIOHashMapStub<K, V> *>(this);
-}
-
 class MIOArraySurface {
 public:
     MIOArraySurface(Handle<HeapObject> ob, ManagedAllocator *allocator);
 
     DEF_GETTER(Handle<MIOVector>, core)
-    DEF_GETTER(int, size);
     DEF_GETTER(int, element_size)
+
+    int size() const { return slice_.empty() ? core_->GetSize() : slice_->GetRangeSize(); }
 
     MIOReflectionType *element() { return core_->GetElement(); }
 
@@ -169,17 +158,48 @@ public:
 
     void *AddRoom(mio_int_t incr, bool *ok);
 
+    template<class T>
+    inline MIOArrayStub<T> *ToStub();
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOArraySurface)
 private:
 
     Handle<MIOSlice>  slice_;
     Handle<MIOVector> core_;
     int               begin_;
-    int               size_;
     ManagedAllocator *allocator_;
     int               element_size_;
 }; // class MIOArraySurface
 
+
+template<class T>
+class MIOArrayStub : public MIOArraySurface {
+public:
+    inline MIOArrayStub(Handle<HeapObject> ob, ManagedAllocator *allocator)
+        : MIOArraySurface(ob, allocator) {
+        DCHECK(NativeValue<T>().Allow(core()->GetElement()));
+    }
+
+    inline void Set(int index, T value) {
+        FastMemoryMove(RawGet(index), NativeValue<T>().Address(&value),
+                       element_size());
+    }
+
+    inline T Get(int index) {
+        return NativeValue<T>().Deref(RawGet(index));
+    }
+
+    inline void Add(T value, bool *ok) {
+        auto p = AddRoom(1, ok);
+        if (!*ok) {
+            return;
+        }
+        FastMemoryMove(p, NativeValue<T>().Address(&value), element_size());
+    }
+
+    inline void Reserve(int incr, bool *ok) { AddRoom(incr, ok); }
+
+}; // class MIOArrayStub
 
 class MIOExternalStub {
 public:
@@ -197,6 +217,29 @@ public:
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(MIOExternalStub)
 }; // class MIOArraySurface
+
+template<class K, class V>
+inline MIOHashMapStub<K, V> *MIOHashMapSurface::ToStub() {
+    static_assert(sizeof(MIOHashMapStub<K, V>) == sizeof(*this), "do not allow to stub");
+
+    if (!NativeValue<K>().Allow(core_->GetKey())) {
+        return nullptr;
+    }
+    if (!NativeValue<V>().Allow(core_->GetValue())) {
+        return nullptr;
+    }
+    return static_cast<MIOHashMapStub<K, V> *>(this);
+}
+
+template<class T>
+inline MIOArrayStub<T> *MIOArraySurface::ToStub() {
+    static_assert(sizeof(MIOArrayStub<T>) == sizeof(*this), "do not allow to stub");
+
+    if (!NativeValue<T>().Allow(core_->GetElement())) {
+        return nullptr;
+    }
+    return static_cast<MIOArrayStub<T> *>(this);
+}
 
 } // namespace mio
 

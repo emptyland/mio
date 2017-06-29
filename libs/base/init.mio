@@ -6,13 +6,13 @@ val mioHomepage = 'https://github.com/emptyland/mio'
 
 val eof = -1
 
+val allGlobalVariables = map[string, i32] {}
+
 native function gc: void
 
 native function fullGC: void
 
 native function tick: i32
-
-native function allGlobalVariables: map[string, i32]
 
 function println(s: string) = print(s..'\n')
 
@@ -25,3 +25,12 @@ native function newError(message: string): error
 native function newErrorWith(message: string, e: error): error
 
 native function sleep(mils: int): void
+
+val tCallEntry  = 0d
+val tLoopEntry  = 1d
+val tLoopEdge   = 2d
+val tGuardTrue  = 3d
+val tGuardFalse = 4d
+
+native function traceInfo(name: string): array[map[string, i32]]
+

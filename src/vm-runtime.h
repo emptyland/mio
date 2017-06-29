@@ -57,12 +57,9 @@ public:
 
     static int NewErrorWith(VM *vm, Thread *thread);
 
-    static int AllGlobalVariables(VM *vm, Thread *thread) {
-        thread->o_stack()->Set(-kObjectReferenceSize, vm->all_var());
-        return 0;
-    }
-
     static int Sleep(VM *vm, Thread *thread);
+
+    static int TraceInfo(VM *vm, Thread *thread);
 
     static int PrimitiveHash(const void *z, int n) {
         auto p = static_cast<const uint8_t *>(z);

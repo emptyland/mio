@@ -107,6 +107,8 @@ public:
     Handle<MIOReflectionFloating>
     CreateReflectionFloating(int64_t tid, int bitwide) = 0;
 
+    virtual Handle<MIOReflectionRef> CreateReflectionRef(int64_t tid) = 0;
+
     virtual Handle<MIOReflectionString> CreateReflectionString(int64_t tid) = 0;
 
     virtual Handle<MIOReflectionError> CreateReflectionError(int64_t tid) = 0;

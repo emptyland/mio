@@ -276,6 +276,14 @@ DoNothingGarbageCollector::CreateReflectionFloating(int64_t tid, int bitwide) {
 }
 
 /*virtual*/
+Handle<MIOReflectionRef> DoNothingGarbageCollector::CreateReflectionRef(int64_t tid) {
+    auto ob = NEW_OBJECT(ReflectionRef);
+    ob->SetTid(tid);
+    ob->SetReferencedSize(kObjectReferenceSize);
+    return make_handle(ob);
+}
+
+/*virtual*/
 Handle<MIOReflectionString>
 DoNothingGarbageCollector::CreateReflectionString(int64_t tid) {
     auto ob = NEW_OBJECT(ReflectionString);

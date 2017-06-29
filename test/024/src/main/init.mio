@@ -4,7 +4,7 @@ val a = 1
 val b = a
 
 function main: void {
-    for (k, v in base::allGlobalVariables()) {
+    for (k, v in base::allGlobalVariables) {
         base::println('key - '..k..', value:'..v)
     }
 }

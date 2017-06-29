@@ -225,6 +225,36 @@ struct NativeValue<Handle<MIOError>> {
     }
 };
 
+template<>
+struct NativeValue<Handle<HeapObject>> {
+    inline const void *Address(Handle<HeapObject> *value) {
+        return static_cast<const void *>(value->address());
+    }
+
+    inline Handle<HeapObject> Deref(void *addr) {
+        return make_handle(*static_cast<HeapObject **>(addr));
+    }
+
+    inline bool Allow(MIOReflectionType *type) {
+        return type->IsObject();
+    }
+};
+
+template<>
+struct NativeValue<Handle<MIOReflectionType>> {
+    inline const void *Address(Handle<MIOReflectionType> *value) {
+        return static_cast<const void *>(value->address());
+    }
+
+    inline Handle<MIOReflectionType> Deref(void *addr) {
+        return make_handle(*static_cast<MIOReflectionType **>(addr));
+    }
+
+    inline bool Allow(MIOReflectionType *type) {
+        return type->IsReflectionRef();
+    }
+};
+
 } // namespace mio
 
 #endif // MIO_OBJECT_TRAITS_H_

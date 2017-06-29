@@ -351,6 +351,14 @@ MSGGarbageCollector::CreateReflectionFloating(int64_t tid, int bitwide) {
 }
 
 /*virtual*/
+Handle<MIOReflectionRef> MSGGarbageCollector::CreateReflectionRef(int64_t tid) {
+    NEW_FIXED_SIZE_OBJECT(ob, MIOReflectionRef, 0);
+    ob->SetTid(tid);
+    ob->SetReferencedSize(kObjectReferenceSize);
+    return make_handle(ob);
+}
+
+/*virtual*/
 Handle<MIOReflectionString>
 MSGGarbageCollector::CreateReflectionString(int64_t tid) {
     NEW_FIXED_SIZE_OBJECT(ob, MIOReflectionString, 0);
@@ -800,7 +808,7 @@ void MSGGarbageCollector::DeleteObject(const HeapObject *ob) {
         default:
             break;
     }
-//    printf("!!!delete ob: %p, kind: %d\n", ob, ob->GetKind());
+    printf("!!!delete ob: %p, kind: %d\n", ob, ob->GetKind());
 //    if (ob->IsString()) {
 //        printf("!!delete: %s\n", ob->AsString()->GetData());
 //    }

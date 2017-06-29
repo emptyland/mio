@@ -215,6 +215,27 @@ void *Round16BytesFill(const uint16_t zag, void *chunk, size_t n);
 void *Round32BytesFill(const uint32_t zag, void *chunk, size_t n);
 void *Round64BytesFill(const uint64_t zag, void *chunk, size_t n);
 
+// Fast memory copy
+inline void FastMemoryMove(void *dest, const void *src, int size) {
+    switch (size) {
+        case 1:
+            static_cast<uint8_t *>(dest)[0] = static_cast<const uint8_t *>(src)[0];
+            break;
+        case 2:
+            static_cast<uint16_t *>(dest)[0] = static_cast<const uint16_t *>(src)[0];
+            break;
+        case 4:
+            static_cast<uint32_t *>(dest)[0] = static_cast<const uint32_t *>(src)[0];
+            break;
+        case 8:
+            static_cast<uint64_t *>(dest)[0] = static_cast<const uint64_t *>(src)[0];
+            break;
+        default:
+            *reinterpret_cast<int *>(1) = 0; // fail trap
+            break;
+    }
+}
+
 // base initializer
 void EnvirmentInitialize();
 

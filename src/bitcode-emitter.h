@@ -29,6 +29,9 @@ public:
                    ObjectFactory *object_factory,
                    ObjectExtraFactory *extra_factory,
                    FunctionRegister *function_register,
+                   MIOHashMapStub<Handle<MIOString>, mio_i32_t> *all_var,
+                   MIOArrayStub<Handle<MIOReflectionType>> *all_type,
+                   std::unordered_map<int64_t, int> *type_id2index,
                    int next_function_id);
     ~BitCodeEmitter();
 
@@ -59,11 +62,12 @@ private:
     ObjectFactory *object_factory_;
     ObjectExtraFactory *extra_factory_;
     FunctionRegister *function_register_;
-    MIOHashMapStub<Handle<MIOString>, mio_i32_t> *all_var_ = nullptr;
+    MIOHashMapStub<Handle<MIOString>, mio_i32_t> *all_var_;
+    MIOArrayStub<Handle<MIOReflectionType>> *all_type_;
+    std::unordered_map<int64_t, int> *type_id2index_;
     std::unordered_set<Declaration *> emitted_;
     std::unordered_set<std::string> imported_;
     int all_type_base_ = 0;
-    std::unordered_map<int64_t, int> type_id2index_;
     int next_function_id_;
 };
 
