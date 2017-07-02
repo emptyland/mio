@@ -48,13 +48,9 @@ struct ParsingError {
 }; // struct ParsingError
 
 struct CompiledInfo {
-    int all_type_base;
-    int void_type_index;
-    int error_type_index;
     int global_primitive_segment_bytes;
     int global_object_segment_bytes;
     int next_function_id;
-    MIOHashMap *all_var;
 };
 
 class FunctionEntry {

@@ -30,7 +30,7 @@ public:
 
     virtual Handle<MIONativeFunction> FindNativeFunction(const char *name) = 0;
 
-    virtual int GetAllFunctions(std::vector<Handle<MIONormalFunction>> *all_functions) = 0;
+    virtual int GetAllFunctions(std::vector<Handle<MIOGeneratedFunction>> *all_functions) = 0;
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(FunctionRegister)
 

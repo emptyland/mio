@@ -19,7 +19,7 @@ class MIOExternal;
 class MIOUpValue;
 class MIOFunction;
 class MIONativeFunction;
-class MIONormalFunction;
+class MIOGeneratedFunction;
 
 class MIOReflectionType;
 class MIOReflectionVoid;
@@ -57,13 +57,13 @@ public:
     CreateNativeFunction(const char *signature, MIOFunctionPrototype pointer) = 0;
 
     virtual
-    Handle<MIONormalFunction>
-    CreateNormalFunction(const std::vector<Handle<HeapObject>> &constant_objects,
-                         const void *constant_primitive,
-                         int constant_primitive_size,
-                         const void *code,
-                         int code_size,
-                         int id) = 0;
+    Handle<MIOGeneratedFunction>
+    CreateGeneratedFunction(const std::vector<Handle<HeapObject>> &constant_objects,
+                            const void *constant_primitive,
+                            int constant_primitive_size,
+                            const void *code,
+                            int code_size,
+                            int id) = 0;
 
     virtual Handle<MIOClosure> CreateClosure(Handle<MIOFunction> function,
                                              int up_values_size) = 0;

@@ -25,7 +25,7 @@ namespace mio {
 
 class TraceTree;
 class TraceNodeFactory;
-class MIONormalFunction;
+class MIOGeneratedFunction;
 
 class TraceNode;
 class FuncEntry;
@@ -46,18 +46,18 @@ public:
 
     bool ResizeRecord(int tree_size);
 
-    bool TraceFuncEntry(MIONormalFunction *fn, int pc);
-    bool TraceLoopEntry(MIONormalFunction *fn, int id, int pc);
-    bool TraceLoopEdge(MIONormalFunction *fn, int linked_id, int id, int pc);
-    bool TraceGuardTrue(MIONormalFunction *fn, bool value, int id, int pc);
-    bool TraceGuardFalse(MIONormalFunction *fn, bool value, int id, int pc);
+    bool TraceFuncEntry(MIOGeneratedFunction *fn, int pc);
+    bool TraceLoopEntry(MIOGeneratedFunction *fn, int id, int pc);
+    bool TraceLoopEdge(MIOGeneratedFunction *fn, int linked_id, int id, int pc);
+    bool TraceGuardTrue(MIOGeneratedFunction *fn, bool value, int id, int pc);
+    bool TraceGuardFalse(MIOGeneratedFunction *fn, bool value, int id, int pc);
 
-    TraceBoundle *GetTraceBoundle(MIONormalFunction *fn, int id);
+    TraceBoundle *GetTraceBoundle(MIOGeneratedFunction *fn, int id);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(TraceRecord)
 private:
     struct TreeBoundle {
-        MIONormalFunction *fn;
+        MIOGeneratedFunction *fn;
         TraceTree         *tree;
     };
 

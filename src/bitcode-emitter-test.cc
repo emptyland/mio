@@ -37,9 +37,26 @@ public:
         o_global_ = new MemorySegment();
         object_factory_ = new DoNothingGarbageCollector(allocator_);
         function_register_ = new SimpleFunctionRegister(code_cache_, o_global_);
+
+        auto elem = object_factory_->CreateReflectionRef(0);
+        auto array = object_factory_->CreateVector(0, elem);
+        all_type_ = new MIOArrayStub<Handle<MIOReflectionType>>(array, object_factory_->allocator());
+
+        bool ok = true;
+        auto key = object_factory_->CreateReflectionString(TOKEN_STRING);
+        all_type_->Add(key, &ok);
+        type_id2index_[key->GetTid()] = 0;
+        auto value = object_factory_->CreateReflectionIntegral(TOKEN_I32, 32);
+        all_type_->Add(value, &ok);
+        type_id2index_[value->GetTid()] = 1;
+
+        auto core = object_factory_->CreateHashMap(0, 17, key, value);
+        all_var_ = new MIOHashMapStub<Handle<MIOString>, mio_i32_t>(core.get(), object_factory_->allocator());
     }
 
     virtual void TearDown() override {
+        delete all_var_;
+        delete all_type_;
         delete function_register_;
         delete object_factory_;
         delete o_global_;
@@ -51,6 +68,7 @@ public:
         delete code_cache_;
         allocator_->Finialize();
         delete allocator_;
+        type_id2index_.clear();
     }
 
     void ParseProject(const char *project_dir, std::string *text) {
@@ -77,14 +95,14 @@ public:
                                object_factory_,
                                &extra_factory,
                                function_register_,
-                               nullptr,
-                               nullptr,
-                               nullptr,
+                               all_var_,
+                               all_type_,
+                               &type_id2index_,
                                0);
         emitter.Init();
         ASSERT_TRUE(emitter.Run(checker.all_modules(), nullptr));
 
-        std::vector<Handle<MIONormalFunction>> all_functions;
+        std::vector<Handle<MIOGeneratedFunction>> all_functions;
         function_register_->GetAllFunctions(&all_functions);
 
         MemoryOutputStream stream(text);
@@ -107,6 +125,9 @@ protected:
     SimpleFunctionRegister *function_register_ = nullptr;
     CodeCache *code_cache_ = nullptr;
     ManagedAllocator *allocator_ = nullptr;
+    MIOHashMapStub<Handle<MIOString>, mio_i32_t> *all_var_ = nullptr;
+    MIOArrayStub<Handle<MIOReflectionType>> *all_type_ = nullptr;
+    std::unordered_map<int64_t, int> type_id2index_;
 };
 
 TEST_F(BitCodeEmitterTest, P006_Sanity) {

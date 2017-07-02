@@ -73,22 +73,24 @@ DoNothingGarbageCollector::CreateNativeFunction(const char *signature,
 }
 
 /*virtual*/
-Handle<MIONormalFunction>
-DoNothingGarbageCollector::CreateNormalFunction(const std::vector<Handle<HeapObject>> &constant_objects,
-                                            const void *constant_primitive_data,
-                                            int constant_primitive_size,
-                                            const void *code,
-                                            int code_size,
-                                            int id) {
+Handle<MIOGeneratedFunction>
+DoNothingGarbageCollector::CreateGeneratedFunction(const std::vector<Handle<HeapObject>> &constant_objects,
+                                                   const void *constant_primitive_data,
+                                                   int constant_primitive_size,
+                                                   const void *code,
+                                                   int code_size,
+                                                   int id) {
     DCHECK_EQ(0, code_size % sizeof(uint64_t));
 
-    auto placement_size = static_cast<int>(MIONormalFunction::kHeaderOffset +
+    auto placement_size = static_cast<int>(MIOGeneratedFunction::kHeaderOffset +
             constant_primitive_size +
             constant_objects.size() * kObjectReferenceSize + code_size);
 
-    auto ob = NewObject<MIONormalFunction>(placement_size);
+    auto ob = NewObject<MIOGeneratedFunction>(placement_size);
     ob->SetName(nullptr);
     ob->SetId(id);
+    ob->SetRecompilingKind(MIOGeneratedFunction::NONE);
+    ob->SetNativeCodeFragment(nullptr);
     ob->SetDebugInfo(nullptr);
 
     ob->SetConstantPrimitiveSize(constant_primitive_size);

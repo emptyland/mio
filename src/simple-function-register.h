@@ -27,12 +27,12 @@ public:
     virtual Handle<MIONativeFunction> FindNativeFunction(const char *name) override;
 
     virtual
-    int GetAllFunctions(std::vector<Handle<MIONormalFunction>> *all_functions) override;
+    int GetAllFunctions(std::vector<Handle<MIOGeneratedFunction>> *all_functions) override;
 
 private:
-    int GetAllFnByFn(Handle<MIONormalFunction> fn,
-                     std::vector<Handle<MIONormalFunction>> *all_functions,
-                     std::unordered_set<MIONormalFunction*> *unique_fn);
+    int GetAllFnByFn(Handle<MIOGeneratedFunction> fn,
+                     std::vector<Handle<MIOGeneratedFunction>> *all_functions,
+                     std::unordered_set<MIOGeneratedFunction*> *unique_fn);
 
     std::unordered_map<std::string, FunctionEntry *> functions_;
     MemorySegment *global_;

@@ -49,12 +49,12 @@ SimpleFunctionRegister::FindNativeFunction(const char *name) {
 }
 
 int
-SimpleFunctionRegister::GetAllFunctions(std::vector<Handle<MIONormalFunction>> *all_functions) {
+SimpleFunctionRegister::GetAllFunctions(std::vector<Handle<MIOGeneratedFunction>> *all_functions) {
     int result = 0;
-    std::unordered_set<MIONormalFunction*> unique_fn;
+    std::unordered_set<MIOGeneratedFunction*> unique_fn;
     for (const auto &pair : functions_) {
         auto obj = global_->Get<HeapObject *>(pair.second->offset());
-        auto fn = make_handle(obj->AsNormalFunction());
+        auto fn = make_handle(obj->AsGeneratedFunction());
 
         if (!fn.empty() && unique_fn.find(fn.get()) == unique_fn.end()) {
             all_functions->push_back(fn);
@@ -66,24 +66,24 @@ SimpleFunctionRegister::GetAllFunctions(std::vector<Handle<MIONormalFunction>> *
     return result;
 }
 
-int SimpleFunctionRegister::GetAllFnByFn(Handle<MIONormalFunction> fn,
-                                         std::vector<Handle<MIONormalFunction>> *all_functions,
-                                         std::unordered_set<MIONormalFunction*> *unique_fn) {
+int SimpleFunctionRegister::GetAllFnByFn(Handle<MIOGeneratedFunction> fn,
+                                         std::vector<Handle<MIOGeneratedFunction>> *all_functions,
+                                         std::unordered_set<MIOGeneratedFunction*> *unique_fn) {
     int result = 0;
     for (int i = 0; i < fn->GetConstantObjectSize(); ++i) {
         if (fn->GetConstantObject(i)->IsClosure()) {
             auto closure = fn->GetConstantObject(i)->AsClosure();
             auto core = make_handle(closure->GetFunction());
-            if (core->IsNormalFunction()) {
-                auto core_fn = make_handle(core->AsNormalFunction());
+            if (core->IsGeneratedFunction()) {
+                auto core_fn = make_handle(core->AsGeneratedFunction());
                 if (unique_fn->find(core_fn.get()) == unique_fn->end()) {
                     all_functions->push_back(core_fn);
                     unique_fn->insert(core_fn.get());
                     result += GetAllFnByFn(core_fn, all_functions, unique_fn) + 1;
                 }
             }
-        } else if (fn->GetConstantObject(i)->IsNormalFunction()) {
-            auto core = make_handle(fn->GetConstantObject(i)->AsNormalFunction());
+        } else if (fn->GetConstantObject(i)->IsGeneratedFunction()) {
+            auto core = make_handle(fn->GetConstantObject(i)->AsGeneratedFunction());
             if (unique_fn->find(core.get()) == unique_fn->end()) {
                 all_functions->push_back(core);
                 unique_fn->insert(core.get());

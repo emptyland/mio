@@ -333,6 +333,15 @@ private:
 }; // class FunctionPrototype
 
 
+class Struct : public Type {
+public:
+
+private:
+
+}; // class Struct
+
+
+
 class Union : public Type {
 public:
     typedef ZoneHashMap<int64_t, Type *> TypeMap;

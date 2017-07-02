@@ -606,7 +606,7 @@ void EmittingAstVisitor::EmitGlobalFunction(FunctionDefine *node) {
 
         DCHECK_EQ(BC_FUNCTION_CONSTANT_OBJECT_SEGMENT, value.segment);
         ob = static_cast<MIOFunction *>(current_->constant_object(value.offset).get());
-        DCHECK(ob->IsNormalFunction()) << ob->GetKind();
+        DCHECK(ob->IsGeneratedFunction()) << ob->GetKind();
     }
     ob->SetName(name.get());
 
@@ -696,7 +696,7 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
 
     Handle<MIOFunction> ob = emitter_
             ->object_factory_
-            ->CreateNormalFunction(info.constant_objects(),
+            ->CreateGeneratedFunction(info.constant_objects(),
                                    info.constant_primitive_data(),
                                    info.constant_primitive_size(),
                                    naked_builder()->code()->offset(0),
@@ -705,7 +705,7 @@ void EmittingAstVisitor::VisitFunctionLiteral(FunctionLiteral *node) {
     auto debug_info = emitter_->extra_factory_
             ->CreateFunctionDebugInfo(unit_name_, current_->next_trace_id(),
                                       info.pc_to_position());
-    ob->AsNormalFunction()->SetDebugInfo(debug_info);
+    ob->AsGeneratedFunction()->SetDebugInfo(debug_info);
 
     if (node->up_value_size() > 0) {
         auto closure = emitter_->object_factory_->CreateClosure(ob, node->up_value_size());
@@ -2583,7 +2583,12 @@ void BitCodeEmitter::Init() {
         type_id2index_->emplace(pair.first, index);
     }
 
-    o_global_->Add(all_type_->core().get());
+
+    if (o_global_->size() < kObjectReferenceSize) {
+        o_global_->Add(all_type_->core().get());
+    } else {
+        // XXX check all_type_ pointer.
+    }
 }
 
 
@@ -2607,7 +2612,6 @@ bool BitCodeEmitter::Run(ParsedModuleMap *all_modules, CompiledInfo *info) {
     auto ok = EmitModule(pair->key(), pair->value(), all_modules);
 
     if (info) {
-        info->all_type_base   = all_type_base_;
         info->global_primitive_segment_bytes = p_global_->size();
         info->global_object_segment_bytes    = o_global_->size();
         info->next_function_id = next_function_id_;
@@ -2660,7 +2664,7 @@ bool BitCodeEmitter::EmitModule(RawStringRef module_name,
     info.naked_builder()->frame(frame_placement, info.p_stack_size(), info.o_stack_size(), 0);
 
     auto boot_name = TextOutputStream::sprintf("::%s::bootstrap", module_name->c_str());
-    auto ob = object_factory_->CreateNormalFunction(info.constant_objects(),
+    auto ob = object_factory_->CreateGeneratedFunction(info.constant_objects(),
                                                     info.constant_primitive_data(),
                                                     info.constant_primitive_size(),
                                                     info.naked_builder()->code()->offset(0),

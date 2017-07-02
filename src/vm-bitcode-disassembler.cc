@@ -6,7 +6,7 @@
 
 namespace mio {
 
-void BitCodeDisassembler::Run(Handle<MIONormalFunction> fn) {
+void BitCodeDisassembler::Run(Handle<MIOGeneratedFunction> fn) {
     stream_->Printf("-----[ %s ]-----\n", fn->GetName() ? fn->GetName()->GetData() : "null");
 
     Run(fn->GetCode(),
@@ -271,7 +271,7 @@ void BitCodeDisassembler::Disassemble(MemorySegment *code, int number_of_inst,
 }
 
 /*static*/
-void BitCodeDisassembler::Disassemble(Handle<MIONormalFunction> fn,
+void BitCodeDisassembler::Disassemble(Handle<MIOGeneratedFunction> fn,
                                       std::string *buf) {
     MemoryOutputStream stream(buf);
     BitCodeDisassembler dis(&stream);

@@ -35,7 +35,7 @@ bool TraceRecord::ResizeRecord(int new_tree_size) {
     return true;
 }
 
-bool TraceRecord::TraceFuncEntry(MIONormalFunction *fn, int pc) {
+bool TraceRecord::TraceFuncEntry(MIOGeneratedFunction *fn, int pc) {
     DCHECK_GE(fn->GetId(), 0);
     DCHECK_LT(fn->GetId(), tree_size_);
 
@@ -62,7 +62,7 @@ bool TraceRecord::TraceFuncEntry(MIONormalFunction *fn, int pc) {
     return boundle->node != nullptr;
 }
 
-bool TraceRecord::TraceLoopEntry(MIONormalFunction *fn, int id, int pc) {
+bool TraceRecord::TraceLoopEntry(MIOGeneratedFunction *fn, int id, int pc) {
     auto boundle = GetTraceBoundle(fn, id);
     if (!boundle) {
         return true;
@@ -75,7 +75,7 @@ bool TraceRecord::TraceLoopEntry(MIONormalFunction *fn, int id, int pc) {
     return boundle->node != nullptr;
 }
 
-bool TraceRecord::TraceLoopEdge(MIONormalFunction *fn, int linked_id, int id,
+bool TraceRecord::TraceLoopEdge(MIOGeneratedFunction *fn, int linked_id, int id,
                                 int pc) {
     auto boundle = GetTraceBoundle(fn, id);
     if (!boundle) {
@@ -89,7 +89,7 @@ bool TraceRecord::TraceLoopEdge(MIONormalFunction *fn, int linked_id, int id,
     return boundle->node != nullptr;
 }
 
-bool TraceRecord::TraceGuardTrue(MIONormalFunction *fn, bool value, int id, int pc) {
+bool TraceRecord::TraceGuardTrue(MIOGeneratedFunction *fn, bool value, int id, int pc) {
     auto boundle = GetTraceBoundle(fn, id);
     if (!boundle) {
         return true;
@@ -106,7 +106,7 @@ bool TraceRecord::TraceGuardTrue(MIONormalFunction *fn, bool value, int id, int 
     return boundle->node != nullptr;
 }
 
-bool TraceRecord::TraceGuardFalse(MIONormalFunction *fn, bool value, int id, int pc) {
+bool TraceRecord::TraceGuardFalse(MIOGeneratedFunction *fn, bool value, int id, int pc) {
     auto boundle = GetTraceBoundle(fn, id);
     if (!boundle) {
         return true;
@@ -123,7 +123,7 @@ bool TraceRecord::TraceGuardFalse(MIONormalFunction *fn, bool value, int id, int
     return boundle->node != nullptr;
 }
 
-TraceBoundle *TraceRecord::GetTraceBoundle(MIONormalFunction *fn, int id) {
+TraceBoundle *TraceRecord::GetTraceBoundle(MIOGeneratedFunction *fn, int id) {
     DCHECK_GE(fn->GetId(), 0);
     DCHECK_LT(fn->GetId(), tree_size_);
 

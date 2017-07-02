@@ -26,11 +26,4 @@ native function newErrorWith(message: string, e: error): error
 
 native function sleep(mils: int): void
 
-val tCallEntry  = 0d
-val tLoopEntry  = 1d
-val tLoopEdge   = 2d
-val tGuardTrue  = 3d
-val tGuardFalse = 4d
-
-native function traceInfo(name: string): array[map[string, i32]]
 

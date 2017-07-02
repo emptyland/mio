@@ -27,17 +27,17 @@ struct CallContext {
     int pc;
     uint64_t *bc;
 
-    inline MIONormalFunction *normal_function() {
-        auto fn = callee->AsNormalFunction();
-        return fn ? fn : DCHECK_NOTNULL(callee->AsClosure())->GetFunction()->AsNormalFunction();
+    inline MIOGeneratedFunction *generated_function() {
+        auto fn = callee->AsGeneratedFunction();
+        return fn ? fn : DCHECK_NOTNULL(callee->AsClosure())->GetFunction()->AsGeneratedFunction();
     }
 
     inline mio_buf_t<uint8_t> const_primitive_buf() {
-        return DCHECK_NOTNULL(normal_function())->GetConstantPrimitiveBuf();
+        return DCHECK_NOTNULL(generated_function())->GetConstantPrimitiveBuf();
     }
 
     inline mio_buf_t<HeapObject *> const_object_buf() {
-        return DCHECK_NOTNULL(normal_function())->GetConstantObjectBuf();
+        return DCHECK_NOTNULL(generated_function())->GetConstantObjectBuf();
     }
 
     inline mio_buf_t<UpValDesc> upvalue_buf() {
@@ -47,7 +47,7 @@ struct CallContext {
     }
 
     inline FunctionDebugInfo *debug_info() {
-        return DCHECK_NOTNULL(normal_function())->GetDebugInfo();
+        return DCHECK_NOTNULL(generated_function())->GetDebugInfo();
     }
 };
 
@@ -102,7 +102,7 @@ Thread::~Thread() {
     delete call_stack_;
 }
 
-void Thread::Execute(MIONormalFunction *callee, bool *ok) {
+void Thread::Execute(MIOGeneratedFunction *callee, bool *ok) {
     auto init = call_stack_->Push();
 
     init->p_stack_base = p_stack_->base_size(),
@@ -748,7 +748,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 auto id = BitCodeDisassembler::GetOp2(bc);
                 auto native = BitCodeDisassembler::GetImm32(bc);
                 if (vm_->jit_) {
-                    TRACE(vm_->record_->TraceLoopEntry(normal_function(), id, pc_ - 1));
+                    TRACE(vm_->record_->TraceLoopEntry(generated_function(), id, pc_ - 1));
                     if (native > 0) {
                         // TODO:
                     }
@@ -762,7 +762,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
 
                 auto value = p_stack_->Get<mio_bool_t>(cond);
                 if (vm_->jit_ && id > 0) {
-                    TRACE(vm_->record_->TraceGuardFalse(normal_function(), value, id, pc_ - 1));
+                    TRACE(vm_->record_->TraceGuardFalse(generated_function(), value, id, pc_ - 1));
                 }
 
                 if (value == 0) {
@@ -777,7 +777,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
 
                 auto value = p_stack_->Get<mio_bool_t>(cond);
                 if (vm_->jit_ && id > 0) {
-                    TRACE(vm_->record_->TraceGuardTrue(normal_function(), value, id, pc_ - 1));
+                    TRACE(vm_->record_->TraceGuardTrue(generated_function(), value, id, pc_ - 1));
                 }
                 if (value != 0) {
                     pc_ += delta - 1;
@@ -789,7 +789,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                 auto id = BitCodeDisassembler::GetOp2(bc);
                 auto delta = BitCodeDisassembler::GetImm32(bc);
                 if (vm_->jit_ && id > 0 && linked_id > 0) {
-                    TRACE(vm_->record_->TraceLoopEdge(normal_function(), linked_id, id, pc_ - 1));
+                    TRACE(vm_->record_->TraceLoopEdge(generated_function(), linked_id, id, pc_ - 1));
                 }
 
                 pc_ += delta - 1;
@@ -804,7 +804,7 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
 
                 auto obj_addr = BitCodeDisassembler::GetImm32(bc);
                 Handle<HeapObject> ob(o_stack_->Get<HeapObject *>(obj_addr));
-                DCHECK(ob->IsNativeFunction() || ob->IsNormalFunction() ||
+                DCHECK(ob->IsNativeFunction() || ob->IsGeneratedFunction() ||
                        ob->IsClosure()) << ob->GetKind();
 
                 Handle<MIOFunction> fn;
@@ -862,8 +862,8 @@ void Thread::Execute(MIONormalFunction *callee, bool *ok) {
                     ctx->callee = callee_.get();
                     callee_ = static_cast<MIOFunction*>(ob.get());
 
-                    DCHECK(fn->IsNormalFunction()) << fn->GetKind();
-                    auto normal = DCHECK_NOTNULL(fn->AsNormalFunction());
+                    DCHECK(fn->IsGeneratedFunction()) << fn->GetKind();
+                    auto normal = DCHECK_NOTNULL(fn->AsGeneratedFunction());
                     if (vm_->jit_) {
                         TRACE(vm_->record_->TraceFuncEntry(normal, 0));
                     }

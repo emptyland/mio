@@ -42,7 +42,7 @@ public:
 
     MIOFunction *callee() const { return callee_.get(); }
 
-    void Execute(MIONormalFunction *callee, bool *ok);
+    void Execute(MIOGeneratedFunction *callee, bool *ok);
 
     inline mio_bool_t GetBool(int addr) { return GetI8(addr); }
     inline mio_i8_t   GetI8(int addr);
@@ -94,7 +94,7 @@ private:
     void CreateEmptyValue(int result,
                           Handle<MIOReflectionType> reflection, bool *ok);
 
-    inline MIONormalFunction *normal_function();
+    inline MIOGeneratedFunction *generated_function();
     inline mio_buf_t<uint8_t> const_primitive_buf();
     inline mio_buf_t<HeapObject *> const_object_buf();
     inline mio_buf_t<UpValDesc> upvalue_buf();
@@ -207,17 +207,17 @@ inline Handle<MIOHashMap> Thread::GetHashMap(int addr, bool *ok) {
     return make_handle(ob->AsHashMap());
 }
 
-inline MIONormalFunction *Thread::normal_function() {
-    auto fn = callee_->AsNormalFunction();
-    return fn ? fn : DCHECK_NOTNULL(callee_->AsClosure())->GetFunction()->AsNormalFunction();
+inline MIOGeneratedFunction *Thread::generated_function() {
+    auto fn = callee_->AsGeneratedFunction();
+    return fn ? fn : DCHECK_NOTNULL(callee_->AsClosure())->GetFunction()->AsGeneratedFunction();
 }
 
 inline mio_buf_t<uint8_t> Thread::const_primitive_buf() {
-    return DCHECK_NOTNULL(normal_function())->GetConstantPrimitiveBuf();
+    return DCHECK_NOTNULL(generated_function())->GetConstantPrimitiveBuf();
 }
 
 inline mio_buf_t<HeapObject *> Thread::const_object_buf() {
-    return DCHECK_NOTNULL(normal_function())->GetConstantObjectBuf();
+    return DCHECK_NOTNULL(generated_function())->GetConstantObjectBuf();
 }
 
 inline mio_buf_t<UpValDesc> Thread::upvalue_buf() {
@@ -227,7 +227,7 @@ inline mio_buf_t<UpValDesc> Thread::upvalue_buf() {
 }
 
 inline FunctionDebugInfo *Thread::debug_info() {
-    return DCHECK_NOTNULL(normal_function())->GetDebugInfo();
+    return DCHECK_NOTNULL(generated_function())->GetDebugInfo();
 }
 
 } // namespace mio

@@ -139,10 +139,8 @@ bool VM::CompileProject(const char *project_dir, ParsingError *error) {
                                next_function_id_);
     DLOG(INFO) << "pg: " << info.global_primitive_segment_bytes << "\n"
                << "og: " << info.global_object_segment_bytes;
-    //printf("types: %d\n", all_type_->size());
 
     next_function_id_ = info.next_function_id;
-
     if (jit_) {
         DCHECK_NOTNULL(record_)->ResizeRecord(next_function_id_);
     }
@@ -169,7 +167,7 @@ int VM::Run() {
     }
 
     auto main_ob = make_handle(o_global_->Get<HeapObject *>(entry->offset()));
-    auto main_fn = main_ob->AsNormalFunction();
+    auto main_fn = main_ob->AsGeneratedFunction();
     if (!main_fn) {
         LOG(ERROR) << "::main::main symbol is not function!";
         return -1;
@@ -188,7 +186,7 @@ int VM::Run() {
 }
 
 void VM::DisassembleAll(TextOutputStream *stream) {
-    std::vector<Handle<MIONormalFunction>> all_functions;
+    std::vector<Handle<MIOGeneratedFunction>> all_functions;
     function_register_->GetAllFunctions(&all_functions);
 
     BitCodeDisassembler dasm(stream);
@@ -223,7 +221,7 @@ void VM::PrintBackstream(TextOutputStream *stream) {
         if (fn->IsNativeFunction()) {
             stream->Printf("[native %p]", fn->AsNativeFunction()->GetNativePointer());
         } else {
-            auto info = fn->AsNormalFunction()->GetDebugInfo();
+            auto info = fn->AsGeneratedFunction()->GetDebugInfo();
             if (!info) {
                 continue;
             }

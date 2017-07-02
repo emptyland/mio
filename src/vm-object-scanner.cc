@@ -56,8 +56,8 @@ void ObjectScanner::Scan(HeapObject *ob, Callback callback) {
             }
         } break;
 
-        case HeapObject::kNormalFunction: {
-            auto fn = ob->AsNormalFunction();
+        case HeapObject::kGeneratedFunction: {
+            auto fn = ob->AsGeneratedFunction();
             Scan(fn->GetName(), callback);
             auto buf = fn->GetConstantObjectBuf();
             for (int i = 0; i < buf.n; ++i) {

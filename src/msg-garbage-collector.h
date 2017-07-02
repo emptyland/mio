@@ -78,8 +78,8 @@ public:
     CreateNativeFunction(const char *signature,
                          MIOFunctionPrototype pointer) override;
 
-    virtual Handle<MIONormalFunction>
-    CreateNormalFunction(const std::vector<Handle<HeapObject>> &constant_objects,
+    virtual Handle<MIOGeneratedFunction>
+    CreateGeneratedFunction(const std::vector<Handle<HeapObject>> &constant_objects,
                          const void *constant_primitive,
                          int constant_primitive_size,
                          const void *code,

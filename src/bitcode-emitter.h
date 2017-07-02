@@ -67,7 +67,6 @@ private:
     std::unordered_map<int64_t, int> *type_id2index_;
     std::unordered_set<Declaration *> emitted_;
     std::unordered_set<std::string> imported_;
-    int all_type_base_ = 0;
     int next_function_id_;
 };
 

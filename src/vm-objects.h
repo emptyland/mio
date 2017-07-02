@@ -16,7 +16,7 @@ class MIOString;
 class MIOError;
 class MIOFunction;
     class MIONativeFunction;
-    class MIONormalFunction;
+    class MIOGeneratedFunction;
 class MIOUpValue;
 class MIOClosure;
 class MIOUnion;
@@ -39,6 +39,7 @@ class MIOReflectionType;
     class MIOReflectionFunction;
 
 struct FunctionDebugInfo;
+struct NativeCodeFragment;
 
 #define MIO_REFLECTION_TYPES(M) \
     M(ReflectionVoid)           \
@@ -59,7 +60,7 @@ struct FunctionDebugInfo;
     M(UpValue)                 \
     M(Closure)                 \
     M(NativeFunction)          \
-    M(NormalFunction)          \
+    M(GeneratedFunction)          \
     M(Slice)                   \
     M(Vector)                  \
     M(HashMap)                 \
@@ -71,6 +72,8 @@ struct FunctionDebugInfo;
 typedef int (*MIOFunctionPrototype)(VM *, Thread *);
 
 typedef int (*MIONativeWarper)(Thread *, MIONativeFunction *, void *, void *);
+
+typedef int (*MIONativeFragment)(Thread *, void *, void *, int *);
 
 template<class T>
 inline T HeapObjectGet(const void *obj, int offset) {
@@ -262,7 +265,7 @@ public:
     }
 
     bool IsCallable() const {
-        return IsNativeFunction() || IsNormalFunction() || IsClosure();
+        return IsNativeFunction() || IsGeneratedFunction() || IsClosure();
     }
 
     MIOFunction *AsCallable() {
@@ -381,22 +384,49 @@ public:
 static_assert(sizeof(MIONativeFunction) == sizeof(HeapObject),
               "MIONativeFunction can bigger than HeapObject");
 
-class MIONormalFunction final: public MIOFunction {
+class MIOGeneratedFunction final: public MIOFunction {
 public:
     typedef FunctionDebugInfo DebugInfo;
 
-    static const int kIdOffset = kMIOFunctionOffset;
-    static const int kConstantPrimitiveSizeOffset = kIdOffset + sizeof(int);
+    enum RecompilingKind: int {
+        NONE    = 0,
+        PARTIAL = 1,
+        ALL     = 2,
+        MAX_KIND,
+    };
+
+    static const uint32_t kRecompilingKindMask = 0xf;
+
+    static const int kGeneratedFlagsOffset = kMIOFunctionOffset;
+    static const int kConstantPrimitiveSizeOffset = kGeneratedFlagsOffset + sizeof(uint32_t);
     static const int kConstantObjectSizeOffset = kConstantPrimitiveSizeOffset + sizeof(int);
     static const int kCodeSizeOffset = kConstantObjectSizeOffset + sizeof(int);
-    static const int kDebugInfoOffset = kCodeSizeOffset + sizeof(int);
+    static const int kNativeCodeFragmentOffset = kCodeSizeOffset + sizeof(int);
+    static const int kDebugInfoOffset = kNativeCodeFragmentOffset + sizeof(NativeCodeFragment *);
     static const int kHeaderOffset = kDebugInfoOffset + sizeof(DebugInfo *);
 
-    DEFINE_HEAP_OBJ_RW(int, Id)
+    DEFINE_HEAP_OBJ_RW(uint32_t, GeneratedFlags)
     DEFINE_HEAP_OBJ_RW(int, ConstantPrimitiveSize)
     DEFINE_HEAP_OBJ_RW(int, ConstantObjectSize)
     DEFINE_HEAP_OBJ_RW(int, CodeSize)
+    DEFINE_HEAP_OBJ_RW(NativeCodeFragment *, NativeCodeFragment)
     DEFINE_HEAP_OBJ_RW(DebugInfo *, DebugInfo)
+
+    int GetId() const {
+        return (GetGeneratedFlags() & ~kRecompilingKindMask) >> 4;
+    }
+
+    void SetId(int value) {
+        SetGeneratedFlags((GetGeneratedFlags() & kRecompilingKindMask) | (value << 4));
+    }
+
+    RecompilingKind GetRecompilingKind() const {
+        return static_cast<RecompilingKind>((GetGeneratedFlags() & kRecompilingKindMask));
+    }
+
+    void SetRecompilingKind(RecompilingKind kind) {
+        SetGeneratedFlags((GetGeneratedFlags() & ~kRecompilingKindMask) | kind);
+    }
 
     HeapObject **GetConstantObjects() {
         return reinterpret_cast<HeapObject **>(
@@ -446,12 +476,12 @@ public:
                GetCodeSize() * sizeof(uint64_t);
     }
 
-    DECLARE_VM_OBJECT_KIND(NormalFunction)
-    DISALLOW_IMPLICIT_CONSTRUCTORS(MIONormalFunction)
-}; // class NormalFunction
+    DECLARE_VM_OBJECT_KIND(GeneratedFunction)
+    DISALLOW_IMPLICIT_CONSTRUCTORS(MIOGeneratedFunction)
+}; // class GeneratedFunction
 
-static_assert(sizeof(MIONormalFunction) == sizeof(HeapObject),
-              "MIONormalFunction can bigger than HeapObject");
+static_assert(sizeof(MIOGeneratedFunction) == sizeof(HeapObject),
+              "MIOGeneratedFunction can bigger than HeapObject");
 
 
 class MIOUpValue final : public HeapObject {
@@ -950,6 +980,11 @@ struct FunctionDebugInfo {
     const char *file_name;
     int         pc_size;   // size of pc_to_position;
     int         pc_to_position[1]; // pc to position;
+};
+
+struct NativeCodeFragment {
+    NativeCodeFragment *next;
+    void              **index;
 };
 
 struct MIOStringDataHash {

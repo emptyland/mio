@@ -16,7 +16,7 @@ public:
     BitCodeDisassembler(TextOutputStream *stream)
         : stream_(DCHECK_NOTNULL(stream)) {}
 
-    void Run(Handle<MIONormalFunction> func);
+    void Run(Handle<MIOGeneratedFunction> func);
     void Run(const void *bc, const int *p2p, int size);
     void Disassemble(uint64_t inst);
 
@@ -48,7 +48,7 @@ public:
     static void Disassemble(MemorySegment *code, int number_of_inst,
                             std::string *buf);
 
-    static void Disassemble(Handle<MIONormalFunction> fn, std::string *buf);
+    static void Disassemble(Handle<MIOGeneratedFunction> fn, std::string *buf);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(BitCodeDisassembler)
 private:
