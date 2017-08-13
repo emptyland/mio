@@ -21,9 +21,13 @@ class MemorySegment;
 class ObjectFactory;
 class ObjectExtraFactory;
 class FunctionRegister;
+class CodeRef;
+class CodeCache;
+class TraceTree;
 
 class MIOHashMap;
 class MIOFunction;
+class MIOGeneratedFunction;
 class MIOString;
 class MIOReflectionType;
 
@@ -107,6 +111,20 @@ public:
                                  std::unordered_map<int64_t, int> *type_id2index,
                                  CompiledInfo *info,
                                  int next_function_id);
+
+    static void BitCodeToNativeCodeFragment(MIOFunction *fn,
+                                            int pc,
+                                            int id,
+                                            TraceTree *tree,
+                                            CodeCache *cc,
+                                            CodeRef *cr);
+
+    static void BitCodeToNativeCode(MIOFunction *fn,
+                                    int pc,
+                                    int id,
+                                    TraceTree *tree,
+                                    CodeCache *cc,
+                                    CodeRef *cr);
 
     Compiler() = delete;
     ~Compiler() = delete;

@@ -380,6 +380,28 @@ int Zone::slab_max_chunks(int index) const {
     return slabs_[index].max_chunks();
 }
 
+int Zone::GetMaxChunks(size_t size, int *aligned_size) const {
+    if (!size) {
+        return 0;
+    }
+
+    if (size > (kPageSize / 2)) {
+        DLOG(ERROR) << "zone can not allocate memory, too large " << size;
+        return 0;
+    }
+
+    int shift;
+    for (shift = 0; (kMinAllocatedSize << shift) < size; shift++)
+        ;
+    if (shift < 0 || shift >= kNumberOfSlabs) {
+        return 0;
+    }
+    if (aligned_size) {
+        *aligned_size = (kMinAllocatedSize << shift);
+    }
+    return slab_max_chunks(shift);
+}
+
 void *Zone::Allocate(size_t size) {
     GenerateUniqueId();
 

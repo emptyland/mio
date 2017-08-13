@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2307AF7B1F1460BD00F77E66 /* zone-container-base-test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2307AF7A1F1460BD00F77E66 /* zone-container-base-test.cc */; };
 		2311E3851EA8AD58007B5305 /* vm-runtime.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2311E3841EA8AD58007B5305 /* vm-runtime.cc */; };
 		2311E3861EA8AD58007B5305 /* vm-runtime.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2311E3841EA8AD58007B5305 /* vm-runtime.cc */; };
 		2311E3891EA9F0BC007B5305 /* vm-object-surface.cc in Sources */ = {isa = PBXBuildFile; fileRef = 2311E3881EA9F0BC007B5305 /* vm-object-surface.cc */; };
@@ -162,6 +163,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2307AF791F145B9600F77E66 /* zone-container-base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "zone-container-base.h"; sourceTree = "<group>"; };
+		2307AF7A1F1460BD00F77E66 /* zone-container-base-test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "zone-container-base-test.cc"; sourceTree = "<group>"; };
 		2311E3831EA8A95F007B5305 /* vm-runtime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-runtime.h"; sourceTree = "<group>"; };
 		2311E3841EA8AD58007B5305 /* vm-runtime.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "vm-runtime.cc"; sourceTree = "<group>"; };
 		2311E3871EA9A481007B5305 /* vm-object-surface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "vm-object-surface.h"; sourceTree = "<group>"; };
@@ -434,6 +437,7 @@
 				23E3D5C61E77CAFF00C51DDE /* file-output-stream.h */,
 				2349E56A1E4AA70B002883BC /* number-parser.h */,
 				2349E5741E4C51C1002883BC /* zone.h */,
+				2307AF791F145B9600F77E66 /* zone-container-base.h */,
 				2349E57B1E55B3DB002883BC /* zone-hash-map.h */,
 				2349E57E1E56A2A6002883BC /* zone-vector.h */,
 				2349E5811E56E2F0002883BC /* ast.h */,
@@ -505,6 +509,7 @@
 				234D81A21ECA90FB006CA3BA /* all-tests.cc */,
 				23F312041EF0DB6200B02687 /* nyaa-value-factory-test.cc */,
 				238DFC191EF5856B00A65769 /* handles-test.cc */,
+				2307AF7A1F1460BD00F77E66 /* zone-container-base-test.cc */,
 			);
 			name = Tests;
 			path = ../src;
@@ -689,6 +694,7 @@
 				2349E5861E56EF38002883BC /* raw-string-test.cc in Sources */,
 				2349E56F1E4AB1BB002883BC /* number-parser-test.cc in Sources */,
 				232434691E7922C10054C385 /* vm-thread.cc in Sources */,
+				2307AF7B1F1460BD00F77E66 /* zone-container-base-test.cc in Sources */,
 				231378E61E8A5514009384DF /* simple-function-register.cc in Sources */,
 				235808151E495CE200C8C567 /* lexer-test.cc in Sources */,
 				2349E5771E4C5310002883BC /* zone.cc in Sources */,

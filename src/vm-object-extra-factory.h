@@ -12,9 +12,12 @@ public:
     ObjectExtraFactory(ManagedAllocator *allocator)
         : allocator_(DCHECK_NOTNULL(allocator)) {}
 
-    FunctionDebugInfo * CreateFunctionDebugInfo(RawStringRef unit_name,
-                                                int trace_node_size,
-                                                const std::vector<int> &p2p);
+    FunctionDebugInfo *CreateFunctionDebugInfo(RawStringRef unit_name,
+                                               int trace_node_size,
+                                               const std::vector<int> &p2p);
+    
+    NativeCodeFragment *CreateNativeCodeFragment(NativeCodeFragment *next,
+                                                 void **index);
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(ObjectExtraFactory)
 private:

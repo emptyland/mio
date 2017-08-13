@@ -28,4 +28,13 @@ ObjectExtraFactory::CreateFunctionDebugInfo(RawStringRef unit_name,
     return info;
 }
 
+NativeCodeFragment *
+ObjectExtraFactory::CreateNativeCodeFragment(NativeCodeFragment *next,
+                                             void **index) {
+    auto fragment = static_cast<NativeCodeFragment *>(allocator_->Allocate(sizeof(NativeCodeFragment)));
+    fragment->next  = next;
+    fragment->index = index;
+    return fragment;
+}
+
 } // namespace mio

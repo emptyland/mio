@@ -64,6 +64,7 @@ public:
     DEF_GETTER(std::vector<BacktraceLayout>, backtrace)
     DEF_PROP_RW(bool, jit)
     DEF_PROP_RW(int, jit_optimize)
+    DEF_PROP_RW(int, hot_loop_limit)
     DEF_PTR_GETTER_NOTNULL(Thread, main_thread)
     DEF_PTR_GETTER_NOTNULL(FunctionRegister, function_register)
     DEF_PTR_GETTER_NOTNULL(GarbageCollector, gc)
@@ -121,6 +122,9 @@ private:
 
     /** just-in-time compiling optimization level */
     int jit_optimize_ = 0;
+
+    /** How many hit loop to be hot */
+    int hot_loop_limit_ = 1000;
 
     int max_call_deep_ = kDefaultMaxCallDeep;
     int native_code_size_ = kDefaultNativeCodeSize;

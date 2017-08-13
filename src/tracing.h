@@ -47,18 +47,20 @@ public:
     bool ResizeRecord(int tree_size);
 
     bool TraceFuncEntry(MIOGeneratedFunction *fn, int pc);
-    bool TraceLoopEntry(MIOGeneratedFunction *fn, int id, int pc);
+    bool TraceLoopEntry(MIOGeneratedFunction *fn, int id, int pc, int *hit);
     bool TraceLoopEdge(MIOGeneratedFunction *fn, int linked_id, int id, int pc);
     bool TraceGuardTrue(MIOGeneratedFunction *fn, bool value, int id, int pc);
     bool TraceGuardFalse(MIOGeneratedFunction *fn, bool value, int id, int pc);
 
     TraceBoundle *GetTraceBoundle(MIOGeneratedFunction *fn, int id);
 
+    TraceTree *GetTraceTreeOrNull(MIOGeneratedFunction *fn);
+
     DISALLOW_IMPLICIT_CONSTRUCTORS(TraceRecord)
 private:
     struct TreeBoundle {
         MIOGeneratedFunction *fn;
-        TraceTree         *tree;
+        TraceTree            *tree;
     };
 
     TreeBoundle      *trees_ = nullptr;

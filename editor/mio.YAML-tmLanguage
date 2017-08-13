@@ -8,7 +8,7 @@ uuid: 78982d28-7666-4e1f-aa22-a23530a19260
 patterns:
 - comment: Keyword
   name: keyword.other.mio
-  match: \b(if|while|for|val|var|else|package|function|break|continue)\b
+  match: \b(if|while|for|val|var|else|package|function|break|continue|in)\b
 - comment: Primitive
   name: storage.type.template.mio
   match: \b(void|i8|i16|i32|i64|int|f32|f64|string|map|array|union|slice)\b

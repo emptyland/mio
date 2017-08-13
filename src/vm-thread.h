@@ -74,6 +74,8 @@ public:
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Thread)
 private:
+    void CompileToNativeCodeFragment(MIOGeneratedFunction *fn, int id, int pc, bool *ok);
+
     Handle<MIOReflectionType> GetTypeInfo(int index, bool *ok);
 
     FunctionDebugInfo *GetDebugInfo(int layout, int *pc);

@@ -748,9 +748,18 @@ void Thread::Execute(MIOGeneratedFunction *callee, bool *ok) {
                 auto id = BitCodeDisassembler::GetOp2(bc);
                 auto native = BitCodeDisassembler::GetImm32(bc);
                 if (vm_->jit_) {
-                    TRACE(vm_->record_->TraceLoopEntry(generated_function(), id, pc_ - 1));
-                    if (native > 0) {
-                        // TODO:
+                    if (native <= 0) {
+                        int hit = 0;
+                        TRACE(vm_->record_->TraceLoopEntry(generated_function(), id, pc_ - 1, &hit));
+                        if (hit >= vm_->hot_loop_limit()) {
+                            CompileToNativeCodeFragment(generated_function(), id, pc_ - 1, ok);
+                            if (!*ok) {
+                                return;
+                            }
+                        }
+                    } else {
+
+
                     }
                 }
             } break;
@@ -1699,6 +1708,11 @@ void Thread::CreateEmptyValue(int result, Handle<MIOReflectionType> reflection,
             Panic(PANIC, ok, "not support yet kind %d", reflection->GetKind());
             break;
     }
+}
+
+void Thread::CompileToNativeCodeFragment(MIOGeneratedFunction *fn, int id,
+                                         int pc, bool *ok) {
+    // TODO:
 }
 
 Handle<MIOReflectionType> Thread::GetTypeInfo(int index, bool *ok) {

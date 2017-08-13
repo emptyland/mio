@@ -40,6 +40,8 @@ public:
     size_t slab_chunk_size(int index) const;
     int slab_max_chunks(int index) const;
 
+    int GetMaxChunks(size_t size, int *aligned_size) const;
+
     void *Allocate(size_t size);
     void Free(const void *p);
 

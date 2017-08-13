@@ -62,7 +62,7 @@ bool TraceRecord::TraceFuncEntry(MIOGeneratedFunction *fn, int pc) {
     return boundle->node != nullptr;
 }
 
-bool TraceRecord::TraceLoopEntry(MIOGeneratedFunction *fn, int id, int pc) {
+bool TraceRecord::TraceLoopEntry(MIOGeneratedFunction *fn, int id, int pc, int *hit) {
     auto boundle = GetTraceBoundle(fn, id);
     if (!boundle) {
         return true;
@@ -71,6 +71,9 @@ bool TraceRecord::TraceLoopEntry(MIOGeneratedFunction *fn, int id, int pc) {
         DCHECK_NOTNULL(LoopEntry::cast(boundle->node))->IncrHit();
     } else {
         boundle->node = factory_->CreateLoopEntry(id, pc);
+    }
+    if (hit && boundle->node) {
+        *hit = LoopEntry::cast(boundle->node)->hit();
     }
     return boundle->node != nullptr;
 }
@@ -131,6 +134,16 @@ TraceBoundle *TraceRecord::GetTraceBoundle(MIOGeneratedFunction *fn, int id) {
         return nullptr;
     }
     return DCHECK_NOTNULL(trees_[fn->GetId()].tree)->mutable_node(id);
+}
+
+TraceTree *TraceRecord::GetTraceTreeOrNull(MIOGeneratedFunction *fn) {
+    DCHECK_GE(fn->GetId(), 0);
+    DCHECK_LT(fn->GetId(), tree_size_);
+
+    if (!fn->GetDebugInfo()) {
+        return nullptr;
+    }
+    return trees_[fn->GetId()].tree;
 }
 
 bool TraceTree::Init(ManagedAllocator *allocator) {
